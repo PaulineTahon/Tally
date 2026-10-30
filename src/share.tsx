@@ -1,16 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, TriangleAlert, PencilLine, Trash2,
+  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Settings2, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { AutoHeight, Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { AutoHeight, Collapse, CopyButton, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { fileName, safeStyle } from './qrpanel'
-import { rowCopy } from './copy'
+import { endingCopy, rowCopy } from './copy'
 import { tick } from './guide'
 
-export type Channel = 'link' | 'social' | 'email' | 'qr'
+export type Channel = 'social' | 'email' | 'qr'
 
 export function useNativeShare() {
   const { toast } = useStore()
@@ -75,7 +75,6 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
       <Segmented<Channel>
         label="Share to" value={value} onChange={onChange}
         options={[
-          { value: 'link', label: 'Link', icon: <Link2 aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
           { value: 'email', label: 'Email', icon: <Mail aria-hidden /> },
           { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
@@ -116,92 +115,129 @@ export const emailHref = (link: string) => `mailto:?subject=${enc(EMAIL_SUBJECT)
 const PREVIEW_DESC = 'Made with Tally, the simplest way to create forms.'
 
 /** Compact: thumbnail on the left, title and description on the right. */
-export function LinkPreviewCard({ title, desc, img }: { title: string; desc: string; img: string }) {
+/** Link ending, with every old ending still redirecting and listed under Also works. */
+function LinkEnding() {
+  const s = useStore()
+  const [ending, setEnding] = useState(() => (s.slug === FORM_ID ? 'summer-rsvp' : s.slug))
+  const [removing, setRemoving] = useState<string | null>(null)
+  const value = ending || s.slug
+  const dirty = value !== s.slug
+  const save = () => { s.setSlug(value); s.toast(endingCopy.updated); tick('link-ending') }
+  const also = [...s.oldEndings].reverse()
   return (
-    <div className="lp-compact" aria-label="Link preview">
-      <img className="lp-thumb" src={img} alt="" />
-      <span className="lp-text">
-        <span className="lp-title">{title || FORM_TITLE}</span>
-        <span className="lp-desc">{desc}</span>
-      </span>
+    <div className="stack gap-8">
+      <span className="field-label row gap-4">{endingCopy.label} <Pro /></span>
+      <span className="xs muted">{endingCopy.help}</span>
+      <div className="input-group">
+        <span className="prefix">tally.so/r/</span>
+        <input aria-label="Link ending" value={value} onChange={(e) => setEnding(slugify(e.target.value))} />
+      </div>
+      {dirty && (
+        <div className="callout callout-info xs" role="status">
+          <Check aria-hidden />
+          <span>{endingCopy.changeNote}</span>
+        </div>
+      )}
+      <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+        {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEnding(s.slug)}>{endingCopy.cancel}</button>}
+        <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? endingCopy.change : endingCopy.save}</button>
+      </div>
+      {(also.length > 0 || s.slug !== FORM_ID) && (
+        <div className="stack gap-4 also-works">
+          <span className="field-label">{endingCopy.alsoWorks}</span>
+          <span className="xs muted">{endingCopy.alsoWorksHelp}</span>
+          <ul className="also-list">
+            {also.map((e) => (
+              <li key={e}>
+                {removing === e ? (
+                  <div className="stack gap-8 grow" role="alertdialog" aria-label={endingCopy.removeConfirm(`tally.so/r/${e}`)}>
+                    <span className="small">{endingCopy.removeConfirm(`tally.so/r/${e}`)}</span>
+                    <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+                      <button type="button" className="btn btn-ghost btn-sm" onClick={() => setRemoving(null)}>{endingCopy.cancel}</button>
+                      <button type="button" className="btn btn-danger btn-sm" autoFocus onClick={() => { s.removeEnding(e); setRemoving(null); s.toast(endingCopy.removed(`tally.so/r/${e}`)) }}>{endingCopy.remove}</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <span className="grow small mono-ish">tally.so/r/{e}</span>
+                    <button type="button" className="link-btn small" onClick={() => setRemoving(e)}>{endingCopy.remove}</button>
+                  </>
+                )}
+              </li>
+            ))}
+            {s.slug !== FORM_ID && (
+              <li><span className="grow small mono-ish">tally.so/r/{FORM_ID}</span><span className="xs muted">{endingCopy.formId}</span></li>
+            )}
+          </ul>
+        </div>
+      )}
     </div>
   )
 }
 
-function LinkPanel() {
-  const s = useStore()
-  const [open, setOpen] = useState(false)
-  const [ending, setEnding] = useState('')
+/** Under the link bar: one preview row, then two secondary links that open in place. */
+function LinkDetails() {
   const [customize, setCustomize] = useState(false)
+  const [more, setMore] = useState(false)
+  const [embed, setEmbed] = useState(false)
   const [lpTitle, setLpTitle] = useState(FORM_TITLE)
   const [lpDesc, setLpDesc] = useState(PREVIEW_DESC)
   const [lpImg, setLpImg] = useState<string | null>(null)
   const defaultImg = `${import.meta.env.BASE_URL}link-preview.jpg`
-  const value = ending || s.slug
-  const dirty = value !== s.slug
-  const toggle = () => { if (!open) setEnding(s.slug === FORM_ID ? 'summer-rsvp' : s.slug); setOpen((v) => !v) }
-  const save = () => { s.setSlug(value); s.toast('Link updated.'); setEnding(''); tick('link-ending') }
   const resetPreview = () => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
   return (
-    <div className="stack gap-12" id="panel-link">
-      <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
-      {/* One row, one Pro pill. Everything opens in place. */}
-      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More Link Options <Pro /></>}
-        open={open} onToggle={toggle}>
-        <div className="stack gap-8">
-          <span className="field-label row gap-4">Link Ending <Pro /></span>
-          <span className="xs muted">Make it yours, like tally.so/r/summer-rsvp.</span>
-          <div className="input-group">
-            <span className="prefix">tally.so/r/</span>
-            <input aria-label="Link ending" value={value} onChange={(e) => setEnding(slugify(e.target.value))} />
-          </div>
-          {dirty && (
-            <div className="callout callout-warn xs" role="alert">
-              <TriangleAlert aria-hidden />
-              <span>Printed QR codes and links you've already shared point to <b>{s.shortLink}</b>. Change it, and they stop working.</span>
-            </div>
-          )}
-          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-            {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEnding(s.slug)}>Cancel</button>}
-            <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? 'Change link' : 'Save'}</button>
-          </div>
-        </div>
-        <hr className="divider" />
-        <div className="stack gap-8">
-          <span className="field-label row gap-4">Custom Domain <Pro /></span>
-          <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
-          <div className="input-group is-disabled">
-            <span className="prefix">https://</span>
-            <input aria-label="Custom domain" placeholder="forms.yourdomain.com" disabled />
-          </div>
-          <div><button type="button" className="link-btn small">Upgrade plan</button></div>
-        </div>
-        <hr className="divider" />
-        <div className="stack gap-8">
+    <div className="stack gap-8">
+      <div className="lp-row" aria-label="Link preview">
+        <img className="lp-thumb" src={(customize && lpImg) || defaultImg} alt="" />
+        <span className="lp-title grow">{(customize ? lpTitle : FORM_TITLE) || FORM_TITLE}</span>
+        <button type="button" className="link-btn small" aria-expanded={customize} aria-controls="lp-edit" onClick={() => (customize ? resetPreview() : setCustomize(true))}>
+          Customize
+        </button>
+      </div>
+      <Collapse open={customize} id="lp-edit" gap={8}>
+        <div className="stack gap-8 lp-edit">
           <span className="field-label row gap-4">Link Preview <Pro /></span>
-          {!customize ? (
-            <div><button type="button" className="link-btn small" onClick={() => setCustomize(true)}>Customize</button></div>
-          ) : (
-            <>
-              <label className="field-label" htmlFor="lp-title">Title</label>
-              <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
-              <label className="field-label" htmlFor="lp-desc">Description</label>
-              <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
-              <div className="row-between">
-                <span className="field-label">Image</span>
-                <label className="btn btn-secondary btn-sm">Replace
-                  <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
-                </label>
-              </div>
-              <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
-              <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>
-                <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
-              </div>
-            </>
-          )}
+          <label className="field-label" htmlFor="lp-title">Title</label>
+          <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+          <label className="field-label" htmlFor="lp-desc">Description</label>
+          <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+          <div className="row-between">
+            <span className="field-label">Image</span>
+            <label className="btn btn-secondary btn-sm">Replace
+              <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+            </label>
+          </div>
+          <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
+          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>
+            <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
+          </div>
         </div>
-      </Expand>
+      </Collapse>
+      <div className="row gap-16 link-extras">
+        <button type="button" className="link-btn embed-toggle" aria-expanded={more} aria-controls="more-options" onClick={() => setMore((v) => !v)}>
+          <Settings2 aria-hidden />More Link Options <Pro /><ChevronDown aria-hidden className="expand-chev" style={{ transform: more ? 'rotate(180deg)' : undefined }} />
+        </button>
+        <button type="button" className="link-btn embed-toggle" aria-expanded={embed} aria-controls="embed-options" onClick={() => setEmbed((v) => !v)}>
+          <Code aria-hidden />Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: embed ? 'rotate(180deg)' : undefined }} />
+        </button>
+      </div>
+      <Collapse open={more} id="more-options" gap={8}>
+        <div className="stack gap-12 more-box">
+          <LinkEnding />
+          <hr className="divider" />
+          <div className="stack gap-8">
+            <span className="field-label row gap-4">Custom Domain <Pro /></span>
+            <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
+            <div className="input-group is-disabled">
+              <span className="prefix">https://</span>
+              <input aria-label="Custom domain" placeholder="forms.yourdomain.com" disabled />
+            </div>
+            <div><button type="button" className="link-btn small">Upgrade plan</button></div>
+          </div>
+        </div>
+      </Collapse>
+      <Collapse open={embed} id="embed-options" gap={8}><EmbedPanel /></Collapse>
     </div>
   )
 }
@@ -268,19 +304,6 @@ function EmbedPanel() {
           <div><SmallCopy text={embedCode(mode, s.slug)} label="Copy code" toastText="Embed code copied." /></div>
         </div>
       )}
-    </div>
-  )
-}
-
-/** Secondary: a plain link that opens the embed options in place. */
-function EmbedLink() {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="stack gap-12 embed-link">
-      <button type="button" className="link-btn embed-toggle" aria-expanded={open} aria-controls="embed-options" onClick={() => setOpen((v) => !v)}>
-        <Code aria-hidden />Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
-      </button>
-      <Collapse open={open} id="embed-options" gap={12}><EmbedPanel /></Collapse>
     </div>
   )
 }
@@ -493,7 +516,6 @@ function QrCodePanel({ pulse }: { pulse: number }) {
 
 export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?: number }) {
   const { url } = useStore()
-  if (channel === 'link') return <LinkPanel />
   if (channel === 'qr') return <QrCodePanel pulse={pulse} />
   if (channel === 'social') {
     return (
@@ -525,7 +547,7 @@ export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?:
 }
 
 /** Remembered while the page is open, so coming back from the QR panel lands on the same channel. */
-let lastChannel: Channel = 'link'
+let lastChannel: Channel = 'social'
 
 export function ShareBlock() {
   const [channel, setChannelState] = useState<Channel>(lastChannel)
@@ -535,9 +557,9 @@ export function ShareBlock() {
   return (
     <div className="stack gap-16">
       <LinkBar onQr={() => { setChannel('qr'); setJump((j) => j + 1) }} />
+      <LinkDetails />
       <ChannelPicker value={channel} onChange={(c) => { setJump(0); setChannel(c) }} />
       <div role="tabpanel"><AutoHeight k={channel}><ChannelPanel channel={channel} pulse={jump} /></AutoHeight></div>
-      <EmbedLink />
     </div>
   )
 }

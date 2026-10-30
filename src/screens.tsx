@@ -3,17 +3,23 @@ import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRi
 import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
 import { tick } from './guide'
+import { publishCopy } from './copy'
 import { CoverArt, VISUAL_URL } from './coverArt'
 import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
 
-export function Editor({ onPublished, published }: { onPublished: () => void; published: boolean }) {
+export type PublishState = 'first' | 'empty' | 'data'
+
+export function Editor({ onPublished, published, pub }: { onPublished: () => void; published: boolean; pub: PublishState }) {
   const mobile = useIsMobile()
+  const s = useStore()
   const [phase, setPhase] = useState<'idle' | 'done'>(published ? 'done' : 'idle')
   const publish = () => {
-    // No waiting: the share sheet opens on the same click.
-    setPhase('done'); onPublished()
+    setPhase('done')
+    // The full sheet only helps when nobody has answered yet. After that, a quiet toast with a way back to it.
+    if (pub === 'data') s.toast(publishCopy.updated, { action: { label: publishCopy.share, onClick: onPublished } })
+    else onPublished()
   }
   return (
     <div className="editor">

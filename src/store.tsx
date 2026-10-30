@@ -36,11 +36,16 @@ function loadSettings(): QrSettings {
 }
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
 
-interface Toast { id: number; text: string; leaving?: boolean }
+export interface ToastAction { label: string; onClick: () => void }
+export interface ToastOptions { action?: ToastAction; duration?: number }
+interface Toast { id: number; text: string; leaving?: boolean; action?: ToastAction; duration: number }
 
 interface Store {
   slug: string
   setSlug: (s: string) => void
+  /** Endings this form used before. They keep redirecting and stay reserved for this form. */
+  oldEndings: string[]
+  removeEnding: (e: string) => void
   shortLink: string
   url: (ref?: string) => string
   display: (ref?: string) => string
@@ -48,7 +53,7 @@ interface Store {
   markDownloaded: () => void
   sources: Source[]
   addSource: (label: string) => Source
-  toast: (text: string) => void
+  toast: (text: string, opts?: ToastOptions) => void
   qrOpen: boolean
   setQrOpen: (v: boolean) => void
   placements: Source[]
@@ -69,7 +74,17 @@ export function slugify(s: string) {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [slug, setSlug] = useState(FORM_ID)
+  const [slug, setSlugState] = useState(FORM_ID)
+  const [oldEndings, setOldEndings] = useState<string[]>([])
+  const setSlug = useCallback((next: string) => {
+    setSlugState((cur) => {
+      if (next === cur) return cur
+      // The form ID always works, so it never needs listing.
+      setOldEndings((o) => [...o.filter((e) => e !== next && e !== cur), ...(cur === FORM_ID ? [] : [cur])])
+      return next
+    })
+  }, [])
+  const removeEnding = useCallback((e: string) => setOldEndings((o) => o.filter((x) => x !== e)), [])
   const [downloadedLink, setDownloaded] = useState<string | null>(null)
   const [sources, setSources] = useState<Source[]>(EXAMPLE_SOURCES)
   const [toasts, setToasts] = useState<Toast[]>([])
@@ -82,25 +97,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [qrRef, setQrRef] = useState('qr')
   const nextId = useRef(1)
 
-  /** Toasts stack, up to three. Each one leaves the way it came in, then unmounts. */
-  const toast = useCallback((text: string) => {
+  /** Toasts stack, up to three. Each one times itself (pausing while hovered or focused), leaves the way it came in, then unmounts. */
+  const leave = useCallback((lid: number) => {
+    setToasts((t) => t.map((x) => (x.id === lid ? { ...x, leaving: true } : x)))
+    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== lid)), 200)
+  }, [])
+  const toast = useCallback((text: string, opts: ToastOptions = {}) => {
     const id = nextId.current++
-    const leave = (lid: number) => {
-      setToasts((t) => t.map((x) => (x.id === lid ? { ...x, leaving: true } : x)))
-      setTimeout(() => setToasts((t) => t.filter((x) => x.id !== lid)), 200)
-    }
+    const duration = opts.duration ?? (opts.action ? 6000 : 2600)
     setToasts((t) => {
       const live = t.filter((x) => !x.leaving)
       if (live.length >= 3) setTimeout(() => leave(live[0].id))
-      return [...t, { id, text }]
+      return [...t, { id, text, action: opts.action, duration }]
     })
-    setTimeout(() => leave(id), 2600)
     // In a bottom sheet, keep the field you just used clear of the toast.
     requestAnimationFrame(() => {
       const el = document.activeElement
       if (el instanceof HTMLElement && el.closest('.sheet-body')) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     })
-  }, [])
+  }, [leave])
 
   const shortLink = `tally.so/r/${slug}`
   const url = useCallback((ref?: string) => `https://tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
@@ -144,10 +159,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [sources])
 
   const value = useMemo<Store>(() => ({
-    slug, setSlug, shortLink, url, display,
+    slug, setSlug, oldEndings, removeEnding, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
     sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings,
-  }), [slug, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings])
+  }), [slug, setSlug, oldEndings, removeEnding, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
@@ -157,7 +172,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           {toasts.map((t) => {
             const live = toasts.filter((x) => !x.leaving)
             const depth = t.leaving ? 0 : live.length - 1 - live.indexOf(t)
-            return <ToastItem key={t.id} text={t.text} depth={depth} leaving={!!t.leaving} />
+            return <ToastItem key={t.id} t={t} depth={depth} onDone={() => leave(t.id)} />
           })}
         </ol>
       </div>
@@ -166,13 +181,28 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 }
 
 /** Enters from below via a mounted flag, so it is a transition and can be retargeted mid-way. */
-function ToastItem({ text, depth, leaving }: { text: string; depth: number; leaving: boolean }) {
+function ToastItem({ t, depth, onDone }: { t: Toast; depth: number; onDone: () => void }) {
   const [mounted, setMounted] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const left = useRef(t.duration)
+  const leaving = !!t.leaving
   useEffect(() => { const r = requestAnimationFrame(() => setMounted(true)); return () => cancelAnimationFrame(r) }, [])
+  // Counts down only while nobody is reading or using it.
+  useEffect(() => {
+    if (paused || leaving) return
+    const start = performance.now()
+    const timer = window.setTimeout(onDone, left.current)
+    return () => { window.clearTimeout(timer); left.current -= performance.now() - start }
+  }, [paused, leaving]) // eslint-disable-line react-hooks/exhaustive-deps
+  const hold = () => setPaused(true)
+  const go = () => setPaused(false)
   return (
-    <li className="toast-item" data-mounted={mounted} data-leaving={leaving} data-front={depth === 0}
+    <li className={`toast-item ${t.action ? 'has-action' : ''}`} data-mounted={mounted} data-leaving={leaving} data-front={depth === 0}
+      onMouseEnter={hold} onMouseLeave={go} onFocus={hold} onBlur={go}
       style={{ transform: mounted && !leaving ? `translateY(${-depth * 10}px) scale(${1 - depth * 0.05})` : undefined, zIndex: 10 - depth }}>
-      <div className="toast"><Check aria-hidden />{text}</div>
+      <div className="toast"><Check aria-hidden />{t.text}
+        {t.action && <button type="button" className="toast-action" onClick={() => { t.action!.onClick(); onDone() }}>{t.action.label}</button>}
+      </div>
     </li>
   )
 }

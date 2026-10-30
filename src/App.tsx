@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StoreProvider, useIsMobile, useStore } from './store'
-import { Editor, ShareTab } from './screens'
+import { Editor, ShareTab, type PublishState } from './screens'
+import { publishCopy } from './copy'
 import { Insights, Submissions, type InsightsState } from './insights'
 import { PublishedSheet } from './modals'
 import { QrPanel } from './qrpanel'
@@ -10,7 +11,7 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr: boolean } {
+function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
@@ -21,6 +22,7 @@ function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
+    pub: p.get('pub') === 'empty' || p.get('pub') === 'data' ? (p.get('pub') as PublishState) : 'first',
   }
 }
 
@@ -51,7 +53,7 @@ function Inner() {
 
   return (
     <>
-      {r.route === 'edit' && <Editor published={r.publish} onPublished={() => setSheet(true)} />}
+      {r.route === 'edit' && <Editor key={r.pub} pub={r.pub} published={r.publish} onPublished={() => setSheet(true)} />}
       {r.route === 'share' && <ShareTab onTab={onTab} onEdit={() => go('edit')} />}
       {r.route === 'insights' && <Insights key={r.state} onTab={onTab} onEdit={() => go('edit')} state={r.state} onOpenQr={openQr} onShare={toShare} />}
       {r.route === 'submissions' && <Submissions onTab={onTab} onEdit={() => go('edit')} onShare={() => go('share')} />}
@@ -68,6 +70,13 @@ function Inner() {
       {(!mobile || navOpen) && <nav className="proto-nav" aria-label="Prototype screens">
         <span className="proto-label">Prototype</span>
         <a href="#/edit" aria-current={r.route === 'edit'}>Publish</a>
+        {r.route === 'edit' && (
+          <select aria-label={publishCopy.protoLabel} value={r.pub} onChange={(e) => { setSheet(false); go('edit', e.target.value === 'first' ? '' : `?pub=${e.target.value}`) }}>
+            <option value="first">{publishCopy.protoFirst}</option>
+            <option value="empty">{publishCopy.protoNoResponses}</option>
+            <option value="data">{publishCopy.protoResponses}</option>
+          </select>
+        )}
         <a href="#/share" aria-current={r.route === 'share'}>Share tab</a>
         <a href="#/insights" aria-current={r.route === 'insights'}>Insights</a>
         {r.route === 'insights' && (

@@ -202,11 +202,14 @@ a { color: inherit; }
 .sheet-footer { padding: 20px; padding-bottom: calc(20px + var(--safe-b)); border-top: 1px solid var(--divider); display: flex; flex-direction: column; gap: 8px; flex: none; }
 
 /* Toast */
-.toast-wrap { position: fixed; left: 0; right: 0; bottom: var(--toast-bottom, calc(24px + var(--safe-b))); z-index: 80; display: flex; justify-content: center; pointer-events: none; }
+.toast-wrap { position: fixed; left: 0; right: 0; bottom: var(--toast-bottom, calc(60px + var(--safe-b))); z-index: 80; display: flex; justify-content: center; pointer-events: none; }
 .toast {
   background: #191917; color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500;
-  box-shadow: var(--pop); display: flex; align-items: center; gap: 8px;
+  box-shadow: var(--pop); display: flex; align-items: center; gap: 8px; pointer-events: auto;
 }
+.toast-action { margin: -4px -6px -4px 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 6px; background: rgba(255,255,255,.14); color: #fff; font: inherit; font-weight: 600; cursor: pointer; transition: background-color 100ms ease-in-out; }
+.toast-action:focus-visible { outline: 2px solid #fff; outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .toast-action:hover { background: rgba(255,255,255,.22); } }
 /* Stack: the newest sits in front, older ones tuck in behind and above. */
 .toast-stack { position: relative; width: 100%; height: 0; margin: 0; padding: 0; list-style: none; }
 .toast-item {

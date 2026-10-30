@@ -15,3 +15,30 @@ export const rowCopy = {
   deleteConfirm: 'Delete',
   cancel: 'Cancel',
 }
+
+/** Link ending: old endings keep redirecting, and stay reserved for this form. */
+export const endingCopy = {
+  label: 'Link Ending',
+  help: 'Make it yours, like tally.so/r/summer-rsvp.',
+  changeNote: 'Old links and printed codes keep working.',
+  change: 'Change link',
+  save: 'Save',
+  cancel: 'Cancel',
+  updated: 'Link updated.',
+  alsoWorks: 'Also works',
+  alsoWorksHelp: 'Reserved for this form. They open it too.',
+  formId: 'Form ID, always works',
+  remove: 'Remove',
+  removeConfirm: (ending: string) => `Remove ${ending}? Links and codes that use it will stop working.`,
+  removed: (ending: string) => `${ending} removed`,
+}
+
+/** Republishing: the full sheet only when it helps. */
+export const publishCopy = {
+  updated: 'Your form is updated.',
+  share: 'Share',
+  protoLabel: 'Publish state',
+  protoFirst: 'First publish',
+  protoNoResponses: 'Republish, no responses',
+  protoResponses: 'Republish, has responses',
+}

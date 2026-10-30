@@ -11,18 +11,20 @@ People don't really want to "share". They want enough of the right responses, fa
 
 I started with the quick win, then the bigger bet:
 
-1. **A share sheet right after Publish.** The link first, then Copy, then a QR Code button that opens the QR Code tab. A "Share To" picker covers Link, Social, Email and QR Code, with "Embed on your site" as a quieter link underneath. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
-2. **No pop-ups on top of the sheet.** A compact link preview shows what people will see. Link ending, custom domain and the link preview editor sit together under one "More Link Options" row, each with its own Pro label, and open in place. Changing the link ending warns you first that printed codes and shared links still point to the old one.
+1. **A share sheet right after Publish, the first time.** The link first, then Copy, then a QR Code button that jumps to your main code. A "Share To" picker covers Social, Email and QR Code. On a phone it's a bottom sheet with a Share button that opens the native share sheet. Republishing a form that already has responses shows a short toast with a Share button instead, so the sheet doesn't get in the way.
+2. **No pop-ups on top of the sheet.** Under the link sits one row with the link preview and Customize, then two quieter links: "More Link Options" (link ending and custom domain, Pro) and "Embed on your site". They open in place. Change the link ending and the old one keeps working: old endings stay reserved for your form and are listed under "Also works", where you can remove them.
 3. **A plain black QR code, print-ready by default.** On the free plan the only extra is a small "Made with Tally" line under the short link. One Download button (SVG, PDF or PNG) and Personalize to add your brand color and logo, with error correction level H so it still scans. There's no size to pick: SVG and PDF are vector, and the PNG is over 3000 px wide, sharp enough to print up to A3. Responses from it are always tagged with `?ref=qr`.
-4. **One code, ready to go.** The QR Code tab opens with a main code you can download right away. Using it in more than one place? Add another code for each place, for free. Every code can be renamed without changing its link, so printed codes keep working. The Share tab lists every code and tracked link in one place. You only ever see the names; the `?ref` tag stays in the link itself. Your last settings are remembered.
+4. **One code, ready to go.** The QR Code tab opens with a main code you can download right away. Using it in more than one place? Add another code for each place, for free. Every code can be renamed without changing its link, so printed codes keep working. The Share tab lists your tracked links and extra codes in one place, with the main code kept in the QR Code tab so it only shows once. You only ever see the names; the `?ref` tag stays in the link itself. Your last settings are remembered.
 5. **Sources in Insights.** The Sources panel on the Insights tab lists the main QR code and each extra code as its own row, next to the referrers, with a Submissions column. This is the part I'd push for most: it turns sharing into a loop.
 
 ## What to try
 
 - **Publish** in the editor and watch the share sheet open. Hit Copy and see it confirm in place.
-- Click **QR Code** next to Copy. Download the main code, then try Personalize from View code. Scan it with your phone.
+- Click **QR Code** next to Copy. It jumps to the main code. Download it, then try Personalize from View code. Scan it with your phone.
 - Click **Add another code**, add one for a place and download it. Then rename it.
-- Open **More Link Options** and type a new link ending to see the warning.
+- Open **More Link Options** and change the link ending. The old one shows up under Also works.
+- Switch the Publish state in the prototype bar to see republishing with and without responses.
+- Follow the **Prototype Guide** card on each screen.
 - Go to **Insights** and switch between the example states in the prototype bar.
 - Try everything at phone width too.
 
