@@ -57,28 +57,28 @@ export const planCopy = {
 }
 
 /**
- * Social and Email panels. Placeholder wording for now; the final strings drop in here.
+ * Social and Email panels. Final wording from the copy review.
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
-  socialIntro: 'Post it where your people are.',
+  socialIntro: 'Used for every channel below. The link is added for you.',
   messageLabel: 'Message',
-  defaultMessage: (title: string) => `Quick one: ${title}. It takes a minute.`,
+  defaultMessage: (title: string) => `I'd love your answers to ${title}.`,
   send: 'Send',
-  copyMessageAndLink: 'Copy message and link',
+  copyMessageAndLink: 'Copy message',
   copyLinkOnly: 'Copy link only',
-  messageCopied: 'Message and link copied.',
-  linkCopied: 'Link copied. Go spread the word.',
+  messageCopied: 'Message copied',
+  linkCopied: 'Link copied',
   moreFor: (place: string) => `More for ${place}`,
   socialHint: 'Responses from copied messages show up under Copied message in Insights.',
-  emailIntro: 'Drop it in your newsletter or inbox.',
+  emailIntro: 'Edit the message below, then send it from your mail app or paste it anywhere.',
   subjectLabel: 'Subject',
   bodyLabel: 'Message',
-  defaultSubject: (title: string) => `Quick one: ${title}`,
-  defaultBody: (title: string) => `Hi!\n\nCould you fill in ${title}? It takes a minute.`,
-  linkNote: 'Your link goes at the end.',
+  defaultSubject: (title: string) => `Got a minute? ${title}`,
+  defaultBody: (title: string) => `Hi,\n\nI'd love your answers to ${title}. Here's the link:`,
+  linkNote: 'The link is added at the end:',
   openMail: 'Open in mail app',
-  copyEmail: 'Copy message with link',
-  emailCopied: 'Message and link copied.',
-  emailHint: "The link is tagged, so you'll see responses from email.",
+  copyEmail: 'Copy message',
+  emailCopied: 'Message copied',
+  emailHint: 'The link is tagged, so responses from email show up under Email in Insights.',
 }
