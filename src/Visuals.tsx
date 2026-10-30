@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, ChevronDown, Check, Copy, Palette } from 'lucide-react'
+import { Download, Check, Copy } from 'lucide-react'
 import { CoverArt, PINK, Qr, QrBox, VISUAL_URL, rect, wobble } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
@@ -116,33 +116,52 @@ function Wordmark() {
 }
 
 /** The new QR panel, as it looks in the product. */
-function QrPanelMock({ url }: { url: string }) {
+/** The Share tab with the QR Code tab open on the main code, as in the prototype. */
+function ShareTabMock({ url }: { url: string }) {
+  const Row = ({ name, n }: { name: string; n: string }) => (
+    <div className="sm-row">
+      <span className="sm-thumb"><QrBox size={26} url={url} label="" plain /></span>
+      <span className="sm-name">{name}</span><span className="sm-n">{n}</span>
+      <span className="sm-icon"><Download aria-hidden /></span><span className="sm-more">···</span>
+    </div>
+  )
   return (
-    <div className="pm">
-      <div className="pm-head"><b>QR code</b><span className="pm-x">✕</span></div>
-      <div className="pm-body">
-        <div className="pm-art">
-          <QrBox size={200} url={url} label="QR code" plain />
-          <b>tally.so/r/KpYalV</b>
-          <span>Made with Tally</span>
+    <div className="pg" aria-hidden>
+      <b className="pg-title">Community picnic RSVP</b>
+      <div className="pg-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span><span>Settings</span></div>
+      <div className="pg-link">
+        <span className="pg-input">tally.so/r/KpYalV</span>
+        <span className="pg-copy"><Copy aria-hidden />Copy</span>
+        <span className="pg-btn"><QrIcon />QR Code</span>
+      </div>
+      <div className="sm-seg"><span>Social</span><span>Email</span><span className="on">QR Code</span></div>
+      <div className="sm-list">
+        <div className="sm-row is-main">
+          <span className="sm-big"><QrBox size={132} url={url} label="QR code" plain /></span>
+          <span className="sm-main-text"><span className="sm-name">Main code</span><span className="sm-n">Ready to print</span></span>
+          <span className="sm-dl"><Download aria-hidden />Download SVG</span>
         </div>
-        <div className="pm-actions">
-          <div className="mock-split"><span><Download aria-hidden />Download SVG</span><span className="caret"><ChevronDown aria-hidden /></span></div>
-          <div className="pm-btn"><Palette aria-hidden />Personalize</div>
-        </div>
-        <span className="pm-note">Responses from this code are tagged, so you'll see where they came from.</span>
+        <Row name="Poster" n="2 responses" />
+        <Row name="Flyer" n="1 response" />
       </div>
     </div>
   )
 }
+
+const QrIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" />
+    <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1" />
+  </svg>
+)
 
 function Changelog() {
   return (
     <div className="art changelog">
       <div className="cl-wm"><Wordmark /></div>
       <div className="cl-copy">
-        <h1>Your forms,<br />now on paper</h1>
-        <p>Grab your code from any form, right next to Copy.</p>
+        <h1>Your forms, out in the real world</h1>
+        <p>Every form now comes with a QR code, ready the moment you publish.</p>
       </div>
       <div className="browser">
         <div className="browser-bar">
@@ -150,17 +169,24 @@ function Changelog() {
           <span className="address">tally.so/forms/KpYalV/share</span>
         </div>
         <div className="browser-body">
-          <div className="pg" aria-hidden>
-            <b className="pg-title">Community picnic RSVP</b>
-            <div className="pg-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span><span>Settings</span></div>
-            <div className="pg-link"><span className="pg-input">https://tally.so/r/KpYalV</span><span className="pg-copy"><Copy aria-hidden />Copy</span><span className="pg-qr" /></div>
-          </div>
-          <div className="mock-dim" aria-hidden />
-          <QrPanelMock url={VISUAL_URL('qr-changelog')} />
+          <ShareTabMock url={VISUAL_URL('qr-changelog')} />
         </div>
       </div>
     </div>
   )
+}
+
+/** The changelog post, in one place. */
+const POST = {
+  title: 'Your forms, out in the real world',
+  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and hit QR Code.',
+  bullets: [
+    ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
+    ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],
+    ['Make it yours (Pro).', 'Add your brand color and logo.'],
+    ['On your phone?', 'Save your code to your photos or share it straight away.'],
+  ] as [string, string][],
+  end: 'Happy sharing!',
 }
 
 /* ---------- Poster: A-size portrait, 800x1131 exported at 2x ---------- */
@@ -250,7 +276,7 @@ function ChangelogGif() {
         <a className="btn btn-black" href={GIF} download="tally-qr-changelog-2400x1600.gif"><Download aria-hidden />Download GIF</a>
       </div>
       <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
-        <img src={GIF} alt="Opening the QR code from the Share tab and downloading it as SVG" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src={GIF} alt="On the Share tab, QR Code opens the main code, then it downloads as SVG" style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
       <div className="v-caption small"><p>For the changelog entry, next to the image above. Social posts and link previews keep using the static image.</p></div>
     </section>
@@ -281,16 +307,10 @@ export default function Visuals() {
       </header>
       <Exportable title="Changelog image" name="tally-qr-changelog"
         caption={<>
-          <p><b>Your forms, now on paper</b></p>
-          <p>Some forms belong offline: on a poster, a flyer, a menu or a name badge. Grab your code from any form, right next to Copy on the Share tab.</p>
-          <ul>
-            <li><b>Ready to print.</b> Download it as SVG, PDF or high-res PNG. It stays sharp from sticker size to A0.</li>
-            <li><b>Make it yours.</b> Codes start in classic black. Add your brand color and logo.</li>
-            <li><b>One code per place.</b> Make one for the poster, the flyer and the slides, and download each when you need it.</li>
-            <li><b>Know what worked.</b> Every code is tagged, so each one gets its own row in Insights.</li>
-            <li><b>On your phone?</b> Save the code to your photos or share it straight from the share sheet.</li>
-          </ul>
-          <p>Open any form, go to Share, and hit QR Code. Happy printing!</p>
+          <p><b>{POST.title}</b></p>
+          <p>{POST.body}</p>
+          <ul>{POST.bullets.map(([lead, rest]) => <li key={lead}><b>{lead}</b> {rest}</li>)}</ul>
+          <p>{POST.end}</p>
         </>}>
         <Changelog />
       </Exportable>
