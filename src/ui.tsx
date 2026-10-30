@@ -44,7 +44,7 @@ export function CopyButton({ text, className = '', big = false, label = 'Copy', 
   }
   return (
     <button type="button" className={`btn btn-black ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={`${label} ${text}`}>
-      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
+      <IconSwap on={copied} />
       {/* Same as today's Tally: the icon turns into a check, the label stays. */}
       <span>{label}</span>
       <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
@@ -58,9 +58,34 @@ export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go s
   return (
     <button type="button" className={`btn btn-secondary btn-sm ${copied ? 'is-copied' : ''}`} aria-label={`${label} ${text.length > 80 ? '' : text}`.trim()}
       onClick={async () => { setCopied(true); setTimeout(() => setCopied(false), 2000); await copyText(text); toast(toastText) }}>
-      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}{label}
+      <IconSwap on={copied} />{label}
       <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
     </button>
+  )
+}
+
+/** Copy and Check share one slot and cross-fade, so the icon morphs instead of swapping. */
+function IconSwap({ on }: { on: boolean }) {
+  return (
+    <span className="icon-swap" data-on={on} aria-hidden>
+      <Copy className="icon-a" />
+      <Check className="icon-b" />
+    </span>
+  )
+}
+
+/** Height and opacity reveal for content that opens in place. Hidden content is inert. */
+export function Collapse({ open, id, gap = 0, children }: { open: boolean; id?: string; gap?: number; children: ReactNode }) {
+  const [settled, setSettled] = useState(open)
+  useEffect(() => { if (!open) setSettled(false) }, [open])
+  const inert = open ? {} : { inert: '' }
+  return (
+    <div className={`collapse ${open ? 'is-open' : ''} ${open && settled ? 'is-settled' : ''}`} id={id} aria-hidden={!open}
+      onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'grid-template-rows' && open) setSettled(true) }}
+      style={gap ? { marginTop: -gap } : undefined} {...(inert as object)}>
+      {/* The parent's flex gap moves inside, so a closed panel takes no space at all. */}
+      <div className="collapse-inner">{gap ? <div style={{ paddingTop: gap }}>{children}</div> : children}</div>
+    </div>
   )
 }
 
@@ -81,10 +106,14 @@ export function Expand({ id, icon, title, help, right, open, onToggle, children 
         {right}
         <ChevronDown aria-hidden className="expand-chev" />
       </button>
-      {open && <div className="expand-body" id={`x-${id}`}>{children}</div>}
+      <Collapse open={open} id={`x-${id}`}><div className="expand-body">{children}</div></Collapse>
     </div>
   )
 }
+
+/** Set when a dialog is closed from the keyboard, so it closes without an exit animation. */
+let keyClosedAt = 0
+const closedByKey = () => performance.now() - keyClosedAt < 120
 
 function useEscape(onClose: () => void, active: boolean) {
   useEffect(() => {
@@ -93,6 +122,7 @@ function useEscape(onClose: () => void, active: boolean) {
       if (e.key !== 'Escape') return
       // Let an open menu close first.
       if (document.querySelector('[data-menu-open="true"]')) return
+      keyClosedAt = performance.now()
       onClose()
     }
     window.addEventListener('keydown', on)
@@ -105,11 +135,22 @@ export function Modal({ open, onClose, title, children, footer, width = 440, ico
 }) {
   useEscape(onClose, open)
   const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => { if (open) ref.current?.focus() }, [open])
-  if (!open) return null
+  const [mounted, setMounted] = useState(open)
+  const [leaving, setLeaving] = useState(false)
+  useEffect(() => {
+    if (open) { setMounted(true); setLeaving(false); return }
+    if (!mounted) return
+    // Keyboard closes are instant. Pointer closes fade out, faster than they came in.
+    if (closedByKey()) { setMounted(false); return }
+    setLeaving(true)
+    const t = setTimeout(() => { setMounted(false); setLeaving(false) }, 150)
+    return () => clearTimeout(t)
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (open) ref.current?.focus() }, [open, mounted])
+  if (!mounted) return null
   const id = labelledBy ?? 'modal-title'
   return (
-    <div className="overlay" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+    <div className="overlay" data-state={leaving ? 'closed' : 'open'} onMouseDown={(e) => { if (e.target === e.currentTarget && !leaving) onClose() }}>
       <div className={`modal w-${width}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref} style={{ outline: 'none' }}>
         <div className="modal-header">
           {icon}
@@ -130,8 +171,10 @@ export function Sheet({ open, onClose, title, children, footer, snap: initialSna
   const [mounted, setMounted] = useState(open)
   const [state, setState] = useState<'open' | 'closed'>('closed')
   const [snap, setSnap] = useState(initialSnap)
-  const drag = useRef<{ y: number; dy: number } | null>(null)
+  const drag = useRef<{ y: number; dy: number; t: number; id: number } | null>(null)
+  const dragged = useRef(false)
   const sheetRef = useRef<HTMLDivElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
   useEscape(onClose, open)
   useEffect(() => {
     if (open) {
@@ -140,37 +183,60 @@ export function Sheet({ open, onClose, title, children, footer, snap: initialSna
       requestAnimationFrame(() => requestAnimationFrame(() => setState('open')))
     } else {
       setState('closed')
-      const t = setTimeout(() => setMounted(false), 450)
+      const t = setTimeout(() => setMounted(false), 320)
       return () => clearTimeout(t)
     }
   }, [open, initialSnap])
   if (!mounted) return null
   const id = labelledBy ?? 'sheet-title'
-  const onDown = (e: React.PointerEvent) => { drag.current = { y: e.clientY, dy: 0 }; (e.target as HTMLElement).setPointerCapture(e.pointerId) }
-  const onMove = (e: React.PointerEvent) => {
-    if (!drag.current || !sheetRef.current) return
-    drag.current.dy = e.clientY - drag.current.y
-    if (drag.current.dy > 0) { sheetRef.current.style.transition = 'none'; sheetRef.current.style.transform = `translateY(${drag.current.dy}px)` }
+  const onDown = (e: React.PointerEvent) => {
+    // One finger at a time, and buttons in the header stay buttons.
+    if (drag.current) return
+    const target = e.target as HTMLElement
+    if (target.closest('button') && !target.closest('.sheet-handle')) return
+    drag.current = { y: e.clientY, dy: 0, t: performance.now(), id: e.pointerId }
+    dragged.current = false
+    e.currentTarget.setPointerCapture(e.pointerId)
   }
-  const onUp = () => {
-    const el = sheetRef.current
-    const dy = drag.current?.dy ?? 0
+  const onMove = (e: React.PointerEvent) => {
+    const d = drag.current, el = sheetRef.current
+    if (!d || !el || e.pointerId !== d.id) return
+    d.dy = e.clientY - d.y
+    if (Math.abs(d.dy) > 4) dragged.current = true
+    // Down follows the finger. Up meets rising friction instead of a hard stop.
+    const y = d.dy > 0 ? d.dy : -Math.min(24, Math.sqrt(-d.dy) * 2)
+    el.style.transition = 'none'
+    el.style.transform = `translateY(${y}px)`
+    if (overlayRef.current) {
+      overlayRef.current.style.transition = 'none'
+      overlayRef.current.style.opacity = String(d.dy > 0 ? Math.max(0, 1 - d.dy / el.offsetHeight) : 1)
+    }
+  }
+  const onUp = (e: React.PointerEvent) => {
+    const d = drag.current, el = sheetRef.current
+    if (!d || e.pointerId !== d.id) return
     drag.current = null
     if (!el) return
+    const dy = d.dy
+    const velocity = Math.abs(dy) / Math.max(1, performance.now() - d.t)
     el.style.transition = ''
     el.style.transform = ''
-    if (dy > 120) onClose()
+    if (overlayRef.current) { overlayRef.current.style.transition = ''; overlayRef.current.style.opacity = '' }
+    // A quick flick is enough, no need to drag past a line.
+    if (dy > 120 || (dy > 12 && velocity > 0.11)) onClose()
     else if (dy < -40) setSnap('full')
     else if (dy > 40 && snap === 'full') setSnap('half')
   }
+  const dragProps = { onPointerDown: onDown, onPointerMove: onMove, onPointerUp: onUp, onPointerCancel: onUp }
   return (
     <>
-      <div className="sheet-overlay" data-state={state} onClick={onClose} />
+      <div className="sheet-overlay" data-state={state} onClick={onClose} ref={overlayRef} />
       <div className="sheet" data-state={state} data-snap={snap} role="dialog" aria-modal="true" aria-labelledby={id} ref={sheetRef}>
-        <div className="sheet-handle-hit" onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}>
-          <button type="button" className="sheet-handle" aria-label={snap === 'full' ? 'Make smaller' : 'Expand'} onClick={() => setSnap(snap === 'full' ? 'half' : 'full')} />
+        <div className="sheet-handle-hit" {...dragProps}>
+          <button type="button" className="sheet-handle" aria-label={snap === 'full' ? 'Make smaller' : 'Expand'}
+            onClick={() => { if (dragged.current) { dragged.current = false; return } setSnap(snap === 'full' ? 'half' : 'full') }} />
         </div>
-        <div className="sheet-header">
+        <div className="sheet-header" {...dragProps}>
           <h2 id={id}>{title}</h2>
           <button type="button" className="btn btn-ghost icon-btn" style={{ width: 44, height: 44 }} onClick={onClose} aria-label="Close"><X aria-hidden /></button>
         </div>
@@ -199,5 +265,7 @@ export function Menu({ open, onClose, children, style }: { open: boolean; onClos
     return () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('keydown', onKey, true) }
   }, [open, onClose])
   if (!open) return null
-  return <div className="menu" role="menu" ref={ref} style={style} data-menu-open="true">{children}</div>
+  // Scale in from the corner nearest the trigger.
+  const origin = style?.right !== undefined ? 'top right' : 'top left'
+  return <div className="menu" role="menu" ref={ref} style={{ transformOrigin: origin, ...style }} data-menu-open="true">{children}</div>
 }

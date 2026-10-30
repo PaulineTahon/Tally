@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Download, Maximize2, Share, ImageDown, X, Check, Palette, Upload } from 'lucide-react'
 import { EASTER_EGG, FORM_TITLE, canNativeShare, slugify, useIsMobile, useStore } from './store'
-import { Dialog, Menu, Segmented } from './ui'
+import { Collapse, Dialog, Menu, Segmented } from './ui'
 import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, SIZES, svgSrc, type QrFormat, type QrOptions, type QrSize, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -111,7 +111,7 @@ export function QrPanel() {
       {mobile
         ? <div className="row gap-8"><div style={{ flex: 1 }} />{personalizeBtn}</div>
         : <div className="row gap-8">{downloadControl}{personalizeBtn}</div>}
-      {personalize && (
+      <Collapse open={personalize} gap={16}>
         <div className="personalize stack gap-12" id="qr-personalize">
           <Segmented label="Style" value={style.mode} onChange={(m) => setStyle({ mode: m })}
             options={[{ value: 'tally', label: 'Black' }, { value: 'brand', label: 'Your brand' }]} />
@@ -141,7 +141,7 @@ export function QrPanel() {
               options={(Object.keys(SIZES) as QrSize[]).map((k) => ({ value: k, label: <span className="stack" style={{ lineHeight: 1.1 }}>{SIZES[k].label}<span className="seg-hint">{SIZES[k].hint}</span></span> }))} />
           </div>
         </div>
-      )}
+      </Collapse>
       <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Responses from this code are tagged, so you'll see where they came from.</p>
     </div>
   )

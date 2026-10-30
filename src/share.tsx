@@ -4,7 +4,7 @@ import {
   ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore } from './store'
-import { CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { Collapse, CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { TallyMark } from './chrome'
 import { download, fileFor } from './qr'
 import { fileName, safeStyle } from './qrpanel'
@@ -276,7 +276,7 @@ function EmbedLink() {
       <button type="button" className="link-btn embed-toggle" aria-expanded={open} aria-controls="embed-options" onClick={() => setOpen((v) => !v)}>
         <Code aria-hidden />Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
       </button>
-      {open && <div id="embed-options"><EmbedPanel /></div>}
+      <Collapse open={open} id="embed-options" gap={12}><EmbedPanel /></Collapse>
     </div>
   )
 }
