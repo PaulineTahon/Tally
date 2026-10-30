@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
+import { tick } from './guide'
 import { DIRECT, MAIN_QR, SEED, ZERO, type Counts } from './seed'
 
 export const FORM_ID = 'QoKz0A'
@@ -116,6 +117,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   /** Extra codes get qr-<place>, made unique once and never changed, so printed copies keep their tag. */
   const addPlacement = useCallback((label: string) => {
+    tick('add-code')
     const name = label.trim()
     const same = sources.find((s) => s.kind === 'qr' && s.label.toLowerCase() === name.toLowerCase())
     if (same) return same
@@ -128,6 +130,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [sources])
   /** Renaming only changes what you see. The ref, and so the link, stays the same. */
   const renameSource = useCallback((ref: string, label: string) => {
+    tick('rename')
     setSources((all) => all.map((s) => (s.ref === ref ? { ...s, label: label.trim() || s.label } : s)))
   }, [])
   const removeSource = useCallback((ref: string) => {

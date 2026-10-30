@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Download, Maximize2, Share, ImageDown, X, Check, Palette, Upload } from 'lucide-react'
-import { EASTER_EGG, FORM_TITLE, canNativeShare, slugify, useIsMobile, useStore } from './store'
+import { EASTER_EGG, FORM_TITLE, MAIN_QR, canNativeShare, slugify, useIsMobile, useStore } from './store'
+import { tick } from './guide'
 import { Collapse, Dialog, Menu, Segmented, Pro } from './ui'
 import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
@@ -43,6 +44,7 @@ export function QrPanel() {
   const setStyle = (p: Partial<QrStyle>) => setSettings({ ...settings, style: { ...style, ...p } })
 
   const doDownload = async (f: QrFormat) => {
+    if (ref === MAIN_QR) tick('download-main')
     setPrinting((n) => n + 1)
     setSettings({ ...settings, format: f })
     download(await fileFor(opts, f), fileName(ref, f))
@@ -55,6 +57,7 @@ export function QrPanel() {
     const f = new File([blob], fileName(ref, 'png'), { type: 'image/png' })
     setPrinting((n) => n + 1)
     s.markDownloaded()
+    if (ref === MAIN_QR) tick('download-main')
     if (canNativeShare() && navigator.canShare?.({ files: [f] })) {
       try {
         await navigator.share(mode === 'save' ? { files: [f] } : { files: [f], title: FORM_TITLE, url: opts.url })

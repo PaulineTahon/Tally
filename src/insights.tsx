@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react'
 import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail } from 'lucide-react'
 import { MonoMark } from './brand'
 import { MAIN_QR, useIsMobile, useStore, type Source } from './store'
+import { tick } from './guide'
 import { DIRECT, rangeKey, type Range } from './seed'
 import { DashHeader, FormTitle, Shell, type Tab } from './chrome'
 import { Menu, Pro } from './ui'
@@ -176,7 +177,7 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
   const max = Math.max(1, ...rows.map((r) => r.visits))
   const mobile = useIsMobile()
   return (
-    <section className="panel panel-sources">
+    <section className="panel panel-sources" onPointerEnter={() => tick('compare-sources')} onFocus={() => tick('compare-sources')} onTouchStart={() => tick('compare-sources')}>
       <div className="panel-h">
         <h3>Sources</h3>
         <span className="col-h">Visits</span>

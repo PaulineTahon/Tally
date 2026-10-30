@@ -6,6 +6,8 @@ import { LOGO_RATIO, QUIET, matrix, modulePath } from './qr'
 /** Codes are always plain black. Marketing art may keep the black asterisk in the centre. */
 import { TALLY_PATH } from './mark'
 import { TallyMark } from './chrome'
+import { GuideCard, useGuide } from './guide'
+import { guideCopy } from './guideCopy'
 
 /** Every visual opens the same live form, tagged by where it was seen. */
 const FORM = 'https://tally.so/r/KpYalV'
@@ -365,10 +367,22 @@ function ChangelogGif() {
 
 type Network = 'linkedin' | 'x'
 
+/** The guide card on this page, with a small button to bring it back once hidden. */
+function VisualsGuide() {
+  const g = useGuide('visuals')
+  return (
+    <>
+      <GuideCard page="visuals" open={!g.hidden} onClose={g.hide} />
+      {g.hidden && <button type="button" className="guide-restore" onClick={g.show}>{guideCopy.restore}</button>}
+    </>
+  )
+}
+
 export default function Visuals() {
   const [net, setNet] = useState<Network>('linkedin')
   return (
     <main className="visuals">
+      <VisualsGuide />
       <header className="v-top">
         <a href="../" className="row gap-8" style={{ textDecoration: 'none' }}><TallyMark size={18} /><b>Share, redesigned</b></a>
         <span className="small muted">Task 2: announcing QR codes</span>

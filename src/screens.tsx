@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, Check, Zap } from 'lucide-react'
 import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
+import { tick } from './guide'
 import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
@@ -74,7 +75,7 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
   const bestOpen = SOCIAL.find((x) => x.ref === best.ref)?.open
   const bestHref = bestOpen ? bestOpen(s.url(best.ref)) : best.ref === 'email' ? emailHref(s.url('email')) : null
   const [nudgeGone, setNudgeGone] = useState(() => { try { return localStorage.getItem(NUDGE_KEY) === '1' } catch { return false } })
-  const dismissNudge = () => { setNudgeGone(true); try { localStorage.setItem(NUDGE_KEY, '1') } catch { /* private mode */ } }
+  const dismissNudge = () => { setNudgeGone(true); tick('dismiss-nudge'); try { localStorage.setItem(NUDGE_KEY, '1') } catch { /* private mode */ } }
   return (
     <Shell>
       <DashHeader onEdit={onEdit} />

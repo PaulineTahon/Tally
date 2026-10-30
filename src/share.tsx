@@ -8,6 +8,7 @@ import { AutoHeight, Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage,
 import { download, fileFor, type QrFormat } from './qr'
 import { fileName, safeStyle } from './qrpanel'
 import { rowCopy } from './copy'
+import { tick } from './guide'
 
 export type Channel = 'link' | 'social' | 'email' | 'qr'
 
@@ -46,7 +47,7 @@ export function LinkBar({ onQr }: { onQr: () => void }) {
           <button type="button" className="btn btn-black btn-lg" style={{ flex: 1 }} onClick={() => share(url())}>
             <Share aria-hidden />Share
           </button>
-          <CopyButton text={url()} className="btn-secondary" big />
+          <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} className="btn-secondary" big /></span>
           <button type="button" className="btn btn-secondary btn-lg" onClick={openQr}>
             <QrCode aria-hidden />QR Code
           </button>
@@ -59,7 +60,7 @@ export function LinkBar({ onQr }: { onQr: () => void }) {
       <div className="input-group" style={{ flex: 1 }}>
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
       </div>
-      <CopyButton text={url()} />
+      <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} /></span>
       <button type="button" className="btn btn-secondary" onClick={openQr}>
         <QrCode aria-hidden />QR Code
       </button>
@@ -139,7 +140,7 @@ function LinkPanel() {
   const value = ending || s.slug
   const dirty = value !== s.slug
   const toggle = () => { if (!open) setEnding(s.slug === FORM_ID ? 'summer-rsvp' : s.slug); setOpen((v) => !v) }
-  const save = () => { s.setSlug(value); s.toast('Link updated.'); setEnding('') }
+  const save = () => { s.setSlug(value); s.toast('Link updated.'); setEnding(''); tick('link-ending') }
   const resetPreview = () => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
   return (
     <div className="stack gap-12" id="panel-link">
@@ -344,6 +345,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     const o = { url: link, shortLink: s.shortLink, style, madeWithTally: true }
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()
+    if (main) tick('download-main')
     setDownloaded(true); window.setTimeout(() => setDownloaded(false), 2000)
     s.toast('QR code downloaded. Time to print!')
   }
