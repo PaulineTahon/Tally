@@ -3,6 +3,7 @@ import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRi
 import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
 import { tick } from './guide'
+import { CoverArt, VISUAL_URL } from './coverArt'
 import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
@@ -36,7 +37,7 @@ export function Editor({ onPublished, published }: { onPublished: () => void; pu
         </div>
       </header>
       <main className="editor-canvas">
-        <div className="cover" aria-hidden />
+        <div className="cover" aria-hidden><CoverArt url={VISUAL_URL('qr-cover')} slice /></div>
         <div className="form-col">
           <div className="form-logo" aria-hidden>🧺</div>
           <h1 className="form-title">{FORM_TITLE}</h1>

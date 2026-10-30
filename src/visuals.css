@@ -85,5 +85,5 @@ body { background: #fafafa; }
 @media (max-width: 757px) { .visuals { padding: 16px; } .v-head { flex-wrap: wrap; } }
 
 /* Cover */
-.cover-art { background: #000; }
+.cover-art { background: #F7F7F6; }
 .cover-art svg { display: block; }
