@@ -11,7 +11,7 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState } {
+function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
@@ -22,6 +22,8 @@ function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
+    // codes=main: only the main code, to see the single-code view on the Share tab.
+    mainOnly: p.get('codes') === 'main',
     pub: p.get('pub') === 'empty' || p.get('pub') === 'data' ? (p.get('pub') as PublishState) : 'first',
   }
 }
@@ -35,7 +37,7 @@ function Inner() {
   useEffect(() => { setNavOpen(false) }, [r.route, r.state])
   useEffect(() => { if (r.route !== 'edit') setSheet(false) }, [r.route])
   // A form you are publishing starts with only its main code; the other screens show the example data.
-  useEffect(() => { s.setDataset(r.route === 'edit' && r.pub !== 'data' ? 'fresh' : 'example') }, [r.route, r.pub]) // eslint-disable-line
+  useEffect(() => { s.setDataset((r.route === 'edit' && r.pub !== 'data') || r.mainOnly ? 'fresh' : 'example') }, [r.route, r.pub, r.mainOnly]) // eslint-disable-line
   useEffect(() => {
     const on = () => setR(readRoute())
     window.addEventListener('hashchange', on)

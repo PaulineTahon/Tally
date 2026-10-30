@@ -11,7 +11,12 @@ export const FORM_ID = 'KpYalV'
  * Every QR code opens the form by its ID, tagged with its ref. The ID never changes, so printed
  * codes keep working whatever the link ending or domain is.
  */
-export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref}`
+export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref === MAIN_QR ? mainRefFor(window.location.hash) : ref}`
+
+/** Recording the changelog GIF (codes=main&demo=changelog): the main code carries the changelog ref, like every other visual. */
+function mainRefFor(hash: string) {
+  return /[?&]demo=changelog\b/.test(hash) ? 'qr-changelog' : MAIN_QR
+}
 export const FORM_TITLE = 'Community picnic RSVP'
 export const EASTER_EGG = 'https://tally.so/r/KpYalV?ref=qr'
 

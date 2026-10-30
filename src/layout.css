@@ -446,3 +446,6 @@ a.list-row { text-decoration: none; color: inherit; }
   .single-preview:active { transform: none; }
 }
 .row-hit > .title { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.single-side .link-btn { display: inline-flex; align-items: center; gap: 4px; }
+.single-side .link-btn svg { width: 14px; height: 14px; }
+.single-link { display: block; margin-top: 6px; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--text); }
