@@ -12,7 +12,7 @@ People don't really want to "share". They want enough of the right responses, fa
 I started with the quick win, then the bigger bet:
 
 1. **A share sheet right after Publish.** The link first, then Copy, then a QR code button. A "Share to" picker covers Link, Social, Email and In person, with "Embed on your site" as a quieter link underneath. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
-2. **No pop-ups on top of the sheet.** A compact link preview shows what people will see. Link ending, custom domain and the link preview editor sit together under one "More link options" row with a single Pro label, and open in place. Changing the link ending warns you first that printed codes and shared links still point to the old one.
+2. **No pop-ups on top of the sheet.** A compact link preview shows what people will see. Link ending, custom domain and the link preview editor sit together under one "More Link Options" row, each with its own Pro label, and open in place. Changing the link ending warns you first that printed codes and shared links still point to the old one.
 3. **A plain black QR code, print-ready by default.** On the free plan the only extra is a small "Made with Tally" line under the short link. One Download button (SVG, PDF or PNG) and Personalize to add your brand color and logo, with error correction level H so it still scans. There's no size to pick: SVG and PDF are vector, and the PNG is over 3000 px wide, sharp enough to print up to A3. Responses from it are always tagged with `?ref=qr`.
 4. **One list of places.** Name a place, like Poster or Library, and you get a code or a tracked link for it. In person shows the codes, the Share tab shows everything, and each code can be viewed or downloaded from its row. You only ever see the place name; the `?ref` tag stays in the link itself. Your last settings are remembered.
 5. **Sources in Insights.** The Sources panel on the Insights tab lists each place by name next to the referrers, with a Submissions column and a QR icon for each code. This is the part I'd push for most: it turns sharing into a loop.
@@ -22,7 +22,7 @@ I started with the quick win, then the bigger bet:
 - **Publish** in the editor and watch the share sheet open. Hit Copy and see it confirm in place.
 - Click **QR code** next to Copy. Download it, then try Personalize. Scan it with your phone.
 - Open **In person**, add a code for a place and download it.
-- Open **More link options** and type a new link ending to see the warning.
+- Open **More Link Options** and type a new link ending to see the warning.
 - Go to **Insights** and switch between the example states in the prototype bar.
 - Try everything at phone width too.
 

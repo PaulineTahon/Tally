@@ -148,7 +148,7 @@ export function QrPanel() {
     </div>
   ) : undefined
 
-  const title = placement && ref !== 'qr' ? `QR code for ${placement.label}` : 'QR code'
+  const title = placement && ref !== 'qr' ? `QR Code for ${placement.label}` : 'QR Code'
   return (
     <>
       <Dialog open={s.qrOpen} onClose={() => s.setQrOpen(false)} title={title} width={400} snap="full" footer={footer} labelledBy="qr-title">

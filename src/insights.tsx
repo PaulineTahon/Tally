@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { BriefcaseBusiness, ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail } from 'lucide-react'
+import { MonoMark } from './brand'
 import { useIsMobile } from './store'
 import { DashHeader, FormTitle, Shell, type Tab } from './chrome'
 import { Menu, Pro } from './ui'
@@ -17,11 +18,13 @@ interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
 const DATA: Record<Range, SourceRow[]> = {
   all: [
     { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'Email', visits: 6, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 4, subs: 1 },
+    { name: 'Email', visits: 5, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 2, subs: 1 },
+    { name: 'LinkedIn', visits: 1, subs: 0 }, { name: 'Facebook', visits: 1, subs: 0 }, { name: 'X', visits: 1, subs: 0 },
   ],
   '30d': [
     { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'Email', visits: 6, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 4, subs: 1 },
+    { name: 'Email', visits: 5, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 2, subs: 1 },
+    { name: 'LinkedIn', visits: 1, subs: 0 }, { name: 'Facebook', visits: 1, subs: 0 }, { name: 'X', visits: 1, subs: 0 },
   ],
   '7d': [
     { name: 'Poster', visits: 6, subs: 2, qr: true }, { name: 'WhatsApp', visits: 5, subs: 1 }, { name: 'Direct / None', visits: 3, subs: 0 },
@@ -161,6 +164,18 @@ function Panel({ title, rows }: { title: string; rows: { name: string; n: number
   )
 }
 
+/** One muted glyph per source, same size for all: brand marks, mail, a QR glyph for codes, a globe for direct. */
+function SourceGlyph({ row }: { row: SourceRow }) {
+  const key = row.name.toLowerCase()
+  let icon: ReactNode
+  if (row.qr) icon = <QrCode />
+  else if (key === 'whatsapp' || key === 'instagram' || key === 'facebook' || key === 'x') icon = <MonoMark brand={key} />
+  else if (key === 'linkedin') icon = <BriefcaseBusiness />
+  else if (key === 'email') icon = <Mail />
+  else icon = <Globe />
+  return <span className="src-glyph" aria-hidden>{icon}</span>
+}
+
 /** Tally's Sources panel, with each ?ref shown by its place name and a Submissions column. */
 function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; showQrEmpty: boolean; onOpenQr: () => void }) {
   const max = Math.max(1, ...rows.map((r) => r.visits))
@@ -177,7 +192,7 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
           <li key={r.name}>
             <span className="bar-cell">
               <span className="bar-fill" style={{ width: `${(r.visits / max) * 100}%` }} />
-              <span className="bar-text">{r.name}</span>
+              <span className="bar-text"><SourceGlyph row={r} />{r.name}</span>
             </span>
             <span className="bar-n">{r.visits}</span>
             <span className="bar-n">{r.subs}</span>

@@ -1,11 +1,11 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, Store as StoreIcon, TriangleAlert,
+  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, Store as StoreIcon, TriangleAlert,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore, type Source } from './store'
-import { Collapse, CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
-import { download, fileFor } from './qr'
+import { Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { download, fileFor, type QrFormat } from './qr'
 import { fileName, safeStyle } from './qrpanel'
 
 export type Channel = 'link' | 'social' | 'email' | 'inperson'
@@ -68,7 +68,7 @@ export function LinkBar() {
 export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (c: Channel) => void }) {
   return (
     <div className="stack gap-8">
-      <div className="xs muted" style={{ fontWeight: 600 }}>Share to</div>
+      <div className="xs muted" style={{ fontWeight: 600 }}>Share To</div>
       <Segmented<Channel>
         label="Share to" value={value} onChange={onChange}
         options={[
@@ -143,14 +143,14 @@ function LinkPanel() {
     <div className="stack gap-12" id="panel-link">
       <p className="small muted" style={{ margin: 0 }}>Copy it, paste it anywhere.</p>
       <section className="stack gap-8" aria-labelledby="lp-h">
-        <h3 id="lp-h" className="xs muted sub-h">Link preview</h3>
+        <h3 id="lp-h" className="xs muted sub-h">Link Preview</h3>
         <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
       </section>
       {/* One row, one Pro pill. Everything opens in place. */}
-      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More link options <Pro /></>} help="Link ending, custom domain and link preview."
+      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More Link Options <Pro /></>} help="Link ending, custom domain and link preview."
         open={open} onToggle={toggle}>
         <div className="stack gap-8">
-          <span className="field-label">Link ending</span>
+          <span className="field-label row gap-4">Link Ending <Pro /></span>
           <span className="xs muted">Make it yours, like tally.so/r/summer-rsvp.</span>
           <div className="input-group">
             <span className="prefix">tally.so/r/</span>
@@ -169,7 +169,7 @@ function LinkPanel() {
         </div>
         <hr className="divider" />
         <div className="stack gap-8">
-          <span className="field-label">Custom domain</span>
+          <span className="field-label row gap-4">Custom Domain <Pro /></span>
           <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
           <div className="input-group is-disabled">
             <span className="prefix">https://</span>
@@ -181,9 +181,9 @@ function LinkPanel() {
         </div>
         <hr className="divider" />
         <div className="stack gap-8">
-          <span className="field-label">Link preview</span>
+          <span className="field-label row gap-4">Link Preview <Pro /></span>
           {!customize ? (
-            <div className="row gap-4"><button type="button" className="link-btn small" onClick={() => setCustomize(true)}>Customize</button><Pro /></div>
+            <div><button type="button" className="link-btn small" onClick={() => setCustomize(true)}>Customize</button></div>
           ) : (
             <>
               <label className="field-label" htmlFor="lp-title">Title</label>
@@ -300,43 +300,81 @@ function sourceIcon(src: Source) {
 }
 
 /** Every code and tracked link, by place name. Refs only live in the URLs and file names. */
-export function PlaceList({ only, counts = false }: { only?: 'qr'; counts?: boolean }) {
+export function PlaceList({ only }: { only?: 'qr' }) {
   const s = useStore()
-  const mobile = useIsMobile()
-  const { settings } = s
-  const style = safeStyle(settings.style)
   const rows = only ? s.sources.filter((x) => x.kind === only) : s.sources
-  const download1 = async (ref: string) => {
-    const o = { url: s.url(ref), shortLink: s.shortLink, style, madeWithTally: true }
-    download(await fileFor(o, settings.format), fileName(ref, settings.format))
-    s.markDownloaded()
-  }
   if (!rows.length) return null
-  const fmt = settings.format.toUpperCase()
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
-      {rows.map((p) => {
-        const n = `${p.responses} ${p.responses === 1 ? 'response' : 'responses'}`
-        return (
-          <li key={p.ref}>
-            {p.kind === 'qr'
-              ? <span className="qr-thumb is-static" aria-hidden><QrImage url={s.url(p.ref)} style={style} size={30} label="" /></span>
-              : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>}
-            <span className="grow stack">
-              <span className="title">{p.label}</span>
-              {counts && <span className="xs muted">{p.kind === 'qr' ? 'QR code' : 'Link'}{mobile ? ` · ${n}` : ''}</span>}
-            </span>
-            {counts && !mobile && <span className="xs muted count">{n}</span>}
-            {p.kind === 'qr' ? (
-              <>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>View code</button>
-                <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={`Download ${fmt}`} aria-label={`Download ${p.label}`} onClick={() => download1(p.ref)}><Download aria-hidden /></button>
-              </>
-            ) : <SmallCopy text={s.url(p.ref)} />}
-          </li>
-        )
-      })}
+      {rows.map((p) => <PlaceRow key={p.ref} p={p} />)}
     </ul>
+  )
+}
+
+/** Same row for every place: icon, name, responses, one icon action, then everything else under More. */
+function PlaceRow({ p }: { p: Source }) {
+  const s = useStore()
+  const { settings } = s
+  const style = safeStyle(settings.style)
+  const [menu, setMenu] = useState(false)
+  const [up, setUp] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const more = useRef<HTMLButtonElement>(null)
+  const qr = p.kind === 'qr'
+  const link = s.url(p.ref)
+  const n = `${p.responses} ${p.responses === 1 ? 'response' : 'responses'}`
+  const fmt = settings.format
+  const download1 = async (f: QrFormat) => {
+    const o = { url: link, shortLink: s.shortLink, style, madeWithTally: true }
+    download(await fileFor(o, f), fileName(p.ref, f))
+    s.markDownloaded()
+    s.toast('QR code downloaded. Time to print!')
+  }
+  const copy = async () => {
+    setCopied(true); setTimeout(() => setCopied(false), 2000)
+    await copyText(link); s.toast('Link copied. Go spread the word.')
+  }
+  const openMenu = () => {
+    // Open upward when there isn't room below, so the menu never hides under the sheet edge.
+    const r = more.current?.getBoundingClientRect()
+    const box = more.current?.closest('.modal-body, .sheet-body')?.getBoundingClientRect()
+    const floor = Math.min(window.innerHeight, box?.bottom ?? Infinity)
+    setUp(!!r && r.bottom + (qr ? 230 : 100) > floor)
+    setMenu((m) => !m)
+  }
+  const pick = (fn: () => void) => () => { setMenu(false); fn() }
+  return (
+    <li>
+      {qr
+        ? <span className="qr-thumb is-static" aria-hidden><QrImage url={link} style={style} size={30} label="" /></span>
+        : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>}
+      <span className="title grow">{p.label}</span>
+      <span className="xs muted count">{n}</span>
+      {qr ? (
+        <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={`Download ${fmt.toUpperCase()}`} aria-label={`Download ${fmt.toUpperCase()} for ${p.label}`} onClick={() => download1(fmt)}>
+          <Download aria-hidden />
+        </button>
+      ) : (
+        <button type="button" className={`btn btn-secondary btn-sm icon-btn ${copied ? 'is-copied' : ''}`} data-tip="Copy link" aria-label={`Copy link for ${p.label}`} onClick={copy}>
+          <IconSwap on={copied} />
+          <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
+        </button>
+      )}
+      <span style={{ position: 'relative', display: 'inline-flex' }}>
+        <button ref={more} type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={`More for ${p.label}`} aria-haspopup="menu" aria-expanded={menu} onClick={openMenu}>
+          <MoreHorizontal aria-hidden />
+        </button>
+        <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
+          {qr && <button role="menuitem" onClick={pick(() => { s.setQrRef(p.ref); s.setQrOpen(true) })}><QrCode aria-hidden />View code</button>}
+          <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />Copy link</button>
+          {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />Open link</a>}
+          {qr && <div className="menu-sep" role="separator" />}
+          {qr && (['svg', 'pdf', 'png'] as QrFormat[]).map((f) => (
+            <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
+          ))}
+        </Menu>
+      </span>
+    </li>
   )
 }
 
@@ -364,7 +402,7 @@ function InPersonPanel() {
       <p className="small muted" style={{ margin: 0 }}>One code per place, so you can see which one brings in responses.</p>
       <PlaceList only="qr" />
       <div className="stack gap-8">
-        <span className="xs" style={{ fontWeight: 600 }}>Add another code</span>
+        <span className="xs" style={{ fontWeight: 600 }}>Add Another Code</span>
         {missing.length > 0 && (
           <div className="chips">
             {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}

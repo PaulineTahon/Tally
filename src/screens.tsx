@@ -96,17 +96,17 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
           )}
 
           <section className="stack gap-16" aria-labelledby="share-h">
-            <h2 id="share-h" className="section-h">Share</h2>
+            <h2 id="share-h" className="section-h">Share Link</h2>
             <ShareBlock />
           </section>
 
           <section className="stack gap-12" aria-labelledby="tracked-h">
             <div className="row-between">
-              <h2 id="tracked-h" className="section-h">Codes and tracked links</h2>
+              <h2 id="tracked-h" className="section-h">Codes and Tracked Links</h2>
               <button type="button" className="link-btn small" onClick={() => onTab('insights')}>See them in Insights</button>
             </div>
             <p className="small" style={{ margin: 0 }}>One link or code per place you share, so you know which one brings responses.</p>
-            <PlaceList counts />
+            <PlaceList />
             <AddPlace label="Add another link" onAdd={(name) => { const src = s.addSource(name); s.toast(`Link added for ${src.label}`) }} />
             <span className="xs muted">Untagged links keep working. Responses from them show up as Direct / None in Insights.</span>
           </section>

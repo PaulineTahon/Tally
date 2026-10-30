@@ -10,6 +10,16 @@ function Si({ icon, size = 18 }: { icon: SimpleIcon; size?: number }) {
   )
 }
 
+/** The same marks in one muted color, for lists where every row needs to read as one system. */
+export function MonoMark({ brand, size = 14 }: { brand: 'whatsapp' | 'instagram' | 'facebook' | 'x'; size?: number }) {
+  const icon = { whatsapp: siWhatsapp, instagram: siInstagram, facebook: siFacebook, x: siX }[brand]
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden role="img">
+      <path d={icon.path} fill="currentColor" />
+    </svg>
+  )
+}
+
 export const WhatsApp = () => <Si icon={siWhatsapp} />
 export const Instagram = () => <Si icon={siInstagram} />
 export const Facebook = () => <Si icon={siFacebook} />

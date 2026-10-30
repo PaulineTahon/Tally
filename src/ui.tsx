@@ -65,7 +65,7 @@ export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go s
 }
 
 /** Copy and Check share one slot and cross-fade, so the icon morphs instead of swapping. */
-function IconSwap({ on }: { on: boolean }) {
+export function IconSwap({ on }: { on: boolean }) {
   return (
     <span className="icon-swap" data-on={on} aria-hidden>
       <Copy className="icon-a" />

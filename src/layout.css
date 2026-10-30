@@ -365,7 +365,10 @@ a.list-row { text-decoration: none; color: inherit; }
 .lp-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .lp-compact .lp-title, .lp-compact .lp-desc { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sub-h { margin: 0; font-weight: 600; }
-.placements .count { white-space: nowrap; }
+.placements .count { white-space: nowrap; width: 88px; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+.placements li { gap: 8px; }
+.placements li > .title { margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 757px) { .placements .count { width: 76px; } }
 .placements .src-icon { width: 32px; height: 32px; border-radius: 8px; }
 
 /* Tooltip for icon-only buttons */
@@ -378,3 +381,7 @@ a.list-row { text-decoration: none; color: inherit; }
 }
 @media (hover: hover) and (pointer: fine) { [data-tip]:hover::after { opacity: 1; transform: none; transition-delay: 300ms; } }
 [data-tip]:focus-visible::after { opacity: 1; transform: none; }
+
+/* Sources glyphs: one size, one muted color */
+.src-glyph { display: inline-flex; width: 14px; height: 14px; color: var(--grey-3); flex: none; }
+.src-glyph svg { width: 14px; height: 14px; }
