@@ -69,8 +69,9 @@ a { color: inherit; }
 .btn-lg { height: 44px; font-size: 15px; }
 .icon-btn { width: 36px; padding: 0; }
 .btn-sm.icon-btn { width: 28px; }
-.link-btn { background: none; border: 0; padding: 0; cursor: pointer; color: var(--blue); font-weight: 500; font-size: inherit; }
-.link-btn:hover { color: var(--blue-hover); text-decoration: underline; }
+/* One link style everywhere: Tally blue, no underline, underline on hover. */
+.link-btn, .egg { background: none; border: 0; padding: 0; cursor: pointer; color: var(--blue); font-weight: 500; font-size: inherit; text-decoration: none; text-underline-offset: 2px; }
+.link-btn:hover, .egg:hover { color: var(--blue); text-decoration: underline; }
 
 .badge {
   display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 9px;
@@ -91,6 +92,7 @@ a { color: inherit; }
 .input-group:focus-within { box-shadow: var(--focus) 0 0 0 4px, var(--border) 0 0 0 1px; }
 .input-group .prefix { padding: 0 2px 0 10px; color: var(--grey-3); font-size: 15px; white-space: nowrap; }
 .input-group input { border: 0; outline: 0; height: 100%; flex: 1; min-width: 0; padding: 0 10px 0 0; font-size: 15px; background: transparent; }
+.input-group input:first-child { padding-left: 10px; }
 
 /* Toggle */
 .switch { position: relative; width: 32px; height: 18px; flex: none; border-radius: 9px; background: #d3d3d1; border: 0; cursor: pointer; padding: 0; transition: background-color 100ms ease-in-out; }
@@ -179,7 +181,7 @@ a { color: inherit; }
 .sheet-footer { padding: 20px; padding-bottom: calc(20px + var(--safe-b)); border-top: 1px solid var(--divider); display: flex; flex-direction: column; gap: 8px; flex: none; }
 
 /* Toast */
-.toast-wrap { position: fixed; left: 0; right: 0; bottom: calc(24px + var(--safe-b)); z-index: 80; display: flex; justify-content: center; pointer-events: none; }
+.toast-wrap { position: fixed; left: 0; right: 0; bottom: var(--toast-bottom, calc(24px + var(--safe-b))); z-index: 80; display: flex; justify-content: center; pointer-events: none; }
 .toast {
   background: #191917; color: #fff; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500;
   box-shadow: var(--pop); display: flex; align-items: center; gap: 8px;
@@ -195,7 +197,10 @@ a { color: inherit; }
 .toast-item .toast > * { transition: opacity 200ms ease; }
 .toast-item[data-front='false'] .toast > * { opacity: 0; }
 .toast svg { width: 16px; height: 16px; }
-@media (max-width: 757px) { .toast-wrap { bottom: calc(96px + var(--safe-b)); } }
+@media (max-width: 757px) { .toast-wrap { bottom: var(--toast-bottom, calc(96px + var(--safe-b))); } }
+/* A sheet with no footer keeps room at the end, so a toast never sits on its last field. */
+.sheet:not(:has(.sheet-footer)) .sheet-body { padding-bottom: 72px; }
+.sheet:not(:has(.sheet-footer)) .sheet-body :is(input, button, textarea) { scroll-margin-bottom: 72px; }
 
 
 /* Menu */

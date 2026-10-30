@@ -1,11 +1,8 @@
 import QRCode from 'qrcode'
 
-export type QrSize = 'small' | 'medium' | 'large'
-export const SIZES: Record<QrSize, { label: string; hint: string; mm: number }> = {
-  small: { label: 'Small', hint: 'Sticker', mm: 30 },
-  medium: { label: 'Medium', hint: 'Flyer', mm: 60 },
-  large: { label: 'Large', hint: 'Poster', mm: 150 },
-}
+/** One size for everything. SVG and PDF are vector; PNG is big enough to print sharply up to A3. */
+export const PNG_MIN_PX = 3200
+export const PDF_CODE_MM = 120
 export type QrFormat = 'svg' | 'pdf' | 'png'
 
 /** Plain black is the default. "Your brand" adds the creator's color and logo. */
@@ -172,8 +169,11 @@ async function svgToCanvas(svg: string, scale: number) {
   return c
 }
 
-export async function pngBlob(o: QrOptions, scale = 4): Promise<Blob> {
-  const c = await svgToCanvas(buildSvg(o), scale)
+/** PNG at least PNG_MIN_PX wide: about 27 cm at 300 dpi, sharp on an A3 poster. */
+export async function pngBlob(o: QrOptions): Promise<Blob> {
+  const svg = buildSvg(o)
+  const w = Number(/width="(\d+)"/.exec(svg)?.[1] ?? 400)
+  const c = await svgToCanvas(svg, Math.ceil(PNG_MIN_PX / w))
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
 }
 
@@ -182,12 +182,12 @@ function hexToRgb(hex: string): [number, number, number] {
   return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number]
 }
 
-/** PDF on A4, code centred at the chosen print size. Modules are vector, the logo tile is a sharp image. */
-export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
+/** PDF on A4, code centred at 12 cm. Modules are vector, so it scales to any paper size. The logo tile is a sharp image. */
+export async function pdfBlob(o: QrOptions): Promise<Blob> {
   const { jsPDF } = await import('jspdf')
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
   const m = matrix(o.url)
-  const total = SIZES[size].mm
+  const total = PDF_CODE_MM
   const unit = total / (m.size + QUIET * 2)
   const x0 = (210 - total) / 2
   const y0 = Math.max(20, (297 - total) / 2 - 20)
@@ -237,10 +237,10 @@ export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
   return doc.output('blob')
 }
 
-export async function fileFor(o: QrOptions, format: QrFormat, size: QrSize): Promise<Blob> {
+export async function fileFor(o: QrOptions, format: QrFormat): Promise<Blob> {
   if (format === 'svg') return new Blob([buildSvg(o)], { type: 'image/svg+xml' })
-  if (format === 'pdf') return pdfBlob(o, size)
-  return pngBlob(o, size === 'small' ? 2 : size === 'medium' ? 4 : 8)
+  if (format === 'pdf') return pdfBlob(o)
+  return pngBlob(o)
 }
 
 /** WCAG contrast ratio of a color against white. */

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
-import { DEFAULT_STYLE, type QrFormat, type QrSize, type QrStyle } from './qr'
+import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
 
 export const FORM_ID = 'QoKz0A'
 export const FORM_TITLE = 'Community picnic RSVP'
@@ -23,15 +23,15 @@ export const EXAMPLE_SOURCES: Source[] = [
 ]
 
 /** Last QR settings, so the next download looks the same. */
-export interface QrSettings { style: QrStyle; format: QrFormat; size: QrSize }
+export interface QrSettings { style: QrStyle; format: QrFormat }
 const SETTINGS_KEY = 'qr-settings'
 function loadSettings(): QrSettings {
-  const base: QrSettings = { style: DEFAULT_STYLE, format: 'svg', size: 'medium' }
+  const base: QrSettings = { style: DEFAULT_STYLE, format: 'svg' }
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return base
     const v = JSON.parse(raw)
-    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'svg', size: v.size ?? 'medium' }
+    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'svg' }
   } catch { return base }
 }
 export const EXAMPLE_UNTAGGED = 1
@@ -93,6 +93,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return [...t, { id, text }]
     })
     setTimeout(() => leave(id), 2600)
+    // In a bottom sheet, keep the field you just used clear of the toast.
+    requestAnimationFrame(() => {
+      const el = document.activeElement
+      if (el instanceof HTMLElement && el.closest('.sheet-body')) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    })
   }, [])
 
   const shortLink = `tally.so/r/${slug}`

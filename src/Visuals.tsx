@@ -371,7 +371,7 @@ export default function Visuals() {
         <Changelog />
       </Exportable>
       <Exportable title="Poster" name="tally-qr-poster" w={800} h={1131}
-        caption={<p>Print it, stick it up, and responses from it show up as qr-poster in Insights.</p>}>
+        caption={<p>Print it, stick it up, and responses from it show up as Poster in Insights.</p>}>
         <Poster />
       </Exportable>
       <Exportable title="Form cover" name="tally-qr-cover" w={1500} h={500}

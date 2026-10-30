@@ -1,11 +1,10 @@
-import { useState, type ReactNode } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert,
+  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, Store as StoreIcon, TriangleAlert,
 } from 'lucide-react'
-import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore } from './store'
+import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore, type Source } from './store'
 import { Collapse, CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
-import { TallyMark } from './chrome'
 import { download, fileFor } from './qr'
 import { fileName, safeStyle } from './qrpanel'
 
@@ -30,11 +29,10 @@ export function useNativeShare() {
 
 /** Link, single Copy and the QR code. The QR stays in this position whatever channel is open. */
 export function LinkBar() {
-  const { display, url, setQrOpen, setQrRef, settings } = useStore()
+  const { display, url, setQrOpen, setQrRef } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
   const openQr = () => { setQrRef('qr'); setQrOpen(true) }
-  const style = safeStyle(settings.style)
   if (mobile) {
     return (
       <div className="stack gap-8">
@@ -57,12 +55,11 @@ export function LinkBar() {
   return (
     <div className="row gap-8">
       <div className="input-group" style={{ flex: 1 }}>
-        <span className="prefix">https://</span>
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
       </div>
       <CopyButton text={url()} />
-      <button type="button" className="qr-thumb" onClick={openQr} aria-label="QR code" title="QR code">
-        <QrImage url={url('qr')} style={style} size={30} label="" />
+      <button type="button" className="btn btn-secondary" onClick={openQr}>
+        <QrCode aria-hidden />QR code
       </button>
     </div>
   )
@@ -115,21 +112,22 @@ export const emailHref = (link: string) => `mailto:?subject=${enc(EMAIL_SUBJECT)
 
 const PREVIEW_DESC = 'Made with Tally, the simplest way to create forms.'
 
+/** Compact: thumbnail on the left, title and description on the right. */
 export function LinkPreviewCard({ title, desc, img }: { title: string; desc: string; img: string }) {
   return (
-    <div className="lp" aria-label="Link preview">
-      <div className="lp-site"><TallyMark size={12} />Tally Forms</div>
-      <div className="lp-title">{title || FORM_TITLE}</div>
-      <div className="lp-desc">{desc}</div>
-      <img className="lp-img" src={img} alt="" />
+    <div className="lp-compact" aria-label="Link preview">
+      <img className="lp-thumb" src={img} alt="" />
+      <span className="lp-text">
+        <span className="lp-title">{title || FORM_TITLE}</span>
+        <span className="lp-desc">{desc}</span>
+      </span>
     </div>
   )
 }
 
 function LinkPanel() {
   const s = useStore()
-  const [open, setOpen] = useState<null | 'ending' | 'domain'>(null)
-  const toggle = (k: 'ending' | 'domain') => setOpen((o) => (o === k ? null : k))
+  const [open, setOpen] = useState(false)
   const [ending, setEnding] = useState('')
   const [customize, setCustomize] = useState(false)
   const [lpTitle, setLpTitle] = useState(FORM_TITLE)
@@ -138,14 +136,22 @@ function LinkPanel() {
   const defaultImg = `${import.meta.env.BASE_URL}link-preview.jpg`
   const value = ending || s.slug
   const dirty = value !== s.slug
-  const openEnding = () => { setEnding(s.slug === FORM_ID ? 'summer-rsvp' : s.slug); toggle('ending') }
-  const save = () => { s.setSlug(value); s.toast('Link updated.'); setOpen(null) }
+  const toggle = () => { if (!open) setEnding(s.slug === FORM_ID ? 'summer-rsvp' : s.slug); setOpen((v) => !v) }
+  const save = () => { s.setSlug(value); s.toast('Link updated.'); setEnding('') }
+  const resetPreview = () => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
   return (
-    <div className="stack gap-8" id="panel-link">
+    <div className="stack gap-12" id="panel-link">
       <p className="small muted" style={{ margin: 0 }}>Copy it, paste it anywhere.</p>
-      <div className="stack">
-        <Expand id="ending" icon={<Pencil aria-hidden />} title={<>Link ending <Pro /></>} help="Make it yours, like tally.so/r/summer-rsvp."
-          open={open === 'ending'} onToggle={openEnding}>
+      <section className="stack gap-8" aria-labelledby="lp-h">
+        <h3 id="lp-h" className="xs muted sub-h">Link preview</h3>
+        <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
+      </section>
+      {/* One row, one Pro pill. Everything opens in place. */}
+      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More link options <Pro /></>} help="Link ending, custom domain and link preview."
+        open={open} onToggle={toggle}>
+        <div className="stack gap-8">
+          <span className="field-label">Link ending</span>
+          <span className="xs muted">Make it yours, like tally.so/r/summer-rsvp.</span>
           <div className="input-group">
             <span className="prefix">tally.so/r/</span>
             <input aria-label="Link ending" value={value} onChange={(e) => setEnding(slugify(e.target.value))} />
@@ -157,13 +163,14 @@ function LinkPanel() {
             </div>
           )}
           <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(null)}>Cancel</button>
+            {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEnding(s.slug)}>Cancel</button>}
             <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? 'Change link' : 'Save'}</button>
           </div>
-        </Expand>
-
-        <Expand id="domain" icon={<Globe aria-hidden />} title={<>Custom domain <Pro /></>} help="Use your own, like forms.yourdomain.com."
-          open={open === 'domain'} onToggle={() => toggle('domain')}>
+        </div>
+        <hr className="divider" />
+        <div className="stack gap-8">
+          <span className="field-label">Custom domain</span>
+          <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
           <div className="input-group is-disabled">
             <span className="prefix">https://</span>
             <input aria-label="Custom domain" placeholder="forms.yourdomain.com" disabled />
@@ -171,33 +178,33 @@ function LinkPanel() {
           <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-blue btn-sm">Upgrade plan</button>
           </div>
-        </Expand>
-      </div>
-      <section className="lp-section stack gap-8" aria-labelledby="lp-h">
-        <h3 id="lp-h" className="lp-h">Link preview</h3>
-        <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
-        {!customize ? (
-          <div className="row gap-4"><button type="button" className="customize-link link-btn" onClick={() => setCustomize(true)}>Customize</button><Pro /></div>
-        ) : (
-          <div className="stack gap-8">
-            <label className="field-label" htmlFor="lp-title">Title</label>
-            <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
-            <label className="field-label" htmlFor="lp-desc">Description</label>
-            <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
-            <div className="row-between">
-              <span className="field-label">Image</span>
-              <label className="btn btn-secondary btn-sm">Replace
-                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
-              </label>
-            </div>
-            <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
-            <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }}>Cancel</button>
-              <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
-            </div>
-          </div>
-        )}
-      </section>
+        </div>
+        <hr className="divider" />
+        <div className="stack gap-8">
+          <span className="field-label">Link preview</span>
+          {!customize ? (
+            <div className="row gap-4"><button type="button" className="link-btn small" onClick={() => setCustomize(true)}>Customize</button><Pro /></div>
+          ) : (
+            <>
+              <label className="field-label" htmlFor="lp-title">Title</label>
+              <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+              <label className="field-label" htmlFor="lp-desc">Description</label>
+              <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+              <div className="row-between">
+                <span className="field-label">Image</span>
+                <label className="btn btn-secondary btn-sm">Replace
+                  <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+                </label>
+              </div>
+              <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
+              <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>
+                <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
+              </div>
+            </>
+          )}
+        </div>
+      </Expand>
     </div>
   )
 }
@@ -281,55 +288,89 @@ function EmbedLink() {
   )
 }
 
-/* ---------- In person ---------- */
+/* ---------- Codes and tracked links: one list ---------- */
 
 const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
 
-function InPersonPanel() {
+function sourceIcon(src: Source) {
+  const social = SOCIAL.find((x) => x.ref === src.ref)
+  if (social) return social.icon
+  if (src.kind === 'email') return <Mail aria-hidden />
+  return <Globe aria-hidden />
+}
+
+/** Every code and tracked link, by place name. Refs only live in the URLs and file names. */
+export function PlaceList({ only, counts = false }: { only?: 'qr'; counts?: boolean }) {
   const s = useStore()
-  const { settings, placements } = s
-  const [other, setOther] = useState('')
+  const mobile = useIsMobile()
+  const { settings } = s
   const style = safeStyle(settings.style)
-  const opts = (ref: string) => ({ url: s.url(ref), shortLink: s.shortLink, style, madeWithTally: true })
-  const one = async (ref: string) => {
-    download(await fileFor(opts(ref), settings.format, settings.size), fileName(ref, settings.format))
+  const rows = only ? s.sources.filter((x) => x.kind === only) : s.sources
+  const download1 = async (ref: string) => {
+    const o = { url: s.url(ref), shortLink: s.shortLink, style, madeWithTally: true }
+    download(await fileFor(o, settings.format), fileName(ref, settings.format))
     s.markDownloaded()
   }
+  if (!rows.length) return null
+  const fmt = settings.format.toUpperCase()
+  return (
+    <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
+      {rows.map((p) => {
+        const n = `${p.responses} ${p.responses === 1 ? 'response' : 'responses'}`
+        return (
+          <li key={p.ref}>
+            {p.kind === 'qr'
+              ? <span className="qr-thumb is-static" aria-hidden><QrImage url={s.url(p.ref)} style={style} size={30} label="" /></span>
+              : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>}
+            <span className="grow stack">
+              <span className="title">{p.label}</span>
+              {counts && <span className="xs muted">{p.kind === 'qr' ? 'QR code' : 'Link'}{mobile ? ` · ${n}` : ''}</span>}
+            </span>
+            {counts && !mobile && <span className="xs muted count">{n}</span>}
+            {p.kind === 'qr' ? (
+              <>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>View code</button>
+                <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={`Download ${fmt}`} aria-label={`Download ${p.label}`} onClick={() => download1(p.ref)}><Download aria-hidden /></button>
+              </>
+            ) : <SmallCopy text={s.url(p.ref)} />}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+/** The same add input everywhere: it asks for a place name, never a ref. */
+export function AddPlace({ label, onAdd }: { label: string; onAdd: (name: string) => void }) {
+  const [name, setName] = useState('')
+  const field = useRef<HTMLInputElement>(null)
+  return (
+    <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
+      <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder="Place name, like Poster or Library" value={name} onChange={(e) => setName(e.target.value)} />
+      <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
+    </form>
+  )
+}
+
+function InPersonPanel() {
+  const s = useStore()
   const add = (label: string) => {
     const p = s.addPlacement(label)
     s.toast(`Code added for ${p.label}`)
   }
-  const missing = SUGGESTED.filter((l) => !placements.some((p) => p.ref === `qr-${slugify(l)}`))
+  const missing = SUGGESTED.filter((l) => !s.placements.some((p) => p.ref === `qr-${slugify(l)}`))
   return (
     <div className="stack gap-12">
       <p className="small muted" style={{ margin: 0 }}>One code per place, so you can see which one brings in responses.</p>
-      {placements.length > 0 && (
-        <ul className="placements" aria-label="Your QR codes">
-          {placements.map((p) => (
-            <li key={p.ref}>
-              <span className="qr-thumb is-static" aria-hidden><QrImage url={s.url(p.ref)} style={style} size={30} label="" /></span>
-              <span className="grow stack">
-                <span className="title">{p.label}</span>
-                <span className="xs muted mono">{p.ref}</span>
-              </span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>View code</button>
-              <button type="button" className="btn btn-secondary btn-sm icon-btn" aria-label={`Download ${p.label}`} title={`Download ${settings.format.toUpperCase()}`} onClick={() => one(p.ref)}><Download aria-hidden /></button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <PlaceList only="qr" />
       <div className="stack gap-8">
         <span className="xs" style={{ fontWeight: 600 }}>Add another code</span>
-        <div className="chips">
-          {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
-        </div>
-        <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!other.trim()) return; add(other); setOther('') }}>
-          <div className="input-group" style={{ flex: 1 }}>
-            <span className="prefix">qr-</span>
-            <input aria-label="Place name" placeholder="library" value={other} onChange={(e) => setOther(slugify(e.target.value))} />
+        {missing.length > 0 && (
+          <div className="chips">
+            {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
           </div>
-          <button type="submit" className="btn btn-secondary" disabled={!other}><Plus aria-hidden />Add</button>
-        </form>
+        )}
+        <AddPlace label="Add another code" onAdd={add} />
       </div>
     </div>
   )

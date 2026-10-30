@@ -13,21 +13,21 @@ const RANGES: { id: Range; label: string }[] = [
 
 interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
 
-/** Example numbers for the prototype. Direct / None is the real referrer row; the rest are ?ref values. */
+/** Example numbers for the prototype. Direct / None is the real referrer row; the rest are ?ref values, shown by place name. */
 const DATA: Record<Range, SourceRow[]> = {
   all: [
-    { name: 'whatsapp', visits: 14, subs: 4 }, { name: 'qr-poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'email', visits: 6, subs: 2 }, { name: 'qr-flyer', visits: 5, subs: 1, qr: true }, { name: 'instagram', visits: 4, subs: 1 },
+    { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
+    { name: 'Email', visits: 6, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 4, subs: 1 },
   ],
   '30d': [
-    { name: 'whatsapp', visits: 14, subs: 4 }, { name: 'qr-poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'email', visits: 6, subs: 2 }, { name: 'qr-flyer', visits: 5, subs: 1, qr: true }, { name: 'instagram', visits: 4, subs: 1 },
+    { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
+    { name: 'Email', visits: 6, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 4, subs: 1 },
   ],
   '7d': [
-    { name: 'qr-poster', visits: 6, subs: 2, qr: true }, { name: 'whatsapp', visits: 5, subs: 1 }, { name: 'Direct / None', visits: 3, subs: 0 },
-    { name: 'qr-flyer', visits: 2, subs: 1, qr: true }, { name: 'email', visits: 1, subs: 0 },
+    { name: 'Poster', visits: 6, subs: 2, qr: true }, { name: 'WhatsApp', visits: 5, subs: 1 }, { name: 'Direct / None', visits: 3, subs: 0 },
+    { name: 'Flyer', visits: 2, subs: 1, qr: true }, { name: 'Email', visits: 1, subs: 0 },
   ],
-  '24h': [{ name: 'qr-poster', visits: 2, subs: 1, qr: true }, { name: 'Direct / None', visits: 1, subs: 0 }],
+  '24h': [{ name: 'Poster', visits: 2, subs: 1, qr: true }, { name: 'Direct / None', visits: 1, subs: 0 }],
 }
 const DAYS: Record<Range, number[][]> = {
   all: [[2, 0], [5, 1], [8, 3], [6, 2], [4, 1], [3, 0], [2, 1], [4, 1], [3, 0], [5, 2], [2, 0], [1, 0], [2, 1], [2, 0]],
@@ -161,7 +161,7 @@ function Panel({ title, rows }: { title: string; rows: { name: string; n: number
   )
 }
 
-/** Tally's Sources panel, with ?ref values as rows and a Submissions column. */
+/** Tally's Sources panel, with each ?ref shown by its place name and a Submissions column. */
 function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; showQrEmpty: boolean; onOpenQr: () => void }) {
   const max = Math.max(1, ...rows.map((r) => r.visits))
   const mobile = useIsMobile()

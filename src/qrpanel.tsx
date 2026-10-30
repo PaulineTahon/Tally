@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Download, Maximize2, Share, ImageDown, X, Check, Palette, Upload } from 'lucide-react'
 import { EASTER_EGG, FORM_TITLE, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { Collapse, Dialog, Menu, Segmented } from './ui'
-import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, SIZES, svgSrc, type QrFormat, type QrOptions, type QrSize, type QrStyle } from './qr'
+import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
   { id: 'svg', label: 'SVG', help: 'Sharp at any size. Best for print.' },
@@ -26,7 +26,7 @@ export function QrPanel() {
   const s = useStore()
   const mobile = useIsMobile()
   const { settings, setSettings } = s
-  const { style, format, size } = settings
+  const { style, format } = settings
   const [personalize, setPersonalize] = useState(false)
   const [hex, setHex] = useState(style.color)
   const [menu, setMenu] = useState(false)
@@ -45,13 +45,13 @@ export function QrPanel() {
   const doDownload = async (f: QrFormat) => {
     setPrinting((n) => n + 1)
     setSettings({ ...settings, format: f })
-    download(await fileFor(opts, f, size), fileName(ref, f))
+    download(await fileFor(opts, f), fileName(ref, f))
     s.markDownloaded()
     s.toast('QR code downloaded. Time to print!')
   }
 
   const shareFile = async (mode: 'save' | 'share') => {
-    const blob = await pngBlob(opts, 4)
+    const blob = await pngBlob(opts)
     const f = new File([blob], fileName(ref, 'png'), { type: 'image/png' })
     setPrinting((n) => n + 1)
     s.markDownloaded()
@@ -76,7 +76,7 @@ export function QrPanel() {
   const preview = (
     <div className="qr-focus">
       <div className={`qr-print ${printing ? 'is-printing' : ''}`} key={printing}>
-        <img className="qr-img" src={svgSrc(buildSvg(opts))} alt={`QR code that opens ${s.display(ref)}`} />
+        <img className="qr-img" src={svgSrc(buildSvg(opts))} alt={`QR code that opens ${s.display()}`} />
       </div>
       {mobile && (
         <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
@@ -100,7 +100,7 @@ export function QrPanel() {
   )
 
   const personalizeBtn = (
-    <button type="button" className="btn btn-secondary" aria-expanded={personalize} aria-controls="qr-personalize" onClick={() => setPersonalize((v) => !v)}>
+    <button type="button" className={`btn btn-secondary ${mobile ? 'btn-lg btn-block' : ''}`} aria-expanded={personalize} aria-controls="qr-personalize" onClick={() => setPersonalize((v) => !v)}>
       <Palette aria-hidden />Personalize
     </button>
   )
@@ -109,7 +109,7 @@ export function QrPanel() {
     <div className="stack gap-16">
       {preview}
       {mobile
-        ? <div className="row gap-8"><div style={{ flex: 1 }} />{personalizeBtn}</div>
+        ? personalizeBtn
         : <div className="row gap-8">{downloadControl}{personalizeBtn}</div>}
       <Collapse open={personalize} gap={16}>
         <div className="personalize stack gap-12" id="qr-personalize">
@@ -135,11 +135,6 @@ export function QrPanel() {
               </div>
             </>
           )}
-          <div className="stack gap-8">
-            <span className="field-label">Print size</span>
-            <Segmented label="Print size" value={size} onChange={(v: QrSize) => setSettings({ ...settings, size: v })}
-              options={(Object.keys(SIZES) as QrSize[]).map((k) => ({ value: k, label: <span className="stack" style={{ lineHeight: 1.1 }}>{SIZES[k].label}<span className="seg-hint">{SIZES[k].hint}</span></span> }))} />
-          </div>
         </div>
       </Collapse>
       <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Responses from this code are tagged, so you'll see where they came from.</p>
@@ -173,7 +168,7 @@ function FullQr({ url, style, onClose }: { url: string; style: QrStyle; onClose:
       <button ref={btn} type="button" className="btn btn-ghost icon-btn full-close" style={{ width: 44, height: 44 }} onClick={onClose} aria-label="Close"><X aria-hidden /></button>
       <img src={svgSrc(codeSvg(url, style))} alt={`QR code that opens ${url}`} />
       <div className="qr-shortlink" style={{ fontSize: 22 }}>{s.shortLink}</div>
-      <a className="small muted egg" href={EASTER_EGG} target="_blank" rel="noreferrer">Look ma, no typing.</a>
+      <a className="small egg" href={EASTER_EGG} target="_blank" rel="noreferrer">Look ma, no typing.</a>
     </div>
   )
 }

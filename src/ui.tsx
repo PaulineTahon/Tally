@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Check, ChevronDown, Copy, X } from 'lucide-react'
 import { copyText, useIsMobile, useStore } from './store'
 import { codeSvg, svgSrc, type QrStyle } from './qr'
@@ -130,11 +130,47 @@ function useEscape(onClose: () => void, active: boolean) {
   }, [onClose, active])
 }
 
+/**
+ * While a sheet or modal is open, toasts sit just above its footer, never over its fields.
+ * Stacked dialogs: the topmost one wins.
+ */
+const anchors: (() => string | null)[] = []
+function placeToasts() {
+  const top = anchors[anchors.length - 1]
+  const v = top?.()
+  if (v) document.documentElement.style.setProperty('--toast-bottom', v)
+  else document.documentElement.style.removeProperty('--toast-bottom')
+}
+function useToastAnchor(open: boolean, boxRef: RefObject<HTMLElement | null>, footerRef: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return
+    const measure = () => {
+      const f = footerRef.current
+      const box = boxRef.current
+      // A centered modal with room below it leaves toasts where they are.
+      if (box && !box.classList.contains('sheet') && window.innerHeight - box.getBoundingClientRect().bottom >= 72) return null
+      if (f) return `${Math.max(16, window.innerHeight - f.getBoundingClientRect().top + 8)}px`
+      // No footer: a bottom sheet keeps toasts low and scrolls the focused field clear (see toast()).
+      return boxRef.current?.classList.contains('sheet') ? 'calc(12px + var(--safe-b))' : null
+    }
+    anchors.push(measure)
+    placeToasts()
+    const ro = new ResizeObserver(placeToasts)
+    if (boxRef.current) ro.observe(boxRef.current)
+    window.addEventListener('resize', placeToasts)
+    return () => {
+      ro.disconnect(); window.removeEventListener('resize', placeToasts)
+      anchors.splice(anchors.indexOf(measure), 1); placeToasts()
+    }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 export function Modal({ open, onClose, title, children, footer, width = 440, icon, labelledBy }: {
   open: boolean; onClose: () => void; title: ReactNode; children: ReactNode; footer?: ReactNode; width?: 400 | 440 | 700; icon?: ReactNode; labelledBy?: string
 }) {
   useEscape(onClose, open)
   const ref = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
   const [mounted, setMounted] = useState(open)
   const [leaving, setLeaving] = useState(false)
   useEffect(() => {
@@ -147,6 +183,7 @@ export function Modal({ open, onClose, title, children, footer, width = 440, ico
     return () => clearTimeout(t)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (open) ref.current?.focus() }, [open, mounted])
+  useToastAnchor(open && mounted, ref, footerRef)
   if (!mounted) return null
   const id = labelledBy ?? 'modal-title'
   return (
@@ -158,7 +195,7 @@ export function Modal({ open, onClose, title, children, footer, width = 440, ico
           <button type="button" className="btn btn-ghost btn-sm icon-btn" onClick={onClose} aria-label="Close"><X aria-hidden /></button>
         </div>
         <div className="modal-body">{children}</div>
-        {footer && <div className="modal-footer">{footer}</div>}
+        {footer && <div className="modal-footer" ref={footerRef}>{footer}</div>}
       </div>
     </div>
   )
@@ -175,6 +212,8 @@ export function Sheet({ open, onClose, title, children, footer, snap: initialSna
   const dragged = useRef(false)
   const sheetRef = useRef<HTMLDivElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
+  const footerRef = useRef<HTMLDivElement>(null)
+  useToastAnchor(open, sheetRef, footerRef)
   useEscape(onClose, open)
   useEffect(() => {
     if (open) {
@@ -241,7 +280,7 @@ export function Sheet({ open, onClose, title, children, footer, snap: initialSna
           <button type="button" className="btn btn-ghost icon-btn" style={{ width: 44, height: 44 }} onClick={onClose} aria-label="Close"><X aria-hidden /></button>
         </div>
         <div className="sheet-body">{children}</div>
-        {footer && <div className="sheet-footer">{footer}</div>}
+        {footer && <div className="sheet-footer" ref={footerRef}>{footer}</div>}
       </div>
     </>
   )

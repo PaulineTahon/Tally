@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Loader2, X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, QrCode, Globe, Check, Zap, Mail } from 'lucide-react'
+import { Loader2, X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, Check, Zap } from 'lucide-react'
 import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useReducedMotion, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
-import { ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
-import { SmallCopy } from './ui'
+import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
 
@@ -72,9 +71,7 @@ function Block({ label, required, children }: { label: string; required?: boolea
 
 export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: () => void }) {
   const s = useStore()
-  const mobile = useIsMobile()
   const share = useNativeShare()
-  const [newSource, setNewSource] = useState('')
   const best = [...s.sources].sort((a, b) => b.responses - a.responses)[0]
   const total = s.sources.reduce((t, x) => t + x.responses, 0) + EXAMPLE_UNTAGGED
   const bestOpen = SOCIAL.find((x) => x.ref === best.ref)?.open
@@ -105,34 +102,13 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
 
           <section className="stack gap-12" aria-labelledby="tracked-h">
             <div className="row-between">
-              <h2 id="tracked-h" className="section-h">Tracked links</h2>
+              <h2 id="tracked-h" className="section-h">Codes and tracked links</h2>
               <button type="button" className="link-btn small" onClick={() => onTab('insights')}>See them in Insights</button>
             </div>
-            <p className="small muted" style={{ margin: 0 }}>One link per place you share, so you know which one brings responses.</p>
-            <div className="card tracked">
-              {s.sources.map((src) => (
-                <div className="tracked-row" key={src.ref}>
-                  <span className="src-icon">{iconFor(src.ref, src.kind)}</span>
-                  <span className="grow">
-                    <span className="title">{src.label}</span>
-                    <span className="mono xs muted">{s.display(src.ref)}</span>
-                  </span>
-                  {!mobile && <span className="xs muted count">{src.responses} {src.responses === 1 ? 'response' : 'responses'}</span>}
-                  {src.kind === 'qr'
-                    ? <button type="button" className="btn btn-secondary btn-sm" onClick={() => { s.setQrRef(src.ref); s.setQrOpen(true) }}><QrCode aria-hidden />QR</button>
-                    : <SmallCopy text={s.url(src.ref)} />}
-                </div>
-              ))}
-              <form className="tracked-row add" onSubmit={(e) => { e.preventDefault(); if (!newSource.trim()) return; s.addSource(newSource); setNewSource(''); s.toast('Tracked link added.') }}>
-                <span className="src-icon"><Plus aria-hidden /></span>
-                <div className="input-group" style={{ flex: 1, height: 32 }}>
-                  <span className="prefix">?ref=</span>
-                  <input aria-label="New source name" placeholder="poster-cafe" value={newSource} onChange={(e) => setNewSource(e.target.value)} />
-                </div>
-                <button type="submit" className="btn btn-black btn-sm" disabled={!newSource.trim()}>Add</button>
-              </form>
-            </div>
-            <span className="xs muted">Untagged links keep working. Responses from them show up as "Untagged link".</span>
+            <p className="small" style={{ margin: 0 }}>One link or code per place you share, so you know which one brings responses.</p>
+            <PlaceList counts />
+            <AddPlace label="Add another link" onAdd={(name) => { const src = s.addSource(name); s.toast(`Link added for ${src.label}`) }} />
+            <span className="xs muted">Untagged links keep working. Responses from them show up as Direct / None in Insights.</span>
           </section>
 
         </div>
@@ -143,11 +119,4 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
 
 const NUDGE_KEY = 'share-nudge-dismissed'
 
-function iconFor(ref: string, kind: string) {
-  const social = SOCIAL.find((x) => x.ref === ref)
-  if (social) return social.icon
-  if (kind === 'qr') return <QrCode aria-hidden />
-  if (kind === 'email') return <Mail aria-hidden />
-  return <Globe aria-hidden />
-}
 
