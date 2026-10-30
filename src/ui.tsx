@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { Check, ChevronDown, Copy, X } from 'lucide-react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { Check, ChevronDown, Copy, Download, X } from 'lucide-react'
 import { copyText, useIsMobile, useStore } from './store'
 import { codeSvg, svgSrc, type QrStyle } from './qr'
 
@@ -13,13 +13,52 @@ export function Segmented<T extends string>({ value, onChange, options, label }:
   value: T; onChange: (v: T) => void; label: string
   options: { value: T; label: ReactNode; icon?: ReactNode }[]
 }) {
+  const i = Math.max(0, options.findIndex((o) => o.value === value))
   return (
-    <div className="segmented" role="tablist" aria-label={label}>
+    <div className="segmented" role="tablist" aria-label={label} style={{ ['--seg-n' as string]: options.length }}>
+      {/* One indicator that slides, so a change reads as one thing moving. */}
+      <span className="seg-ind" aria-hidden style={{ transform: `translateX(calc(${i} * (100% + 2px)))` }} />
       {options.map((o) => (
         <button key={o.value} type="button" role="tab" aria-selected={value === o.value} onClick={() => onChange(o.value)}>
           {o.icon}{o.label}
         </button>
       ))}
+    </div>
+  )
+}
+
+/** On a key change, eases from the old height to the new one and fades the new content in. Otherwise height is auto. */
+export function AutoHeight({ k, children }: { k: string; children: ReactNode }) {
+  const inner = useRef<HTMLDivElement>(null)
+  const last = useRef(0)
+  const first = useRef(true)
+  const [h, setH] = useState<number | null>(null)
+  useLayoutEffect(() => {
+    if (first.current) { first.current = false; return }
+    const el = inner.current
+    if (!el) return
+    const from = last.current
+    setH(from)
+    const r = requestAnimationFrame(() => { const to = el.offsetHeight; setH(to === from ? null : to) })
+    // Never stay pinned if the transition doesn't fire.
+    const t = window.setTimeout(() => setH(null), 320)
+    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
+  }, [k])
+  // Track the settled height (also while a Collapse inside grows), so a key change knows where it starts from.
+  const pinned = useRef(false)
+  pinned.current = h !== null
+  useEffect(() => {
+    const el = inner.current
+    if (!el) return
+    last.current = el.offsetHeight
+    const ro = new ResizeObserver(() => { if (!pinned.current) last.current = el.offsetHeight })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  return (
+    <div className={`auto-h ${h !== null ? 'is-moving' : ''}`} style={h !== null ? { height: h } : undefined}
+      onTransitionEnd={(e) => { if (e.target === e.currentTarget) setH(null) }}>
+      <div ref={inner}><div key={k} className="fade-in">{children}</div></div>
     </div>
   )
 }
@@ -65,10 +104,10 @@ export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go s
 }
 
 /** Copy and Check share one slot and cross-fade, so the icon morphs instead of swapping. */
-export function IconSwap({ on }: { on: boolean }) {
+export function IconSwap({ on, icon }: { on: boolean; icon?: 'copy' | 'download' }) {
   return (
     <span className="icon-swap" data-on={on} aria-hidden>
-      <Copy className="icon-a" />
+      {icon === 'download' ? <Download className="icon-a" /> : <Copy className="icon-a" />}
       <Check className="icon-b" />
     </span>
   )

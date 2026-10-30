@@ -102,15 +102,35 @@ a { color: inherit; }
 .switch[aria-checked='true']::after { transform: translateX(14px); }
 
 /* Segmented control */
-.segmented { display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--segment); }
+.segmented { position: relative; display: flex; gap: 2px; padding: 2px; border-radius: 8px; background: var(--segment); }
+/* The white tab slides from one option to the next. */
+.seg-ind {
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px - (var(--seg-n) - 1) * 2px) / var(--seg-n));
+  border-radius: 6px; background: #fff; box-shadow: rgba(0,0,0,.08) 0 1px 2px, var(--border) 0 0 0 1px;
+  transition: transform 200ms var(--ease-out); pointer-events: none;
+}
 .segmented button {
   flex: 1; height: 30px; border: 0; border-radius: 6px; background: transparent; cursor: pointer;
   font-size: 14px; font-weight: 600; color: var(--grey-2); display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  transition: background-color 100ms ease-in-out, color 100ms ease-in-out; white-space: nowrap;
+  position: relative; transition: color 100ms ease-in-out; white-space: nowrap;
 }
 .segmented button svg { width: 14px; height: 14px; }
-.segmented button:hover { color: var(--text); }
-.segmented button[aria-selected='true'] { background: #fff; color: var(--text); box-shadow: rgba(0,0,0,.08) 0 1px 2px, var(--border) 0 0 0 1px; }
+.segmented button[aria-selected='true'] { color: var(--text); }
+/* Hover only where there is a real pointer, so taps on touch screens don't leave a stuck state. */
+@media (hover: hover) and (pointer: fine) {
+  .segmented button:hover { color: var(--text); }
+  .pill:hover { background: #ededec; }
+}
+/* Switching tabs: the panel fades in and the box eases to its new height. */
+.auto-h { transition: height 200ms var(--ease-out); }
+.auto-h.is-moving { overflow: hidden; }
+.fade-in { animation: fade-in 150ms ease-out; }
+@keyframes fade-in { from { opacity: 0; } }
+/* One soft pulse on the row the QR Code button jumps to. Opacity only, so it is also fine with reduced motion. */
+.placements li.is-pulse { position: relative; }
+.placements li.is-pulse::after { content: ''; position: absolute; inset: 0; border-radius: 8px; background: rgba(0,112,215,.10); box-shadow: inset 0 0 0 1px rgba(0,112,215,.35); opacity: 0; animation: row-pulse 900ms ease-out; pointer-events: none; }
+@keyframes row-pulse { 20% { opacity: 1; } 100% { opacity: 0; } }
+.placements li:focus { outline: none; }
 
 /* Cards and rows */
 .card { border-radius: 10px; background: #fff; box-shadow: var(--ring); }
@@ -247,7 +267,10 @@ a { color: inherit; }
   .toast-item, .toast-item[data-mounted='false'], .toast-item[data-leaving='true'] { transform: none !important; transition: opacity 200ms ease; }
   .icon-swap > svg { transform: none !important; filter: none !important; }
   .collapse, .collapse.is-open { transition: opacity 150ms ease; }
+  .seg-ind, .auto-h { transition: none; }
   .expand-chev, .disclosure svg, .switch::after { transition: none; }
   .qr-print.is-printing .qr-img, .qr-print.is-printing::after, .mark-spin { animation: none; }
 }
 a.btn { text-decoration: none; }
+/* A plain segmented control without the sliding piece keeps its own white tab. */
+.segmented:not(:has(.seg-ind)) button[aria-selected='true'] { background: #fff; box-shadow: rgba(0,0,0,.08) 0 1px 2px, var(--border) 0 0 0 1px; }

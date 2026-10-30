@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
+import { DIRECT, MAIN_QR, SEED, ZERO, type Counts } from './seed'
 
 export const FORM_ID = 'QoKz0A'
 export const FORM_TITLE = 'Community picnic RSVP'
@@ -11,18 +12,14 @@ export interface Source {
   label: string
   kind: 'qr' | 'social' | 'email' | 'custom'
   responses: number
+  /** Visits and responses per range, for Insights. */
+  counts: Counts
 }
 
-/** Every form has one ready-made code. Its ref is qr for good, whatever it's called. */
-export const MAIN_QR = 'qr'
+export { MAIN_QR }
 
-/** Example numbers only, shown with an "Example data" label in the UI. */
-export const EXAMPLE_SOURCES: Source[] = [
-  { ref: 'whatsapp', label: 'WhatsApp', kind: 'social', responses: 4 },
-  { ref: MAIN_QR, label: 'Main code', kind: 'qr', responses: 4 },
-  { ref: 'email', label: 'Email', kind: 'email', responses: 2 },
-  { ref: 'instagram', label: 'Instagram', kind: 'social', responses: 1 },
-]
+/** Example numbers only, from the one shared seed. */
+export const EXAMPLE_SOURCES: Source[] = SEED.map((p) => ({ ref: p.ref, label: p.label, kind: p.kind, responses: p.counts.all[1], counts: p.counts }))
 
 /** Last QR settings, so the next download looks the same. */
 export interface QrSettings { style: QrStyle; format: QrFormat }
@@ -36,7 +33,7 @@ function loadSettings(): QrSettings {
     return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'svg' }
   } catch { return base }
 }
-export const EXAMPLE_UNTAGGED = 1
+export const EXAMPLE_UNTAGGED = DIRECT.all[1]
 
 interface Toast { id: number; text: string; leaving?: boolean }
 
@@ -112,7 +109,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const ref = slugify(label) || 'link'
     const existing = sources.find((s) => s.ref === ref)
     if (existing) return existing
-    const s: Source = { ref, label: label.trim() || ref, kind: 'custom', responses: 0 }
+    const s: Source = { ref, label: label.trim() || ref, kind: 'custom', responses: 0, counts: ZERO }
     setSources((all) => [...all, s])
     return s
   }, [sources])
@@ -125,7 +122,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const base = `qr-${slugify(name) || 'code'}`
     let ref = base
     for (let i = 2; sources.some((s) => s.ref === ref); i++) ref = `${base}-${i}`
-    const s: Source = { ref, label: name, kind: 'qr', responses: 0 }
+    const s: Source = { ref, label: name, kind: 'qr', responses: 0, counts: ZERO }
     setSources((all) => [...all, s])
     return s
   }, [sources])

@@ -1,12 +1,13 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
   ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, TriangleAlert, PencilLine, Trash2,
 } from 'lucide-react'
-import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, slugify, useIsMobile, useStore, type Source } from './store'
-import { Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
+import { AutoHeight, Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { fileName, safeStyle } from './qrpanel'
+import { rowCopy } from './copy'
 
 export type Channel = 'link' | 'social' | 'email' | 'qr'
 
@@ -40,12 +41,13 @@ export function LinkBar({ onQr }: { onQr: () => void }) {
           <span className="prefix">https://</span>
           <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
         </div>
-        <button type="button" className="btn btn-black btn-lg btn-block" onClick={() => share(url())}>
-          <Share aria-hidden />Share
-        </button>
+        {/* One row of actions, so the Share To options stay above the fold. */}
         <div className="row gap-8">
+          <button type="button" className="btn btn-black btn-lg" style={{ flex: 1 }} onClick={() => share(url())}>
+            <Share aria-hidden />Share
+          </button>
           <CopyButton text={url()} className="btn-secondary" big />
-          <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={openQr}>
+          <button type="button" className="btn btn-secondary btn-lg" onClick={openQr}>
             <QrCode aria-hidden />QR Code
           </button>
         </div>
@@ -141,13 +143,9 @@ function LinkPanel() {
   const resetPreview = () => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
   return (
     <div className="stack gap-12" id="panel-link">
-      <p className="small muted" style={{ margin: 0 }}>Copy it, paste it anywhere.</p>
-      <section className="stack gap-8" aria-labelledby="lp-h">
-        <h3 id="lp-h" className="xs muted sub-h">Link Preview</h3>
-        <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
-      </section>
+      <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
       {/* One row, one Pro pill. Everything opens in place. */}
-      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More Link Options <Pro /></>} help="Link ending, custom domain and link preview."
+      <Expand id="more" icon={<Settings2 aria-hidden />} title={<>More Link Options <Pro /></>}
         open={open} onToggle={toggle}>
         <div className="stack gap-8">
           <span className="field-label row gap-4">Link Ending <Pro /></span>
@@ -175,9 +173,7 @@ function LinkPanel() {
             <span className="prefix">https://</span>
             <input aria-label="Custom domain" placeholder="forms.yourdomain.com" disabled />
           </div>
-          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-blue btn-sm">Upgrade plan</button>
-          </div>
+          <div><button type="button" className="link-btn small">Upgrade plan</button></div>
         </div>
         <hr className="divider" />
         <div className="stack gap-8">
@@ -300,20 +296,37 @@ function sourceIcon(src: Source) {
 }
 
 /** Every code and tracked link, by place name. Refs only live in the URLs and file names. */
-export function PlaceList({ only }: { only?: 'qr' }) {
+export function PlaceList({ only, pulse = 0 }: { only?: 'qr'; pulse?: number }) {
   const s = useStore()
-  const rows = only ? s.placements : s.sources
+  // The main code lives in the QR Code tab only, so it shows up once.
+  const rows = only ? s.placements : s.sources.filter((p) => p.ref !== MAIN_QR)
   if (!rows.length) return null
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
-      {rows.map((p) => <PlaceRow key={p.ref} p={p} />)}
+      {rows.map((p) => <PlaceRow key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} />)}
     </ul>
   )
 }
 
 /** Same row for every place: icon, name, responses, one icon action, then everything else under More. */
-function PlaceRow({ p }: { p: Source }) {
+function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const s = useStore()
+  const reduced = useReducedMotion()
+  const li = useRef<HTMLLIElement>(null)
+  const [pulsing, setPulsing] = useState(false)
+  const [downloaded, setDownloaded] = useState(false)
+  // Jumped to from the QR Code button: bring the row into view, focus it, pulse once.
+  useEffect(() => {
+    if (!pulse) return
+    const el = li.current
+    if (!el) return
+    el.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+    el.focus({ preventScroll: true })
+    setPulsing(false)
+    const r = requestAnimationFrame(() => setPulsing(true))
+    const t = window.setTimeout(() => setPulsing(false), 1000)
+    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
+  }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
   const { settings } = s
   const style = safeStyle(settings.style)
   const [menu, setMenu] = useState(false)
@@ -331,6 +344,7 @@ function PlaceRow({ p }: { p: Source }) {
     const o = { url: link, shortLink: s.shortLink, style, madeWithTally: true }
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()
+    setDownloaded(true); window.setTimeout(() => setDownloaded(false), 2000)
     s.toast('QR code downloaded. Time to print!')
   }
   const copy = async () => {
@@ -348,15 +362,15 @@ function PlaceRow({ p }: { p: Source }) {
   const pick = (fn: () => void) => () => { setMenu(false); fn() }
   const main = p.ref === MAIN_QR
   const remove = () => {
-    // A code that already brought in responses asks first. Its responses stay in Insights either way.
-    if (p.responses > 0) { setConfirming(true); return }
-    s.removeSource(p.ref); s.toast(`${p.label} deleted`)
+    // Always asks first. Its responses stay in Insights either way.
+    setConfirming(true)
   }
+  const confirmDelete = () => { s.removeSource(p.ref); s.toast(rowCopy.deleted(p.label)) }
   const icon = qr
     ? <span className="qr-thumb is-static" aria-hidden><QrImage url={link} style={style} size={30} label="" /></span>
     : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>
   if (renaming) {
-    const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast('Code renamed') }
+    const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast(rowCopy.renamed(name.trim())) }
     return (
       <li className="is-editing">
         {icon}
@@ -374,25 +388,31 @@ function PlaceRow({ p }: { p: Source }) {
   }
   if (confirming) {
     return (
-      <li className="is-editing" role="alert">
+      <li className="is-editing is-confirm" role="alertdialog" aria-labelledby={`del-${p.ref}`} aria-describedby={`del-${p.ref}-d`}>
         {icon}
-        <span className="grow small">Delete {p.label}? Its {n} stay in Insights.</span>
-        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>Cancel</button>
-        <button type="button" className="btn btn-danger btn-sm" autoFocus onClick={() => { s.removeSource(p.ref); s.toast(`${p.label} deleted`) }}>Delete</button>
+        <div className="stack gap-4 grow">
+          <b id={`del-${p.ref}`} className="small">{rowCopy.deleteTitle(p.label)}</b>
+          <span id={`del-${p.ref}-d`} className="xs muted">{[rowCopy.deleteKept(p.responses), rowCopy.deleteUntag(p.label)].filter(Boolean).join(' ')}</span>
+          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>{rowCopy.cancel}</button>
+            <button type="button" className="btn btn-danger btn-sm" autoFocus onClick={confirmDelete}>{rowCopy.deleteConfirm}</button>
+          </div>
+        </div>
       </li>
     )
   }
   return (
-    <li>
+    <li ref={li} tabIndex={-1} className={pulsing ? 'is-pulse' : undefined}>
       {icon}
       <span className="title grow">{p.label}</span>
       <span className="xs muted count">{n}</span>
       {qr ? (
-        <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={`Download ${fmt.toUpperCase()}`} aria-label={`Download ${fmt.toUpperCase()} for ${p.label}`} onClick={() => download1(fmt)}>
-          <Download aria-hidden />
+        <button type="button" className={`btn btn-secondary btn-sm icon-btn ${downloaded ? 'is-copied' : ''}`} data-tip={rowCopy.download(p.label, fmt)} aria-label={rowCopy.download(p.label, fmt)} onClick={() => download1(fmt)}>
+          <IconSwap on={downloaded} icon="download" />
+          <span className="sr-only" aria-live="polite">{downloaded ? 'Downloaded' : ''}</span>
         </button>
       ) : (
-        <button type="button" className={`btn btn-secondary btn-sm icon-btn ${copied ? 'is-copied' : ''}`} data-tip="Copy link" aria-label={`Copy link for ${p.label}`} onClick={copy}>
+        <button type="button" className={`btn btn-secondary btn-sm icon-btn ${copied ? 'is-copied' : ''}`} data-tip={rowCopy.copyLink} aria-label={`${rowCopy.copyLink}: ${p.label}`} onClick={copy}>
           <IconSwap on={copied} />
           <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
         </button>
@@ -403,15 +423,15 @@ function PlaceRow({ p }: { p: Source }) {
         </button>
         <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
           {qr && <button role="menuitem" onClick={pick(() => { s.setQrRef(p.ref); s.setQrOpen(true) })}><QrCode aria-hidden />View code</button>}
-          <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />Copy link</button>
-          {qr && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />Rename</button>}
-          {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />Open link</a>}
+          <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />{rowCopy.copyLink}</button>
+          {qr && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />{rowCopy.rename}</button>}
+          {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />{rowCopy.openLink}</a>}
           {qr && <div className="menu-sep" role="separator" />}
           {qr && (['svg', 'pdf', 'png'] as QrFormat[]).map((f) => (
             <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
           ))}
           {qr && !main && <div className="menu-sep" role="separator" />}
-          {qr && !main && <button role="menuitem" className="danger" onClick={pick(remove)}><Trash2 aria-hidden />Delete</button>}
+          {qr && !main && <button role="menuitem" className="danger" onClick={pick(remove)}><Trash2 aria-hidden />{rowCopy.delete}</button>}
         </Menu>
       </span>
     </li>
@@ -431,7 +451,7 @@ export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster 
 }
 
 /** One ready-made code first. Extra codes per place are optional, and free. */
-function QrCodePanel() {
+function QrCodePanel({ pulse }: { pulse: number }) {
   const s = useStore()
   const mobile = useIsMobile()
   const [adding, setAdding] = useState(false)
@@ -444,7 +464,7 @@ function QrCodePanel() {
   return (
     <div className="stack gap-12">
       <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
-      <PlaceList only="qr" />
+      <PlaceList only="qr" pulse={pulse} />
       <div className="stack gap-8">
         <div>
           <button type="button" className="btn btn-secondary btn-sm" aria-expanded={adding} aria-controls="add-code" onClick={() => setAdding((v) => !v)}>
@@ -469,10 +489,10 @@ function QrCodePanel() {
 
 /* ---------- Panels ---------- */
 
-export function ChannelPanel({ channel }: { channel: Channel }) {
+export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?: number }) {
   const { url } = useStore()
   if (channel === 'link') return <LinkPanel />
-  if (channel === 'qr') return <QrCodePanel />
+  if (channel === 'qr') return <QrCodePanel pulse={pulse} />
   if (channel === 'social') {
     return (
       <div className="stack gap-8">
@@ -508,11 +528,13 @@ let lastChannel: Channel = 'link'
 export function ShareBlock() {
   const [channel, setChannelState] = useState<Channel>(lastChannel)
   const setChannel = (c: Channel) => { lastChannel = c; setChannelState(c) }
+  // Counts jumps from the QR Code button, so the main code row can pulse each time.
+  const [jump, setJump] = useState(0)
   return (
     <div className="stack gap-16">
-      <LinkBar onQr={() => setChannel('qr')} />
-      <ChannelPicker value={channel} onChange={setChannel} />
-      <div role="tabpanel"><ChannelPanel channel={channel} /></div>
+      <LinkBar onQr={() => { setChannel('qr'); setJump((j) => j + 1) }} />
+      <ChannelPicker value={channel} onChange={(c) => { setJump(0); setChannel(c) }} />
+      <div role="tabpanel"><AutoHeight k={channel}><ChannelPanel channel={channel} pulse={jump} /></AutoHeight></div>
       <EmbedLink />
     </div>
   )

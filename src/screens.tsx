@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Loader2, X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, Check, Zap } from 'lucide-react'
-import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useReducedMotion, useStore } from './store'
+import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, Check, Zap } from 'lucide-react'
+import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
 import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 
@@ -8,13 +8,10 @@ import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } fr
 
 export function Editor({ onPublished, published }: { onPublished: () => void; published: boolean }) {
   const mobile = useIsMobile()
-  const [phase, setPhase] = useState<'idle' | 'publishing' | 'done'>(published ? 'done' : 'idle')
-  const reduced = useReducedMotion()
+  const [phase, setPhase] = useState<'idle' | 'done'>(published ? 'done' : 'idle')
   const publish = () => {
-    if (phase === 'publishing') return
-    setPhase('publishing')
-    // A short, playful beat. The share sheet opens right after; Copy is never delayed.
-    setTimeout(() => { setPhase('done'); onPublished() }, reduced ? 0 : 420)
+    // No waiting: the share sheet opens on the same click.
+    setPhase('done'); onPublished()
   }
   return (
     <div className="editor">
@@ -33,7 +30,7 @@ export function Editor({ onPublished, published }: { onPublished: () => void; pu
           <button type="button" className="btn btn-ghost btn-sm">{mobile ? <Eye aria-hidden /> : 'Preview'}</button>
           <Avatar size={22} />
           <button type="button" className={`btn btn-blue btn-sm publish-btn ${phase}`} onClick={publish} aria-live="polite">
-            {phase === 'publishing' ? <><Loader2 aria-hidden className="spin" />Publishing</> : phase === 'done' ? <><Check aria-hidden />Published</> : 'Publish'}
+            {phase === 'done' ? <><Check aria-hidden />Published</> : 'Publish'}
           </button>
         </div>
       </header>
@@ -88,9 +85,11 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
             <div className="nudge" role="note">
               <Zap aria-hidden />
               <span className="grow">{total} responses, slowing down. Most came from {best.label}. Give it another push?</span>
-              {bestHref
-                ? <a className="btn btn-secondary btn-sm" href={bestHref} target="_blank" rel="noreferrer">Share on {best.label}</a>
-                : <button type="button" className="btn btn-secondary btn-sm" onClick={() => best.ref === 'qr' ? (s.setQrRef('qr'), s.setQrOpen(true)) : share(s.url(best.ref))}>Share on {best.label}</button>}
+              <span className="nudge-action">
+                {bestHref
+                  ? <a className="btn btn-secondary btn-sm" href={bestHref} target="_blank" rel="noreferrer">Share on {best.label}</a>
+                  : <button type="button" className="btn btn-secondary btn-sm" onClick={() => best.ref === 'qr' ? (s.setQrRef('qr'), s.setQrOpen(true)) : share(s.url(best.ref))}>Share on {best.label}</button>}
+              </span>
               <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label="Dismiss" onClick={dismissNudge}><X aria-hidden /></button>
             </div>
           )}
@@ -105,7 +104,7 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
               <h2 id="tracked-h" className="section-h">Codes and Tracked Links</h2>
               <button type="button" className="link-btn small" onClick={() => onTab('insights')}>See them in Insights</button>
             </div>
-            <p className="small" style={{ margin: 0 }}>One link or code per place you share, so you know which one brings responses.</p>
+            <p className="small" style={{ margin: 0 }}>One link or code per place you share, so you know which one brings responses. Your main code is under QR Code above.</p>
             <PlaceList />
             <AddPlace label="Add another link" onAdd={(name) => { const src = s.addSource(name); s.toast(`Link added for ${src.label}`) }} />
             <span className="xs muted">Untagged links keep working. Responses from them show up as Direct / None in Insights.</span>
