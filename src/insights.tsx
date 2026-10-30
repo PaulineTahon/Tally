@@ -177,7 +177,7 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
           <li key={r.name}>
             <span className="bar-cell">
               <span className="bar-fill" style={{ width: `${(r.visits / max) * 100}%` }} />
-              <span className="bar-text">{r.qr && <QrCode aria-label="QR code" className="bar-icon" />}{r.name}</span>
+              <span className="bar-text">{r.name}</span>
             </span>
             <span className="bar-n">{r.visits}</span>
             <span className="bar-n">{r.subs}</span>
@@ -188,7 +188,7 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
         <div className="empty-state is-small">
           <QrCode aria-hidden className="empty-icon" />
           <b>No responses from your QR code yet</b>
-          <span>Print it or put it on a slide, and scans show up here.</span>
+          <span>Print it or put it on a slide. Responses from it show up here.</span>
           <button type="button" className="btn btn-blue btn-sm" onClick={onOpenQr}>Get QR code</button>
         </div>
       )}

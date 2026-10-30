@@ -1,7 +1,7 @@
 import { siFacebook, siInstagram, siWhatsapp, siX, type SimpleIcon } from 'simple-icons'
 import { BriefcaseBusiness } from 'lucide-react'
 
-/** Official marks from Simple Icons, in each brand's own colour. */
+/** Official marks from Simple Icons, in each brand's own color. */
 function Si({ icon, size = 18 }: { icon: SimpleIcon; size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden role="img">

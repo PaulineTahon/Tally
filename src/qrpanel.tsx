@@ -12,7 +12,7 @@ export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
 
 export const fileName = (ref: string, ext: string) => `${slugify(FORM_TITLE)}-${ref}.${ext}`
 
-/** Keeps a too-light brand colour from breaking the scan. */
+/** Keeps a too-light brand color from breaking the scan. */
 export function safeStyle(st: QrStyle): QrStyle {
   return st.mode === 'brand' && contrastOnWhite(st.color) < 3 ? { ...st, color: '#000000' } : st
 }
@@ -118,10 +118,10 @@ export function QrPanel() {
           {style.mode === 'brand' && (
             <>
               <div className="row-between">
-                <span className="field-label">Colour</span>
+                <span className="field-label">Color</span>
                 <div className="row gap-8">
-                  <input type="color" value={style.color} onChange={(e) => setStyle({ color: e.target.value })} aria-label="Brand colour" className="swatch" />
-                  <input className="input" value={hex} onChange={(e) => { setHex(e.target.value); if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setStyle({ color: e.target.value }) }} aria-label="Brand colour hex" style={{ width: 100 }} />
+                  <input type="color" value={style.color} onChange={(e) => setStyle({ color: e.target.value })} aria-label="Brand color" className="swatch" />
+                  <input className="input" value={hex} onChange={(e) => { setHex(e.target.value); if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setStyle({ color: e.target.value }) }} aria-label="Brand color hex" style={{ width: 100 }} />
                 </div>
               </div>
               {lowContrast && <span className="xs" style={{ color: 'var(--danger)' }}>That shade is too light to scan reliably, so we'll keep it black. Try a darker one.</span>}
@@ -142,7 +142,7 @@ export function QrPanel() {
           </div>
         </div>
       )}
-      <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Scans are tagged, so you'll see responses from this code</p>
+      <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Responses from this code are tagged, so you'll see where they came from.</p>
     </div>
   )
 
@@ -153,7 +153,7 @@ export function QrPanel() {
     </div>
   ) : undefined
 
-  const title = placement && ref !== 'qr' ? `QR code: ${placement.label}` : 'QR code'
+  const title = placement && ref !== 'qr' ? `QR code for ${placement.label}` : 'QR code'
   return (
     <>
       <Dialog open={s.qrOpen} onClose={() => s.setQrOpen(false)} title={title} width={400} snap="full" footer={footer} labelledBy="qr-title">

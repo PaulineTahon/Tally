@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert, Image as ImageIcon,
+  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore } from './store'
 import { CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
@@ -28,7 +28,7 @@ export function useNativeShare() {
   }
 }
 
-/** Link, single Copy and the QR code. The QR stays in this spot whatever channel is open. */
+/** Link, single Copy and the QR code. The QR stays in this position whatever channel is open. */
 export function LinkBar() {
   const { display, url, setQrOpen, setQrRef, settings } = useStore()
   const mobile = useIsMobile()
@@ -128,8 +128,8 @@ export function LinkPreviewCard({ title, desc, img }: { title: string; desc: str
 
 function LinkPanel() {
   const s = useStore()
-  const [open, setOpen] = useState<null | 'ending' | 'preview' | 'domain'>(null)
-  const toggle = (k: 'ending' | 'preview' | 'domain') => setOpen((o) => (o === k ? null : k))
+  const [open, setOpen] = useState<null | 'ending' | 'domain'>(null)
+  const toggle = (k: 'ending' | 'domain') => setOpen((o) => (o === k ? null : k))
   const [ending, setEnding] = useState('')
   const [customize, setCustomize] = useState(false)
   const [lpTitle, setLpTitle] = useState(FORM_TITLE)
@@ -153,39 +153,13 @@ function LinkPanel() {
           {dirty && (
             <div className="callout callout-warn xs" role="alert">
               <TriangleAlert aria-hidden />
-              <span>Printed QR codes and links you've already shared point to <b>{s.shortLink}</b>. They stop working once you change it.</span>
+              <span>Printed QR codes and links you've already shared point to <b>{s.shortLink}</b>. Change it, and they stop working.</span>
             </div>
           )}
           <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={() => setOpen(null)}>Cancel</button>
             <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? 'Change link' : 'Save'}</button>
           </div>
-        </Expand>
-
-        <Expand id="preview" icon={<ImageIcon aria-hidden />} title="Link preview" help="How your link looks in chats and on social."
-          open={open === 'preview'} onToggle={() => toggle('preview')}>
-          <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
-          {!customize ? (
-            <div className="row gap-4"><button type="button" className="customize-link link-btn" onClick={() => setCustomize(true)}>Customize</button><Pro /></div>
-          ) : (
-            <div className="stack gap-8">
-              <label className="field-label" htmlFor="lp-title">Title</label>
-              <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
-              <label className="field-label" htmlFor="lp-desc">Description</label>
-              <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
-              <div className="row-between">
-                <span className="field-label">Image</span>
-                <label className="btn btn-secondary btn-sm">Replace
-                  <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
-                </label>
-              </div>
-              <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
-              <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }}>Cancel</button>
-                <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
-              </div>
-            </div>
-          )}
         </Expand>
 
         <Expand id="domain" icon={<Globe aria-hidden />} title={<>Custom domain <Pro /></>} help="Use your own, like forms.yourdomain.com."
@@ -199,6 +173,31 @@ function LinkPanel() {
           </div>
         </Expand>
       </div>
+      <section className="lp-section stack gap-8" aria-labelledby="lp-h">
+        <h3 id="lp-h" className="lp-h">Link preview</h3>
+        <LinkPreviewCard title={customize ? lpTitle : FORM_TITLE} desc={customize ? lpDesc : PREVIEW_DESC} img={(customize && lpImg) || defaultImg} />
+        {!customize ? (
+          <div className="row gap-4"><button type="button" className="customize-link link-btn" onClick={() => setCustomize(true)}>Customize</button><Pro /></div>
+        ) : (
+          <div className="stack gap-8">
+            <label className="field-label" htmlFor="lp-title">Title</label>
+            <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+            <label className="field-label" htmlFor="lp-desc">Description</label>
+            <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+            <div className="row-between">
+              <span className="field-label">Image</span>
+              <label className="btn btn-secondary btn-sm">Replace
+                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+              </label>
+            </div>
+            <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
+            <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }}>Cancel</button>
+              <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   )
 }
@@ -298,12 +297,12 @@ function InPersonPanel() {
   }
   const add = (label: string) => {
     const p = s.addPlacement(label)
-    s.toast(`Code added: ${p.ref}`)
+    s.toast(`Code added for ${p.label}`)
   }
   const missing = SUGGESTED.filter((l) => !placements.some((p) => p.ref === `qr-${slugify(l)}`))
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>One code per spot, so you can see which one brings responses.</p>
+      <p className="small muted" style={{ margin: 0 }}>One code per place, so you can see which one brings in responses.</p>
       {placements.length > 0 && (
         <ul className="placements" aria-label="Your QR codes">
           {placements.map((p) => (
@@ -313,21 +312,21 @@ function InPersonPanel() {
                 <span className="title">{p.label}</span>
                 <span className="xs muted mono">{p.ref}</span>
               </span>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>Open</button>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>View code</button>
               <button type="button" className="btn btn-secondary btn-sm icon-btn" aria-label={`Download ${p.label}`} title={`Download ${settings.format.toUpperCase()}`} onClick={() => one(p.ref)}><Download aria-hidden /></button>
             </li>
           ))}
         </ul>
       )}
       <div className="stack gap-8">
-        <span className="xs" style={{ fontWeight: 600 }}>Add another placement</span>
+        <span className="xs" style={{ fontWeight: 600 }}>Add another code</span>
         <div className="chips">
           {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
         </div>
         <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!other.trim()) return; add(other); setOther('') }}>
           <div className="input-group" style={{ flex: 1 }}>
             <span className="prefix">qr-</span>
-            <input aria-label="Placement name" placeholder="library" value={other} onChange={(e) => setOther(slugify(e.target.value))} />
+            <input aria-label="Place name" placeholder="library" value={other} onChange={(e) => setOther(slugify(e.target.value))} />
           </div>
           <button type="submit" className="btn btn-secondary" disabled={!other}><Plus aria-hidden />Add</button>
         </form>

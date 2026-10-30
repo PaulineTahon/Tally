@@ -3,8 +3,7 @@ import { toPng } from 'html-to-image'
 import { Download, ChevronDown, Check, Copy, Palette } from 'lucide-react'
 import { LOGO_RATIO, QUIET, matrix, modulePath } from './qr'
 
-/** Tally's own marketing art keeps the asterisk and pink centres. The product default is plain black. */
-const QR_PINK = '#D915C4'
+/** Codes are always plain black. Marketing art may keep the black asterisk in the centre. */
 import { TALLY_PATH } from './mark'
 import { TallyMark } from './chrome'
 
@@ -14,7 +13,7 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG. Marketing style by default; `plain` matches the product's default code. */
+/** A real, scannable code drawn as SVG, all black. Marketing art adds the black asterisk; `plain` matches the product's default code. */
 function Qr({ x = 0, y = 0, size, url, plain = false }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
@@ -30,7 +29,7 @@ function Qr({ x = 0, y = 0, size, url, plain = false }: { x?: number; y?: number
       {eyes.map(([ex, ey]) => (
         <g key={`${ex}-${ey}`} transform={`translate(${ex + QUIET} ${ey + QUIET})`}>
           <path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill="#000" fillRule="evenodd" />
-          <rect x={2} y={2} width={3} height={3} fill={plain ? '#000' : QR_PINK} />
+          <rect x={2} y={2} width={3} height={3} fill="#000" />
         </g>
       ))}
       {!plain && <rect x={lx} y={lx} width={ls} height={ls} rx={ls * 0.22} fill="#fff" />}
@@ -165,7 +164,8 @@ function Social({ qrRef }: { qrRef: string }) {
 
 /* ---------- Changelog: 1200x630 exported at 2x, beige, real product UI ---------- */
 function Wordmark() {
-  return <span className="wordmark" aria-label="tally">tally<svg viewBox="0 0 128 124" width="15" height="15" aria-hidden><path d={TALLY_PATH} fill="#000" /></svg></span>
+  // Tally's own header wordmark (tally.so/images/logo_v2.png). The site ships it as a PNG, not an SVG.
+  return <img className="wordmark" src={`${import.meta.env.BASE_URL}tally-wordmark.png`} alt="tally" />
 }
 
 /** The new QR panel, as it looks in the product. */
@@ -178,13 +178,12 @@ function QrPanelMock({ url }: { url: string }) {
           <QrBox size={200} url={url} label="QR code" plain />
           <b>tally.so/r/KpYalV</b>
           <span>Made with Tally</span>
-          <svg className="pm-mark" viewBox="0 0 128 124" width="13" height="13" aria-hidden><path d={TALLY_PATH} fill="#000" /></svg>
         </div>
         <div className="pm-actions">
           <div className="mock-split"><span><Download aria-hidden />Download SVG</span><span className="caret"><ChevronDown aria-hidden /></span></div>
           <div className="pm-btn"><Palette aria-hidden />Personalize</div>
         </div>
-        <span className="pm-note">Scans are tagged, so you'll see responses from this code</span>
+        <span className="pm-note">Responses from this code are tagged, so you'll see where they came from.</span>
       </div>
     </div>
   )
@@ -270,7 +269,7 @@ function Cover() {
         </defs>
         <rect width="3000" height="1000" fill="#000" />
         {/* Poster */}
-        <g transform="translate(1640 510) rotate(2.5) scale(0.84)">
+        <g transform="translate(1640 540) rotate(2.5) scale(0.72)">
           <g filter="url(#poster-shadow)">
             <rect x={-190} y={-232} width={380} height={464} rx={6} fill="#fff" />
           </g>
@@ -281,7 +280,7 @@ function Cover() {
           <rect x={-70} y={-252} width={140} height={44} rx={4} fill="#DFDFDF" opacity={0.85} transform="rotate(-4)" />
         </g>
         {/* Hand holding a phone up to scan */}
-        <g transform="translate(2020 500) rotate(-10) scale(0.84)">
+        <g transform="translate(1990 520) rotate(-10) scale(0.72)">
           <path d={rect(-70, -120, 140, 250, 71)} {...linePen} />
           <path d="M-45 -92h90v124h-90z" {...linePen} strokeWidth={4} />
           <path d="M-30 -76h26v26h-26zM8 -40h22v22h-22zM-30 -20h18v18h-18z" fill={WHITE} />
@@ -362,9 +361,9 @@ export default function Visuals() {
           <p>Some forms belong offline: on a poster, a flyer, a menu or a name badge. Grab your code from any form, right next to Copy on the Share tab.</p>
           <ul>
             <li><b>Ready to print.</b> Download it as SVG, PDF or high-res PNG. It stays sharp from sticker size to A0.</li>
-            <li><b>Make it yours.</b> It starts in plain black. Personalize it with your own colour and logo.</li>
-            <li><b>One code per spot.</b> Make a code for the poster, the flyer and the slides, and download each one when you need it.</li>
-            <li><b>Know what worked.</b> Scans are tagged, so each code gets its own row in Insights.</li>
+            <li><b>Make it yours.</b> Codes start in classic black. Add your brand color and logo.</li>
+            <li><b>One code per place.</b> Make one for the poster, the flyer and the slides, and download each when you need it.</li>
+            <li><b>Know what worked.</b> Every code is tagged, so each one gets its own row in Insights.</li>
             <li><b>On your phone?</b> Save the code to your photos or share it straight from the share sheet.</li>
           </ul>
           <p>Open any form, go to Share, and hit QR code. Happy printing!</p>
@@ -372,7 +371,7 @@ export default function Visuals() {
         <Changelog />
       </Exportable>
       <Exportable title="Poster" name="tally-qr-poster" w={800} h={1131}
-        caption={<p>Print it, stick it up, and every scan shows up as qr-poster in Insights.</p>}>
+        caption={<p>Print it, stick it up, and responses from it show up as qr-poster in Insights.</p>}>
         <Poster />
       </Exportable>
       <Exportable title="Form cover" name="tally-qr-cover" w={1500} h={500}
@@ -385,7 +384,7 @@ export default function Visuals() {
             <button key={n} type="button" role="tab" aria-selected={net === n} onClick={() => setNet(n)}>{n === 'linkedin' ? 'LinkedIn' : 'X'}</button>
           ))}
         </div>}
-        caption={<p>One form, one QR code, endless places to stick it. New on the Share tab: download your QR code, make one per spot, and see which one brought responses. ✨</p>}>
+        caption={<p>One form, one QR code, endless places to stick it. New on the Share tab: download your QR code, make one per place, and see which one brought responses. ✨</p>}>
         <Social key={net} qrRef={`qr-${net}`} />
       </Exportable>
       <p className="xs muted" style={{ textAlign: 'center' }}>Psst. The codes in these images really scan. Each one is tagged with where it was seen.</p>

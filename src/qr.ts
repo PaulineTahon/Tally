@@ -1,5 +1,4 @@
 import QRCode from 'qrcode'
-import { TALLY_PATH } from './mark'
 
 export type QrSize = 'small' | 'medium' | 'large'
 export const SIZES: Record<QrSize, { label: string; hint: string; mm: number }> = {
@@ -9,7 +8,7 @@ export const SIZES: Record<QrSize, { label: string; hint: string; mm: number }> 
 }
 export type QrFormat = 'svg' | 'pdf' | 'png'
 
-/** Plain black is the default. "Your brand" adds the creator's colour and logo. */
+/** Plain black is the default. "Your brand" adds the creator's color and logo. */
 export interface QrStyle {
   mode: 'tally' | 'brand'
   color: string
@@ -65,12 +64,6 @@ function sampleLogo(x: number, y: number, s: number, color: string) {
 </g>`
 }
 
-/** Free plan: a small Tally mark in the corner of the code area, never on the modules. */
-function cornerMark(x: number, y: number, s: number) {
-  const k = s / 128
-  return `<g transform="translate(${x} ${y}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
-}
-
 export const hasLogo = (st: QrStyle) => st.mode === 'brand'
 
 function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
@@ -99,7 +92,7 @@ export function modulePath(m: Matrix, withLogo = true, withFinders = false) {
   return d
 }
 
-/** The three corner eyes: outer ring in the main colour, centre in the accent. */
+/** The three corner eyes: outer ring in the main color, centre in the accent. */
 export function finderSvg(m: Matrix, unit: number, main: string, accent: string) {
   const n = m.size
   return [[0, 0], [n - 7, 0], [0, n - 7]].map(([fx, fy]) => {
@@ -133,12 +126,6 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
     finderSvg(m, unit, main, accentColor(o.style)),
     logoMarkup(o.style, logoXY, logoXY, logoS),
   ]
-  if (o.madeWithTally && caption) {
-    // Bottom-right corner of the white code area, in the margin and clear of the modules.
-    const ms = unit * 2.2
-    const xy = codeW - QUIET * unit + unit * 1.4
-    parts.push(cornerMark(xy, xy, ms))
-  }
   if (caption) {
     let y = codeW + 24
     parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#37352F">${o.shortLink}</text>`)
@@ -246,10 +233,6 @@ export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
     doc.setFontSize(Math.max(7, fs * 0.55))
     doc.setTextColor(119, 118, 114)
     doc.text('Made with Tally', 105, ty, { align: 'center' })
-    const ms = unit * 2.2
-    const off = (m.size + QUIET) * unit + unit * 1.4
-    const mk = await svgToCanvas(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 124" width="128" height="124"><path d="${TALLY_PATH}" fill="#000"/></svg>`, 2)
-    doc.addImage(mk.toDataURL('image/png'), 'PNG', x0 + off, y0 + off, ms, ms * 124 / 128)
   }
   return doc.output('blob')
 }
@@ -260,7 +243,7 @@ export async function fileFor(o: QrOptions, format: QrFormat, size: QrSize): Pro
   return pngBlob(o, size === 'small' ? 2 : size === 'medium' ? 4 : 8)
 }
 
-/** WCAG contrast ratio of a colour against white. */
+/** WCAG contrast ratio of a color against white. */
 export function contrastOnWhite(hex: string) {
   const lum = hexToRgb(hex)
     .map((v) => v / 255)

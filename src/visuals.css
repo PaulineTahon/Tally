@@ -23,8 +23,7 @@ body { background: #fafafa; }
 
 /* Changelog: beige, wordmark top-left, light browser frame bleeding off the bottom right */
 .changelog { background: #f4f3ef; }
-.wordmark { display: inline-flex; align-items: flex-start; gap: 1px; font-family: Georgia, 'Times New Roman', serif; font-weight: 700; font-size: 34px; letter-spacing: -0.02em; color: #000; line-height: 1; }
-.wordmark svg { margin-top: 1px; }
+.wordmark { display: block; height: 34px; width: auto; }
 .cl-wm { position: absolute; left: 64px; top: 52px; }
 .cl-copy { position: absolute; left: 64px; top: 200px; width: 340px; }
 .cl-copy h1 { font-size: 50px; line-height: 1.06; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 18px; color: #000; }
@@ -88,4 +87,3 @@ body { background: #fafafa; }
 /* Cover */
 .cover-art { background: #000; }
 .cover-art svg { display: block; }
-.pm-mark { position: absolute; right: 4px; bottom: 2px; }
