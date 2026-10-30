@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Settings2, Share, PencilLine, Trash2,
+  ArrowUpRight, ChevronDown, Code, Copy, Link2, Palette, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Settings2, Share, PencilLine, Trash2,
 } from 'lucide-react'
-import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { AutoHeight, Collapse, CopyButton, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MESSAGE_REF, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
+import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
-import { fileName, safeStyle } from './qrpanel'
-import { endingCopy, rowCopy } from './copy'
+import { QR_COPY, fileName, safeStyle, saveOrShare } from './qrpanel'
+import { endingCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 
 export type Channel = 'social' | 'email' | 'qr'
@@ -95,7 +95,7 @@ function Row({ icon, title, help, right }: { icon?: ReactNode; title: ReactNode;
 }
 
 const enc = encodeURIComponent
-export const SHARE_TEXT = `Quick one: ${FORM_TITLE}. It takes a minute.`
+export const SHARE_TEXT = shareCopy.defaultMessage(FORM_TITLE)
 
 /** WhatsApp opens its own share screen. The rest are Copy, so there's one button per row. */
 export const SOCIAL: { ref: string; label: string; icon: ReactNode; open?: (link: string) => string }[] = [
@@ -106,9 +106,10 @@ export const SOCIAL: { ref: string; label: string; icon: ReactNode; open?: (link
   { ref: 'x', label: 'X', icon: <XLogo /> },
 ]
 
-const EMAIL_SUBJECT = `Quick one: ${FORM_TITLE}`
-const emailBody = (link: string) => `Hi!\n\nWe're getting the picnic together and would love to know if you can make it. It takes a minute:\n\n${link}`
-export const emailHref = (link: string) => `mailto:?subject=${enc(EMAIL_SUBJECT)}&body=${enc(emailBody(link))}`
+/** The message you edit is kept for the session, so switching tabs doesn't lose it. */
+const draft = { message: SHARE_TEXT, subject: shareCopy.defaultSubject(FORM_TITLE), body: shareCopy.defaultBody(FORM_TITLE) }
+const withLink = (text: string, link: string) => `${text.trim()}${text.trim() ? '\n\n' : ''}${link}`
+export const emailHref = (link: string, subject = draft.subject, body = draft.body) => `mailto:?subject=${enc(subject)}&body=${enc(withLink(body, link))}`
 
 /* ---------- Link ---------- */
 
@@ -122,7 +123,9 @@ function LinkEnding() {
   const [removing, setRemoving] = useState<string | null>(null)
   const value = ending || s.slug
   const dirty = value !== s.slug
-  const save = () => { s.setSlug(value); s.toast(endingCopy.updated); tick('link-ending') }
+  const pro = s.plan === 'pro'
+  // On Free you can try any ending, but saving it is Pro.
+  const save = () => { tick('link-ending'); if (!pro) { s.upgrade(); return } s.setSlug(value); s.toast(endingCopy.updated) }
   const also = [...s.oldEndings].reverse()
   return (
     <div className="stack gap-8">
@@ -140,7 +143,9 @@ function LinkEnding() {
       )}
       <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
         {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEnding(s.slug)}>{endingCopy.cancel}</button>}
-        <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? endingCopy.change : endingCopy.save}</button>
+        {pro
+          ? <button type="button" className="btn btn-black btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? endingCopy.change : endingCopy.save}</button>
+          : <UpgradeButton disabled={!dirty || !value} onClick={save} />}
       </div>
       {(also.length > 0 || s.slug !== FORM_ID) && (
         <div className="stack gap-4 also-works">
@@ -177,6 +182,8 @@ function LinkEnding() {
 
 /** Under the link bar: one preview row, then two secondary links that open in place. */
 function LinkDetails() {
+  const s = useStore()
+  const [domain, setDomain] = useState('')
   const [customize, setCustomize] = useState(false)
   const [more, setMore] = useState(false)
   const [embed, setEmbed] = useState(false)
@@ -207,10 +214,11 @@ function LinkDetails() {
               <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
             </label>
           </div>
-          <div className="callout callout-info xs"><span>Try it, then upgrade to apply.</span></div>
           <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>
-            <button type="button" className="btn btn-blue btn-sm">Upgrade to apply</button>
+            {s.plan === 'pro'
+              ? <button type="button" className="btn btn-black btn-sm" onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
+              : <UpgradeButton onClick={s.upgrade} />}
           </div>
         </div>
       </Collapse>
@@ -229,11 +237,15 @@ function LinkDetails() {
           <div className="stack gap-8">
             <span className="field-label row gap-4">Custom Domain <Pro /></span>
             <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
-            <div className="input-group is-disabled">
+            <div className="input-group">
               <span className="prefix">https://</span>
-              <input aria-label="Custom domain" placeholder="forms.yourdomain.com" disabled />
+              <input aria-label="Custom domain" placeholder="forms.yourdomain.com" value={domain} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
             </div>
-            <div><button type="button" className="link-btn small">Upgrade plan</button></div>
+            <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+              {s.plan === 'pro'
+                ? <button type="button" className="btn btn-black btn-sm" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
+                : <UpgradeButton disabled={!domain} onClick={s.upgrade} />}
+            </div>
           </div>
         </div>
       </Collapse>
@@ -323,7 +335,8 @@ function sourceIcon(src: Source) {
 export function PlaceList({ only, pulse = 0 }: { only?: 'qr'; pulse?: number }) {
   const s = useStore()
   // The main code lives in the QR Code tab only, so it shows up once.
-  const rows = only ? s.placements : s.sources.filter((p) => p.ref !== MAIN_QR)
+  // Copied message is an Insights source, not a place you made, so it isn't listed.
+  const rows = only ? s.placements : s.sources.filter((p) => p.ref !== MAIN_QR && p.ref !== MESSAGE_REF)
   if (!rows.length) return null
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
@@ -337,6 +350,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const s = useStore()
   const reduced = useReducedMotion()
   const li = useRef<HTMLLIElement>(null)
+  const hit = useRef<HTMLSpanElement>(null)
   const [pulsing, setPulsing] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
   // Jumped to from the QR Code button: bring the row into view, focus it, pulse once.
@@ -345,7 +359,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     const el = li.current
     if (!el) return
     el.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
-    el.focus({ preventScroll: true })
+    ;(hit.current ?? el).focus({ preventScroll: true })
     setPulsing(false)
     const r = requestAnimationFrame(() => setPulsing(true))
     const t = window.setTimeout(() => setPulsing(false), 1000)
@@ -361,11 +375,12 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const [confirming, setConfirming] = useState(false)
   const more = useRef<HTMLButtonElement>(null)
   const qr = p.kind === 'qr'
-  const link = s.url(p.ref)
+  const link = qr ? qrUrl(p.ref) : s.url(p.ref)
   const n = `${p.responses} ${p.responses === 1 ? 'response' : 'responses'}`
-  const fmt = settings.format
+  // Print-size PNG by default; SVG and PDF sit in the menu.
+  const fmt: QrFormat = 'png'
   const download1 = async (f: QrFormat) => {
-    const o = { url: link, shortLink: s.shortLink, style, madeWithTally: true }
+    const o = { url: link, shortLink: s.shortLink, style, showLink: settings.showLink }
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()
     if (main) tick('download-main')
@@ -391,9 +406,11 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     setConfirming(true)
   }
   const confirmDelete = () => { s.removeSource(p.ref); s.toast(rowCopy.deleted(p.label)) }
+  // Code rows use the same plain icon as the QR Code button; the full code is one click away.
   const icon = qr
-    ? <span className="qr-thumb is-static" aria-hidden><QrImage url={link} style={style} size={30} label="" /></span>
+    ? <span className="src-icon is-code" aria-hidden><QrCode /></span>
     : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>
+  const openCode = () => { s.setQrRef(p.ref); s.setQrOpen(true) }
   if (renaming) {
     const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast(rowCopy.renamed(name.trim())) }
     return (
@@ -427,10 +444,20 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     )
   }
   return (
-    <li ref={li} tabIndex={-1} className={pulsing ? 'is-pulse' : undefined}>
-      {icon}
-      <span className="title grow">{p.label}</span>
-      <span className="xs muted count">{n}</span>
+    <li ref={li} tabIndex={-1} className={[pulsing ? 'is-pulse' : '', qr ? 'is-clickable' : ''].join(' ').trim() || undefined}
+      onClick={qr ? (e) => { if (!(e.target as HTMLElement).closest('button, a, [role="menu"]')) openCode() } : undefined}>
+      {qr ? (
+        <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${p.label}, ${n}. Open code`}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCode() } }}>
+          {icon}
+          <span className="title grow">{p.label}</span>
+          <span className="xs muted count">{n}</span>
+        </span>
+      ) : <>
+        {icon}
+        <span className="title grow">{p.label}</span>
+        <span className="xs muted count">{n}</span>
+      </>}
       {qr ? (
         <button type="button" className={`btn btn-secondary btn-sm icon-btn ${downloaded ? 'is-copied' : ''}`} data-tip={rowCopy.download(p.label, fmt)} aria-label={rowCopy.download(p.label, fmt)} onClick={() => download1(fmt)}>
           <IconSwap on={downloaded} icon="download" />
@@ -447,12 +474,11 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
           <MoreHorizontal aria-hidden />
         </button>
         <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
-          {qr && <button role="menuitem" onClick={pick(() => { s.setQrRef(p.ref); s.setQrOpen(true) })}><QrCode aria-hidden />View code</button>}
           <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />{rowCopy.copyLink}</button>
           {qr && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />{rowCopy.rename}</button>}
           {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />{rowCopy.openLink}</a>}
           {qr && <div className="menu-sep" role="separator" />}
-          {qr && (['svg', 'pdf', 'png'] as QrFormat[]).map((f) => (
+          {qr && (['png', 'svg', 'pdf'] as QrFormat[]).map((f) => (
             <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
           ))}
           {qr && !main && <div className="menu-sep" role="separator" />}
@@ -475,6 +501,79 @@ export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster 
   )
 }
 
+/** With only the main code, the tab shows the code itself. */
+function SingleCode({ pulse }: { pulse: number }) {
+  const s = useStore()
+  const reduced = useReducedMotion()
+  const p = s.placements[0]
+  const style = safeStyle(s.settings.style)
+  const link = qrUrl(p.ref)
+  const [renaming, setRenaming] = useState(false)
+  const [name, setName] = useState(p.label)
+  const [pulsing, setPulsing] = useState(false)
+  const [done, setDone] = useState<QrFormat | null>(null)
+  const card = useRef<HTMLDivElement>(null)
+  const primary = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    if (!pulse || !card.current) return
+    card.current.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
+    primary.current?.focus({ preventScroll: true })
+    setPulsing(false)
+    const r = requestAnimationFrame(() => setPulsing(true))
+    const t = window.setTimeout(() => setPulsing(false), 1000)
+    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
+  }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
+  const mobile = useIsMobile()
+  const opts = { url: link, shortLink: s.shortLink, style, showLink: s.settings.showLink }
+  const flash = (f: QrFormat) => { s.markDownloaded(); tick('download-main'); setDone(f); window.setTimeout(() => setDone(null), 2000) }
+  const get = async (f: QrFormat) => {
+    download(await fileFor(opts, f), fileName(p.ref, f))
+    flash(f)
+    s.toast(QR_COPY.downloaded)
+  }
+  // Phones: the system share sheet with the PNG, which covers Save to Photos.
+  const share = async () => { flash('png'); if ((await saveOrShare(opts, p.ref)) === 'downloaded') s.toast(QR_COPY.downloaded) }
+  const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast(rowCopy.renamed(name.trim())) }
+  return (
+    <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
+      <button type="button" className="single-preview" aria-label={`Open ${p.label} full size`} onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>
+        <QrImage url={link} style={style} size={168} label={`QR code that opens ${s.display()}`} />
+        {s.settings.showLink && <span className="single-link">{s.shortLink}</span>}
+      </button>
+      <div className="stack gap-8 single-side">
+        {renaming ? (
+          <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); save() }}>
+            <input className="input input-sm grow" autoFocus aria-label={`New name for ${p.label}`} value={name}
+              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setRenaming(false) } }} />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(p.label); setRenaming(false) }}>{rowCopy.cancel}</button>
+            <button type="submit" className="btn btn-black btn-sm" disabled={!name.trim()}>Save</button>
+          </form>
+        ) : (
+          <div className="row gap-8">
+            <b className="single-name">{p.label}</b>
+            <button type="button" className="link-btn xs" onClick={() => { setName(p.label); setRenaming(true) }}>{rowCopy.rename}</button>
+          </div>
+        )}
+        <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
+        <div className="row gap-8 single-dl">
+          <button ref={primary} type="button" className={`btn btn-black btn-sm single-primary ${done === 'png' ? 'is-copied' : ''}`}
+            aria-label={mobile ? QR_COPY.saveOrShare : rowCopy.download(p.label, 'png')} onClick={() => (mobile ? share() : get('png'))}>
+            {mobile ? <Share aria-hidden /> : <IconSwap on={done === 'png'} icon="download" />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
+          </button>
+          {(['svg', 'pdf'] as QrFormat[]).map((f) => (
+            <button key={f} type="button" className="btn btn-secondary btn-sm" aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>{f.toUpperCase()}</button>
+          ))}
+        </div>
+        <div>
+          <button type="button" className="link-btn small" onClick={() => { s.setQrRef(p.ref); s.setQrPersonalize(true); s.setQrOpen(true) }}>
+            <Palette aria-hidden />Personalize
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** One ready-made code first. Extra codes per place are optional, and free. */
 function QrCodePanel({ pulse }: { pulse: number }) {
   const s = useStore()
@@ -486,13 +585,21 @@ function QrCodePanel({ pulse }: { pulse: number }) {
   }
   const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
   const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
+  const single = s.placements.length <= 1
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
-      <PlaceList only="qr" pulse={pulse} />
-      <div className="stack gap-8">
+      {/* One code: the code itself. Two or more: the list. The box eases between the two. */}
+      <AutoHeight k={single ? 'one' : 'list'} slow>
+        {single ? <SingleCode pulse={pulse} /> : (
+          <div className="stack gap-12">
+            <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
+            <PlaceList only="qr" pulse={pulse} />
+          </div>
+        )}
+      </AutoHeight>
+      <div className="stack gap-4">
         <div>
-          <button type="button" className="btn btn-secondary btn-sm" aria-expanded={adding} aria-controls="add-code" onClick={() => setAdding((v) => !v)}>
+          <button type="button" className="link-btn small add-code-link" aria-expanded={adding} aria-controls="add-code" onClick={() => setAdding((v) => !v)}>
             <Plus aria-hidden />Add another code
           </button>
         </div>
@@ -514,39 +621,70 @@ function QrCodePanel({ pulse }: { pulse: number }) {
 
 /* ---------- Panels ---------- */
 
-export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?: number }) {
-  const { url } = useStore()
-  if (channel === 'qr') return <QrCodePanel pulse={pulse} />
-  if (channel === 'social') {
-    return (
-      <div className="stack gap-8">
-        <p className="small muted" style={{ margin: 0 }}>Post it where your people are.</p>
-        <div className="stack">
-          {SOCIAL.map((x) => (
-            <Row key={x.ref} icon={x.icon} title={x.label}
-              right={x.open
-                ? <a className="btn btn-secondary btn-sm" href={x.open(url(x.ref))} target="_blank" rel="noreferrer" aria-label="Send on WhatsApp"><ArrowUpRight aria-hidden />Send</a>
-                : <SmallCopy text={url(x.ref)} />} />
-          ))}
-        </div>
-        <p className="xs muted" style={{ margin: 0 }}>Each link is tagged, so you know which post worked.</p>
-      </div>
-    )
-  }
-  const link = url('email')
+function SocialPanel() {
+  const s = useStore()
+  const [message, setMessage] = useState(draft.message)
+  const [menu, setMenu] = useState(false)
+  const update = (v: string) => { draft.message = v; setMessage(v) }
+  const copyMessage = async () => { await copyText(withLink(message, s.url(MESSAGE_REF)).replace('\n\n', ' ')); s.toast(shareCopy.messageCopied) }
+  const copyLink = async () => { await copyText(s.url()); s.toast(shareCopy.linkCopied) }
   return (
     <div className="stack gap-8">
-      <p className="small muted" style={{ margin: 0 }}>Drop it in your newsletter or inbox.</p>
-      <div className="row gap-8">
-        <a className="btn btn-secondary btn-sm" href={emailHref(link)}><Mail aria-hidden />Write email</a>
-        <SmallCopy text={link} />
+      <p className="small muted" style={{ margin: 0 }}>{shareCopy.socialIntro}</p>
+      <label className="field-label" htmlFor="share-message">{shareCopy.messageLabel}</label>
+      <textarea id="share-message" className="input textarea" rows={2} value={message} onChange={(e) => update(e.target.value)} />
+      <div className="stack">
+        {SOCIAL.map((x) => (
+          <Row key={x.ref} icon={x.icon} title={x.label}
+            right={x.open ? (
+              <span className="row gap-4">
+                <a className="btn btn-secondary btn-sm" href={`https://wa.me/?text=${enc(`${message.trim()} ${s.url(x.ref)}`)}`} target="_blank" rel="noreferrer" aria-label={`${shareCopy.send} on ${x.label}`}><ArrowUpRight aria-hidden />{shareCopy.send}</a>
+                <span style={{ position: 'relative', display: 'inline-flex' }}>
+                  <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={shareCopy.moreFor(x.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
+                  <Menu open={menu} onClose={() => setMenu(false)} style={{ top: 34, right: 0, minWidth: 220 }}>
+                    <button role="menuitem" onClick={() => { setMenu(false); copyMessage() }}><Copy aria-hidden />{shareCopy.copyMessageAndLink}</button>
+                    <button role="menuitem" onClick={() => { setMenu(false); copyLink() }}><Link2 aria-hidden />{shareCopy.copyLinkOnly}</button>
+                  </Menu>
+                </span>
+              </span>
+            ) : <SmallCopy text={s.url(x.ref)} />} />
+        ))}
       </div>
-      <p className="xs muted" style={{ margin: 0 }}>The link is tagged, so you'll see responses from email.</p>
+      <p className="xs muted" style={{ margin: 0 }}>{shareCopy.socialHint}</p>
     </div>
   )
 }
 
-/** Remembered while the page is open, so coming back from the QR panel lands on the same channel. */
+function EmailPanel() {
+  const s = useStore()
+  const [subject, setSubject] = useState(draft.subject)
+  const [body, setBody] = useState(draft.body)
+  const copy = async () => { await copyText(withLink(body, s.url(MESSAGE_REF))); s.toast(shareCopy.emailCopied) }
+  return (
+    <div className="stack gap-8">
+      <p className="small muted" style={{ margin: 0 }}>{shareCopy.emailIntro}</p>
+      <div className="email-draft stack gap-8">
+        <label className="field-label" htmlFor="email-subject">{shareCopy.subjectLabel}</label>
+        <input id="email-subject" className="input" value={subject} onChange={(e) => { draft.subject = e.target.value; setSubject(e.target.value) }} />
+        <label className="field-label" htmlFor="email-body">{shareCopy.bodyLabel}</label>
+        <textarea id="email-body" className="input textarea" rows={4} value={body} onChange={(e) => { draft.body = e.target.value; setBody(e.target.value) }} />
+        <span className="xs muted">{shareCopy.linkNote} <span className="mono-ish">{s.display('email')}</span></span>
+      </div>
+      <div className="row gap-8">
+        <a className="btn btn-secondary btn-sm" href={emailHref(s.url('email'), subject, body)}><Mail aria-hidden />{shareCopy.openMail}</a>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={copy}><Copy aria-hidden />{shareCopy.copyEmail}</button>
+      </div>
+      <p className="xs muted" style={{ margin: 0 }}>{shareCopy.emailHint}</p>
+    </div>
+  )
+}
+
+export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?: number }) {
+  if (channel === 'qr') return <QrCodePanel pulse={pulse} />
+  if (channel === 'social') return <SocialPanel />
+  return <EmailPanel />
+}
+
 let lastChannel: Channel = 'social'
 
 export function ShareBlock() {

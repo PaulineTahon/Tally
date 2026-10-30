@@ -1,4 +1,4 @@
-/** UI strings for the code rows and the link ending, kept together for copy review. */
+/** UI strings, kept together for copy review. */
 
 export const rowCopy = {
   download: (place: string, format: string) => `Download ${place} as ${format.toUpperCase()}`,
@@ -41,4 +41,44 @@ export const publishCopy = {
   protoFirst: 'First publish',
   protoNoResponses: 'Republish, no responses',
   protoResponses: 'Republish, has responses',
+}
+
+/** Free or Pro, as played by the prototype bar. */
+export const planCopy = {
+  protoLabel: 'Plan',
+  free: 'Free',
+  pro: 'Pro',
+  upgradeToSave: 'Upgrade to Save',
+  upgradeToast: 'Saving this is part of Pro.',
+  seePlans: 'See plans',
+  domainSaved: 'Custom domain saved.',
+  previewSaved: 'Link preview updated.',
+  styleSaved: 'Style saved for your codes.',
+}
+
+/**
+ * Social and Email panels. Placeholder wording for now; the final strings drop in here.
+ * Functions take the form title so this file never depends on the store.
+ */
+export const shareCopy = {
+  socialIntro: 'Post it where your people are.',
+  messageLabel: 'Message',
+  defaultMessage: (title: string) => `Quick one: ${title}. It takes a minute.`,
+  send: 'Send',
+  copyMessageAndLink: 'Copy message and link',
+  copyLinkOnly: 'Copy link only',
+  messageCopied: 'Message and link copied.',
+  linkCopied: 'Link copied. Go spread the word.',
+  moreFor: (place: string) => `More for ${place}`,
+  socialHint: 'Responses from copied messages show up under Copied message in Insights.',
+  emailIntro: 'Drop it in your newsletter or inbox.',
+  subjectLabel: 'Subject',
+  bodyLabel: 'Message',
+  defaultSubject: (title: string) => `Quick one: ${title}`,
+  defaultBody: (title: string) => `Hi!\n\nCould you fill in ${title}? It takes a minute.`,
+  linkNote: 'Your link goes at the end.',
+  openMail: 'Open in mail app',
+  copyEmail: 'Copy message with link',
+  emailCopied: 'Message and link copied.',
+  emailHint: "The link is tagged, so you'll see responses from email.",
 }

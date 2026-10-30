@@ -1,4 +1,5 @@
 import QRCode from 'qrcode'
+import { TALLY_PATH } from './mark'
 
 /** One size for everything. SVG and PDF are vector; PNG is big enough to print sharply up to A3. */
 export const PNG_MIN_PX = 3200
@@ -18,7 +19,8 @@ export interface QrOptions {
   url: string
   shortLink: string
   style: QrStyle
-  madeWithTally: boolean
+  /** One plain line with the short link under the code. On by default, on every plan. */
+  showLink: boolean
   /** Small line under the link, like the placement name. */
   label?: string
 }
@@ -38,7 +40,7 @@ export function matrix(url: string): Matrix {
 
 export const QUIET = 4
 /** Share of the code width covered by the logo tile. Small enough for level H. */
-export const LOGO_RATIO = 0.22
+export const LOGO_RATIO = 0.2
 
 export function inLogo(m: Matrix, x: number, y: number) {
   const c = m.size / 2
@@ -51,25 +53,25 @@ export function inFinder(m: Matrix, x: number, y: number) {
   return (x < 7 && y < 7) || (x >= n - 7 && y < 7) || (x < 7 && y >= n - 7)
 }
 
-/** Sample logo for "Your brand": a picnic basket on a rounded tile. */
-function sampleLogo(x: number, y: number, s: number, color: string) {
-  const k = s / 24
-  return `<g transform="translate(${x} ${y}) scale(${k})">
-  <rect x="0" y="0" width="24" height="24" rx="6" fill="${color}"/>
-  <path d="M5 11h14l-1.6 7.2a1.5 1.5 0 0 1-1.5 1.2H8.1a1.5 1.5 0 0 1-1.5-1.2Z" fill="#fff"/>
-  <path d="M8 11c0-3 1.8-5 4-5s4 2 4 5" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/>
-</g>`
-}
+/** Every code carries a centre mark, so modules there are always knocked out. Level H covers it. */
+export const hasLogo = (_st: QrStyle) => true
 
-export const hasLogo = (st: QrStyle) => st.mode === 'brand'
+/** Rounded square knockout: corner radius about a quarter of its side. */
+export const TILE_RADIUS = 0.24
 
-function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
-  if (st.mode === 'tally') return ''
-  if (st.logo) {
-    return `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * 0.22}" fill="#fff"/>
-<image href="${st.logo}" x="${x + s * 0.08}" y="${y + s * 0.08}" width="${s * 0.84}" height="${s * 0.84}" preserveAspectRatio="xMidYMid meet"/>`
+/**
+ * The centre mark: a black Tally asterisk on a white rounded square, on every plan.
+ * A logo uploaded in Personalize replaces it. Padding is even on all sides.
+ */
+export function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
+  const tile = `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * TILE_RADIUS}" ry="${s * TILE_RADIUS}" fill="#fff"/>`
+  if (st.mode === 'brand' && st.logo) {
+    const p = s * 0.14
+    return `${tile}<image href="${st.logo}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/>`
   }
-  return sampleLogo(x, y, s, st.color)
+  const p = s * 0.2
+  const k = (s - p * 2) / 128
+  return `${tile}<g transform="translate(${x + p} ${y + p + (128 - 124) * k / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
 }
 
 export const moduleColor = (st: QrStyle) => (st.mode === 'tally' ? '#000000' : st.color)
@@ -102,16 +104,16 @@ export function finderSvg(m: Matrix, unit: number, main: string, accent: string)
 
 /** Just the code, no caption. Used on screen and inside the visuals. */
 export function codeSvg(url: string, style: QrStyle) {
-  return buildSvg({ url, shortLink: '', style, madeWithTally: false }, { caption: false })
+  return buildSvg({ url, shortLink: '', style, showLink: false }, { caption: false })
 }
 
-/** The printable artwork: code, short link underneath and the free plan mark. */
+/** The printable artwork: the code and, if wanted, the short link underneath. No Tally branding on any plan. */
 export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
-  const caption = opts.caption ?? true
+  const caption = (opts.caption ?? true) && (o.showLink || !!o.label)
   const m = matrix(o.url)
   const unit = 10
   const codeW = (m.size + QUIET * 2) * unit
-  const capH = caption ? 84 + (o.label ? 36 : 0) + (o.madeWithTally ? 36 : 0) : 0
+  const capH = caption ? (o.showLink ? 84 : 44) + (o.label && o.showLink ? 36 : 0) : 0
   const h = codeW + capH
   const logoS = m.size * LOGO_RATIO * unit
   const logoXY = (codeW - logoS) / 2
@@ -125,14 +127,10 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
   ]
   if (caption) {
     let y = codeW + 24
-    parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#37352F">${o.shortLink}</text>`)
+    if (o.showLink) parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#37352F">${escapeXml(o.shortLink)}</text>`)
     if (o.label) {
-      y += 40
+      if (o.showLink) y += 40
       parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="24" fill="#5F5E5A">${escapeXml(o.label)}</text>`)
-    }
-    if (o.madeWithTally) {
-      y += 44
-      parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="22" fill="#777672">Made with Tally</text>`)
     }
   }
   parts.push('</svg>')
@@ -220,19 +218,13 @@ export async function pdfBlob(o: QrOptions): Promise<Blob> {
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(fs)
   doc.setTextColor(55, 53, 47)
-  doc.text(o.shortLink, 105, ty, { align: 'center' })
+  if (o.showLink) doc.text(o.shortLink, 105, ty, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   if (o.label) {
     ty += fs * 0.5
     doc.setFontSize(Math.max(7, fs * 0.6))
     doc.setTextColor(95, 94, 90)
     doc.text(o.label, 105, ty, { align: 'center' })
-  }
-  if (o.madeWithTally) {
-    ty += fs * 0.5
-    doc.setFontSize(Math.max(7, fs * 0.55))
-    doc.setTextColor(119, 118, 114)
-    doc.text('Made with Tally', 105, ty, { align: 'center' })
   }
   return doc.output('blob')
 }

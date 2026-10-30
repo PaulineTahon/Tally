@@ -53,12 +53,12 @@ function Bubble({ x, y, w, h, tail = 'left', seed = 1, children }: { x: number; 
 
 const say = { fontFamily: 'Inter, sans-serif', fontWeight: 700, fill: DOODLE, textAnchor: 'middle' as const }
 
-function Phone({ x, y, rot = 0 }: { x: number; y: number; rot?: number }) {
+function Phone({ x, y, rot = 0, url }: { x: number; y: number; rot?: number; url: string }) {
   return (
     <g transform={`translate(${x} ${y}) rotate(${rot})`}>
       <path d={rect(0, 0, 34, 58, 61)} {...pen} fill="#fff" />
-      <path d="M8 8h18v18H8z" {...pen} strokeWidth={1.6} />
-      <path d="M12 12h4v4h-4zM20 18h3v3h-3z" fill={DOODLE} />
+      {/* A real code on the screen, never a fake pattern. */}
+      <Qr x={6} y={8} size={22} url={url} />
       <path d="M13 50h8" {...pen} />
     </g>
   )
@@ -77,7 +77,7 @@ function Social({ qrRef }: { qrRef: string }) {
         <Face x={290} y={150} r={24} rot={-12} seed={3} hair="spikes" />
         <Bubble x={318} y={58} w={112} h={58} tail="left" seed={5}><text x={374} y={94} fontSize={20} {...say}>RSVP!</text></Bubble>
         <Face x={180} y={318} r={32} rot={14} seed={9} mood="open" hair="curl" />
-        <Phone x={228} y={300} rot={18} />
+        <Phone x={228} y={300} rot={18} url={url} />
         <Face x={268} y={500} r={30} rot={-6} seed={13} hair="bun" />
         <Bubble x={300} y={396} w={118} h={112} tail="left" seed={17}><Qr x={321} y={414} size={76} url={url} /></Bubble>
         {/* Right arc */}
@@ -120,7 +120,7 @@ function Wordmark() {
 function ShareTabMock({ url }: { url: string }) {
   const Row = ({ name, n }: { name: string; n: string }) => (
     <div className="sm-row">
-      <span className="sm-thumb"><QrBox size={26} url={url} label="" plain /></span>
+      <span className="sm-thumb"><QrIcon /></span>
       <span className="sm-name">{name}</span><span className="sm-n">{n}</span>
       <span className="sm-icon"><Download aria-hidden /></span><span className="sm-more">···</span>
     </div>
@@ -137,7 +137,7 @@ function ShareTabMock({ url }: { url: string }) {
       <div className="sm-seg"><span>Social</span><span>Email</span><span className="on">QR Code</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
-          <span className="sm-big"><QrBox size={132} url={url} label="QR code" plain /></span>
+          <span className="sm-big"><QrBox size={132} url={url} label="QR code" /></span>
           <span className="sm-main-text"><span className="sm-name">Main code</span><span className="sm-n">Ready to print</span></span>
           <span className="sm-dl"><Download aria-hidden />Download SVG</span>
         </div>
@@ -202,7 +202,7 @@ function Poster() {
         <Face x={704} y={560} r={32} rot={12} seed={23} mood="open" hair="curl" />
         <Face x={120} y={900} r={30} rot={8} seed={13} hair="bun" />
         <Face x={680} y={910} r={30} rot={-8} seed={37} mood="smile" hair="none" />
-        <Phone x={600} y={980} rot={14} />
+        <Phone x={600} y={980} rot={14} url={url} />
         <Mark x={60} y={650} r={35} color={PINK} />
         <Mark x={700} y={680} r={-30} color="#d9d9d9" />
         <Mark x={60} y={1010} r={-40} color={PINK} />
@@ -216,7 +216,6 @@ function Poster() {
         <QrBox size={360} url={url} label="QR code" />
         <b>tally.so/r/KpYalV</b>
       </div>
-      <div className="po-foot">Made with Tally</div>
     </div>
   )
 }

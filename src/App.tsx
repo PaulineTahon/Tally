@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StoreProvider, useIsMobile, useStore } from './store'
 import { Editor, ShareTab, type PublishState } from './screens'
-import { publishCopy } from './copy'
+import { planCopy, publishCopy } from './copy'
 import { Insights, Submissions, type InsightsState } from './insights'
 import { PublishedSheet } from './modals'
 import { QrPanel } from './qrpanel'
@@ -34,6 +34,8 @@ function Inner() {
   const [navOpen, setNavOpen] = useState(false)
   useEffect(() => { setNavOpen(false) }, [r.route, r.state])
   useEffect(() => { if (r.route !== 'edit') setSheet(false) }, [r.route])
+  // A form you are publishing starts with only its main code; the other screens show the example data.
+  useEffect(() => { s.setDataset(r.route === 'edit' && r.pub !== 'data' ? 'fresh' : 'example') }, [r.route, r.pub]) // eslint-disable-line
   useEffect(() => {
     const on = () => setR(readRoute())
     window.addEventListener('hashchange', on)
@@ -87,6 +89,10 @@ function Inner() {
           </select>
         )}
         <a href="./visuals/">Visuals</a>
+        <select aria-label={planCopy.protoLabel} value={s.plan} onChange={(e) => s.setPlan(e.target.value === 'pro' ? 'pro' : 'free')}>
+          <option value="free">{planCopy.free}</option>
+          <option value="pro">{planCopy.pro}</option>
+        </select>
         {page && !mobile && g.hidden && <button type="button" className="proto-guide" onClick={g.show}>{guideCopy.restore}</button>}
         {page && mobile && <button type="button" className="proto-guide" aria-expanded={guideOpen} onClick={() => setGuideOpen((v) => !v)}>{guideCopy.mobileToggle(g.left)}</button>}
         {mobile && <button type="button" className="proto-close" aria-label="Hide prototype bar" onClick={() => setNavOpen(false)}>✕</button>}

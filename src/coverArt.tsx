@@ -1,5 +1,4 @@
-import { LOGO_RATIO, QUIET, matrix, modulePath } from './qr'
-import { TALLY_PATH } from './mark'
+import { DEFAULT_STYLE, LOGO_RATIO, QUIET, logoMarkup, matrix, modulePath } from './qr'
 
 /* Shared drawing pieces for the visuals page and the form header in the prototype. */
 
@@ -9,32 +8,28 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 export const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG, all black. Marketing art adds the black asterisk; `plain` matches the product's default code. */
-export function Qr({ x = 0, y = 0, size, url, plain = false }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
+/** A real, scannable code drawn as SVG, the same as the product: black, with the Tally asterisk in a rounded square. */
+export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
   const eyes = [[0, 0], [m.size - 7, 0], [0, m.size - 7]]
   const ls = m.size * LOGO_RATIO
   const lx = (n - ls) / 2
-  const pad = ls * 0.16
-  const k = (ls - pad * 2) / 128
   return (
     <g transform={`translate(${x} ${y}) scale(${size / n})`}>
       <rect width={n} height={n} fill="#fff" />
-      <path d={modulePath(m, !plain)} fill="#000" shapeRendering="crispEdges" />
+      <path d={modulePath(m, true)} fill="#000" shapeRendering="crispEdges" />
       {eyes.map(([ex, ey]) => (
         <g key={`${ex}-${ey}`} transform={`translate(${ex + QUIET} ${ey + QUIET})`}>
           <path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill="#000" fillRule="evenodd" />
           <rect x={2} y={2} width={3} height={3} fill="#000" />
         </g>
       ))}
-      {!plain && <rect x={lx} y={lx} width={ls} height={ls} rx={ls * 0.22} fill="#fff" />}
-      {!plain && <g transform={`translate(${lx + pad} ${lx + pad + (ls - pad * 2 - 124 * k) / 2}) scale(${k})`}><path d={TALLY_PATH} fill="#000" /></g>}
+      <g dangerouslySetInnerHTML={{ __html: logoMarkup(DEFAULT_STYLE, lx, lx, ls) }} />
     </g>
   )
 }
 
-/** Stand-alone code for HTML layouts. */
 export function QrBox({ size, url, label, plain = false }: { size: number; url: string; label: string; plain?: boolean }) {
   return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} plain={plain} /></svg>
 }
@@ -88,7 +83,8 @@ export function CoverArt({ url, slice = false }: { url: string; slice?: boolean 
       <g transform="translate(1710 500) rotate(-8) scale(0.66)">
         <path d={rect(-70, -120, 140, 250, 71)} {...pen} fill="#fff" />
         <path d="M-45 -92h90v124h-90z" {...pen} strokeWidth={4} />
-        <path d="M-30 -76h26v26h-26zM8 -40h22v22h-22zM-30 -20h18v18h-18z" fill={INK} />
+        {/* The phone shows the same real code, never a fake pattern. */}
+        <Qr x={-40} y={-80} size={80} url={url} />
         <path d="M-18 108h36" {...pen} />
         <path d="M-70 40c-34 4-40 30-8 34M-70 78c-34 4-38 28-6 32M-70 116c-28 6-30 26-2 28" {...pen} />
         <path d="M70 60c30-10 46 6 30 30c-10 14-26 22-34 22" {...pen} />

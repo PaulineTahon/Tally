@@ -2,9 +2,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { Check } from 'lucide-react'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
 import { tick } from './guide'
-import { DIRECT, MAIN_QR, SEED, ZERO, type Counts } from './seed'
+import { planCopy } from './copy'
+import { DIRECT, FRESH, MAIN_QR, MESSAGE_REF, SEED, ZERO, type Counts, type SeedPlace } from './seed'
 
-export const FORM_ID = 'QoKz0A'
+export const FORM_ID = 'KpYalV'
+
+/**
+ * Every QR code opens the form by its ID, tagged with its ref. The ID never changes, so printed
+ * codes keep working whatever the link ending or domain is.
+ */
+export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref}`
 export const FORM_TITLE = 'Community picnic RSVP'
 export const EASTER_EGG = 'https://tally.so/r/KpYalV?ref=qr'
 
@@ -17,21 +24,36 @@ export interface Source {
   counts: Counts
 }
 
-export { MAIN_QR }
+export { MAIN_QR, MESSAGE_REF }
 
 /** Example numbers only, from the one shared seed. */
-export const EXAMPLE_SOURCES: Source[] = SEED.map((p) => ({ ref: p.ref, label: p.label, kind: p.kind, responses: p.counts.all[1], counts: p.counts }))
+const toSource = (p: SeedPlace): Source => ({ ref: p.ref, label: p.label, kind: p.kind, responses: p.counts.all[1], counts: p.counts })
+export const EXAMPLE_SOURCES: Source[] = SEED.map(toSource)
+
+/** A form you are publishing starts fresh; the Share tab and Insights show the example data. */
+export type Dataset = 'fresh' | 'example'
+export function datasetForHash(hash: string): Dataset {
+  const h = hash.replace(/^#\/?/, '')
+  const [path, q = ''] = h.split('?')
+  const onEdit = path === '' || path === 'edit'
+  return onEdit && new URLSearchParams(q).get('pub') !== 'data' ? 'fresh' : 'example'
+}
+
+/** The prototype can play the free plan or Pro. Free lets you explore Pro settings, but not save them. */
+export type Plan = 'free' | 'pro'
+const PLAN_KEY = 'proto-plan'
+export const PRICING_URL = 'https://tally.so/pricing'
 
 /** Last QR settings, so the next download looks the same. */
-export interface QrSettings { style: QrStyle; format: QrFormat }
+export interface QrSettings { style: QrStyle; format: QrFormat; showLink: boolean }
 const SETTINGS_KEY = 'qr-settings'
 function loadSettings(): QrSettings {
-  const base: QrSettings = { style: DEFAULT_STYLE, format: 'svg' }
+  const base: QrSettings = { style: DEFAULT_STYLE, format: 'png', showLink: true }
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return base
     const v = JSON.parse(raw)
-    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'svg' }
+    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'png', showLink: v.showLink ?? true }
   } catch { return base }
 }
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
@@ -46,6 +68,14 @@ interface Store {
   /** Endings this form used before. They keep redirecting and stay reserved for this form. */
   oldEndings: string[]
   removeEnding: (e: string) => void
+  plan: Plan
+  setPlan: (p: Plan) => void
+  /** The one upgrade path: a toast that points to the plans. */
+  upgrade: () => void
+  setDataset: (d: Dataset) => void
+  /** Pro: your own domain, shown in the short link. */
+  domain: string
+  setDomain: (d: string) => void
   shortLink: string
   url: (ref?: string) => string
   display: (ref?: string) => string
@@ -63,6 +93,9 @@ interface Store {
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
+  /** Open the QR modal with Personalize already expanded. */
+  qrPersonalize: boolean
+  setQrPersonalize: (v: boolean) => void
   setQrRef: (r: string) => void
 }
 
@@ -86,7 +119,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
   const removeEnding = useCallback((e: string) => setOldEndings((o) => o.filter((x) => x !== e)), [])
   const [downloadedLink, setDownloaded] = useState<string | null>(null)
-  const [sources, setSources] = useState<Source[]>(EXAMPLE_SOURCES)
+  const [sources, setSources] = useState<Source[]>(() => (datasetForHash(window.location.hash) === 'fresh' ? FRESH : SEED).map(toSource))
+  const setDataset = useCallback((d: Dataset) => {
+    setSources((cur) => {
+      // Keep codes and links you made yourself; swap only the seeded ones.
+      const seeded = new Set([...SEED, ...FRESH].map((p) => p.ref))
+      const mine = cur.filter((x) => !seeded.has(x.ref))
+      const base = (d === 'fresh' ? FRESH : SEED).map(toSource)
+      return [...base.filter((b) => !mine.some((m) => m.ref === b.ref)), ...mine]
+    })
+  }, [])
+  const [plan, setPlanState] = useState<Plan>(() => { try { return localStorage.getItem(PLAN_KEY) === 'pro' ? 'pro' : 'free' } catch { return 'free' } })
+  const setPlan = useCallback((p: Plan) => { setPlanState(p); try { localStorage.setItem(PLAN_KEY, p) } catch { /* private mode */ } }, [])
   const [toasts, setToasts] = useState<Toast[]>([])
   const [qrOpen, setQrOpen] = useState(false)
   const [settings, setSettingsState] = useState<QrSettings>(loadSettings)
@@ -95,6 +139,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, [])
   const [qrRef, setQrRef] = useState('qr')
+  const [qrPersonalize, setQrPersonalize] = useState(false)
+  const [domain, setDomain] = useState('')
   const nextId = useRef(1)
 
   /** Toasts stack, up to three. Each one times itself (pausing while hovered or focused), leaves the way it came in, then unmounts. */
@@ -117,7 +163,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [leave])
 
-  const shortLink = `tally.so/r/${slug}`
+  const upgrade = useCallback(() => {
+    toast(planCopy.upgradeToast, { action: { label: planCopy.seePlans, onClick: () => { window.open(PRICING_URL, '_blank', 'noopener') } } })
+  }, [toast])
+
+  const shortLink = domain ? `${domain}/${slug}` : `tally.so/r/${slug}`
   const url = useCallback((ref?: string) => `https://tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
   const display = useCallback((ref?: string) => `tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
 
@@ -159,10 +209,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [sources])
 
   const value = useMemo<Store>(() => ({
-    slug, setSlug, oldEndings, removeEnding, shortLink, url, display,
+    slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
-    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings])
+    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

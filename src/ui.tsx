@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { Check, ChevronDown, Copy, Download, X } from 'lucide-react'
+import { planCopy } from './copy'
 import { copyText, useIsMobile, useStore } from './store'
 import { codeSvg, svgSrc, type QrStyle } from './qr'
 
@@ -28,7 +29,7 @@ export function Segmented<T extends string>({ value, onChange, options, label }:
 }
 
 /** On a key change, eases from the old height to the new one and fades the new content in. Otherwise height is auto. */
-export function AutoHeight({ k, children }: { k: string; children: ReactNode }) {
+export function AutoHeight({ k, children, slow = false }: { k: string; children: ReactNode; slow?: boolean }) {
   const inner = useRef<HTMLDivElement>(null)
   const last = useRef(0)
   const first = useRef(true)
@@ -56,11 +57,16 @@ export function AutoHeight({ k, children }: { k: string; children: ReactNode }) 
     return () => ro.disconnect()
   }, [])
   return (
-    <div className={`auto-h ${h !== null ? 'is-moving' : ''}`} style={h !== null ? { height: h } : undefined}
+    <div className={`auto-h ${slow ? 'is-slow' : ''} ${h !== null ? 'is-moving' : ''}`} style={h !== null ? { height: h } : undefined}
       onTransitionEnd={(e) => { if (e.target === e.currentTarget) setH(null) }}>
       <div ref={inner}><div key={k} className="fade-in">{children}</div></div>
     </div>
   )
+}
+
+/** On the free plan, the primary action of a Pro setting. Nothing is saved. */
+export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
+  return <button type="button" className="btn btn-black btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}<Pro /></button>
 }
 
 export function Pro() {

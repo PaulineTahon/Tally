@@ -1,9 +1,9 @@
 import { useState, type ReactNode } from 'react'
-import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail } from 'lucide-react'
+import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail, MessageSquareText } from 'lucide-react'
 import { MonoMark } from './brand'
 import { MAIN_QR, useIsMobile, useStore, type Source } from './store'
 import { tick } from './guide'
-import { DIRECT, rangeKey, type Range } from './seed'
+import { DIRECT, OTHER_LABEL, rangeKey, type Range } from './seed'
 import { DashHeader, FormTitle, Shell, type Tab } from './chrome'
 import { Menu, Pro } from './ui'
 
@@ -22,7 +22,7 @@ interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
 function sourceRows(sources: Source[], range: Range): SourceRow[] {
   const k = rangeKey(range)
   const rows: SourceRow[] = sources.map((x) => ({
-    name: x.ref === MAIN_QR && x.label === 'Main code' ? 'Main QR code' : x.label,
+    name: x.ref === MAIN_QR && x.label === 'Main code' ? 'Main QR code' : x.label || OTHER_LABEL,
     visits: x.counts[k][0], subs: x.counts[k][1], qr: x.kind === 'qr',
   }))
   rows.push({ name: 'Direct / None', visits: DIRECT[k][0], subs: DIRECT[k][1] })
@@ -168,6 +168,7 @@ function SourceGlyph({ row }: { row: SourceRow }) {
   if (row.qr) icon = <QrCode />
   else if (key === 'whatsapp' || key === 'instagram' || key === 'facebook' || key === 'x' || key === 'linkedin') icon = <MonoMark brand={key} />
   else if (key === 'email') icon = <Mail />
+  else if (key === 'copied message') icon = <MessageSquareText />
   else icon = <Globe />
   return <span className="src-glyph" aria-hidden>{icon}</span>
 }
