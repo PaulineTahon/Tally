@@ -345,6 +345,24 @@ function Exportable({ title, name, w = 1200, h = 630, children, caption, extra, 
   )
 }
 
+const GIF = `${import.meta.env.BASE_URL}tally-qr-changelog-2400x1600.gif`
+
+/** The animated changelog entry. The static image above stays the og and social fallback. */
+function ChangelogGif() {
+  return (
+    <section className="v-item">
+      <div className="row-between v-head">
+        <div className="stack gap-4"><h2>Changelog GIF</h2><span className="small muted">2400 × 1600, 10 fps, 5.9 s loop</span></div>
+        <a className="btn btn-black" href={GIF} download="tally-qr-changelog-2400x1600.gif"><Download aria-hidden />Download GIF</a>
+      </div>
+      <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
+        <img src={GIF} alt="Opening the QR code from the Share tab and downloading it as SVG" style={{ width: '100%', height: '100%', display: 'block' }} />
+      </div>
+      <div className="v-caption small"><p>For the changelog entry, next to the image above. Social posts and link previews keep using the static image.</p></div>
+    </section>
+  )
+}
+
 type Network = 'linkedin' | 'x'
 
 export default function Visuals() {
@@ -370,6 +388,7 @@ export default function Visuals() {
         </>}>
         <Changelog />
       </Exportable>
+      <ChangelogGif />
       <Exportable title="Poster" name="tally-qr-poster" w={800} h={1131}
         caption={<p>Print it, stick it up, and responses from it show up as Poster in Insights.</p>}>
         <Poster />
