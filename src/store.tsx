@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { DEFAULT_STYLE, type QrFormat, type QrSize, type QrStyle } from './qr'
 
 export const FORM_ID = 'QoKz0A'
 export const FORM_TITLE = 'Community picnic RSVP'
@@ -8,18 +9,31 @@ export const EASTER_EGG = 'https://tally.so/r/KpYalV?ref=qr'
 export interface Source {
   ref: string
   label: string
-  kind: 'qr' | 'social' | 'email' | 'place' | 'custom'
+  kind: 'qr' | 'social' | 'email' | 'custom'
   responses: number
 }
 
 /** Example numbers only, shown with an "Example data" label in the UI. */
 export const EXAMPLE_SOURCES: Source[] = [
   { ref: 'whatsapp', label: 'WhatsApp', kind: 'social', responses: 4 },
-  { ref: 'qr', label: 'QR code', kind: 'qr', responses: 3 },
+  { ref: 'qr-poster', label: 'Poster', kind: 'qr', responses: 3 },
   { ref: 'email', label: 'Email', kind: 'email', responses: 2 },
+  { ref: 'qr-flyer', label: 'Flyer', kind: 'qr', responses: 1 },
   { ref: 'instagram', label: 'Instagram', kind: 'social', responses: 1 },
-  { ref: 'poster-library', label: 'Poster, library', kind: 'place', responses: 1 },
 ]
+
+/** Last QR settings, so the next download looks the same. */
+export interface QrSettings { style: QrStyle; format: QrFormat; size: QrSize }
+const SETTINGS_KEY = 'qr-settings'
+function loadSettings(): QrSettings {
+  const base: QrSettings = { style: DEFAULT_STYLE, format: 'svg', size: 'medium' }
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY)
+    if (!raw) return base
+    const v = JSON.parse(raw)
+    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'svg', size: v.size ?? 'medium' }
+  } catch { return base }
+}
 export const EXAMPLE_UNTAGGED = 1
 
 interface Toast { id: number; text: string }
@@ -30,8 +44,6 @@ interface Store {
   shortLink: string
   url: (ref?: string) => string
   display: (ref?: string) => string
-  trackQr: boolean
-  setTrackQr: (v: boolean) => void
   downloadedLink: string | null
   markDownloaded: () => void
   sources: Source[]
@@ -39,10 +51,10 @@ interface Store {
   toast: (text: string) => void
   qrOpen: boolean
   setQrOpen: (v: boolean) => void
-  endingOpen: boolean
-  setEndingOpen: (v: boolean) => void
-  previewOpen: boolean
-  setPreviewOpen: (v: boolean) => void
+  placements: Source[]
+  addPlacement: (label: string) => Source
+  settings: QrSettings
+  setSettings: (s: QrSettings) => void
   qrRef: string
   setQrRef: (r: string) => void
 }
@@ -56,13 +68,15 @@ export function slugify(s: string) {
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [slug, setSlug] = useState(FORM_ID)
-  const [trackQr, setTrackQr] = useState(true)
   const [downloadedLink, setDownloaded] = useState<string | null>(null)
   const [sources, setSources] = useState<Source[]>(EXAMPLE_SOURCES)
   const [toasts, setToasts] = useState<Toast[]>([])
   const [qrOpen, setQrOpen] = useState(false)
-  const [endingOpen, setEndingOpen] = useState(false)
-  const [previewOpen, setPreviewOpen] = useState(false)
+  const [settings, setSettingsState] = useState<QrSettings>(loadSettings)
+  const setSettings = useCallback((v: QrSettings) => {
+    setSettingsState(v)
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)) } catch { /* private mode */ }
+  }, [])
   const [qrRef, setQrRef] = useState('qr')
   const nextId = useRef(1)
 
@@ -85,11 +99,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return s
   }, [sources])
 
+  const addPlacement = useCallback((label: string) => {
+    const ref = `qr-${slugify(label) || 'code'}`
+    const existing = sources.find((s) => s.ref === ref)
+    if (existing) return existing
+    const s: Source = { ref, label: label.trim(), kind: 'qr', responses: 0 }
+    setSources((all) => [...all, s])
+    return s
+  }, [sources])
+  const placements = useMemo(() => sources.filter((s) => s.kind === 'qr'), [sources])
+
   const value = useMemo<Store>(() => ({
-    slug, setSlug, shortLink, url, display, trackQr, setTrackQr,
+    slug, setSlug, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
-    sources, addSource, toast, qrOpen, setQrOpen, endingOpen, setEndingOpen, previewOpen, setPreviewOpen, qrRef, setQrRef,
-  }), [slug, shortLink, url, display, trackQr, downloadedLink, sources, addSource, toast, qrOpen, endingOpen, previewOpen, qrRef])
+    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, placements, addPlacement, settings, setSettings,
+  }), [slug, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

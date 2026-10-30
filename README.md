@@ -1,6 +1,6 @@
 # Share, redesigned: a QR code for every Tally form
 
-This is my clickable prototype for the Tally designer assignment. Task 1 asked me to simplify the Share tab and add a QR code. Task 2 asked for two visuals announcing it.
+This is my clickable prototype for the Tally designer assignment. Task 1 asked me to simplify the Share tab and add a QR code. Task 2 asked for visuals announcing it.
 
 **Live prototype:** https://paulinetahon.github.io/Tally/
 **Announcement visuals:** https://paulinetahon.github.io/Tally/visuals/
@@ -11,24 +11,28 @@ People don't really want to "share". They want enough of the right responses, fa
 
 I started with the quick win, then the bigger bet:
 
-1. **A share sheet right after Publish.** One link, one Copy, and a "Share to" picker: Link, Social, Email, In person. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
-2. **A calmer Share tab.** The share block sits on top. Link ending and link preview are folded underneath with clear Pro labels. Embed moves to "More ways to share", and "Create a template" moves to the form's ··· menu, away from Delete.
-3. **A QR panel that's print-ready by default.** Black and SVG out of the box, with Download as the first action. PDF and PNG are one click away. Colour, logo and size stay tucked under Style. The short link is printed under the code, responses are tracked with `?ref=qr`, and you get a warning before changing a link that printed posters depend on.
-4. **Tracked links and Responses by source.** One tagged link per place you share (`?ref=instagram`, `?ref=poster-library`), and a small view on the results page that shows where responses came from. This is the part I'd push for most: it turns sharing into a loop.
+1. **A share sheet right after Publish.** One link, one Copy and the QR code in a fixed spot next to it. A "Share to" picker covers Link, Social, Email, Embed and In person. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
+2. **No pop-ups on top of the sheet.** Link ending, link preview and custom domain open in place, with clear Pro labels. Changing the link ending warns you first that printed codes and shared links still point to the old one.
+3. **A QR code that looks like Tally out of the box.** Black with pink corners and the Tally mark in the middle, error correction level H so it still scans. One Download button (SVG, PDF or PNG) and Personalize to swap in your own colour and logo. Scans are always tagged with `?ref=qr`.
+4. **One code per spot.** Under In person you can make a code for the poster, the flyer, the slides or the newspaper (`?ref=qr-poster`, `?ref=qr-flyer`), then download them all as a zip or one file each. Your last settings are remembered.
+5. **Sources in Insights.** The Sources panel on the Insights tab lists `?ref` values next to the referrers, with a Submissions column and a QR icon for each code. This is the part I'd push for most: it turns sharing into a loop.
 
 ## What to try
 
 - **Publish** in the editor and watch the share sheet open. Hit Copy and see it confirm in place.
-- Open **In person**, then the QR code. Download SVG, PDF or PNG, then scan the code with your phone.
-- Change the **link ending** after downloading a code to see the warning.
-- Go to **Results** and switch between the example states in the prototype bar.
+- Click the QR code next to the link. Download it, then try Personalize. Scan it with your phone.
+- Open **In person**, add a few spots and download them all.
+- Open **Link ending** and type a new one to see the warning.
+- Go to **Insights** and switch between the example states in the prototype bar.
 - Try everything at phone width too.
 
-The surrounding Tally UI is static on purpose. Only the share feature changes. Every number on the results page is example data.
+The surrounding Tally UI is static on purpose. Only the share feature changes. Every number on the Insights tab is example data.
+
+The visuals page has the changelog image, a poster, social images for LinkedIn and X, and a cover for the demo form. Every code in them really scans and is tagged with where it was seen.
 
 ## Built with
 
-Vite, React and TypeScript. `qrcode` for the codes (error correction level H, so a logo in the middle still scans), `jspdf` for vector PDFs and `html-to-image` for the PNG exports. Icons are Lucide and the type is Inter, to stay close to Tally's own UI.
+Vite, React and TypeScript. `qrcode` for the codes (error correction level H, so a logo in the middle still scans), `jspdf` for vector PDFs, `jszip` for downloading several codes at once and `html-to-image` for the PNG exports. Icons are Lucide, brand logos come from Simple Icons, and the type is Inter, to stay close to Tally's own UI.
 
 ```bash
 npm install

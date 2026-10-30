@@ -1,22 +1,44 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, ChevronDown, Check } from 'lucide-react'
-import { matrix, modulePath } from './qr'
-import { EASTER_EGG } from './store'
+import { Download, ChevronDown, Check, Copy, Palette } from 'lucide-react'
+import { LOGO_RATIO, PINK as QR_PINK, QUIET, matrix, modulePath } from './qr'
+import { TALLY_PATH } from './mark'
 import { TallyMark } from './chrome'
+
+/** Every visual opens the same live form, tagged by where it was seen. */
+const FORM = 'https://tally.so/r/KpYalV'
+export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG. */
-function Qr({ x = 0, y = 0, size, url = EASTER_EGG, color = '#000' }: { x?: number; y?: number; size: number; url?: string; color?: string }) {
+/** A real, scannable code drawn as SVG, in the default Tally style: black, pink eyes, the mark in the middle. */
+function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string }) {
   const m = matrix(url)
-  const n = m.size + 8
+  const n = m.size + QUIET * 2
+  const eyes = [[0, 0], [m.size - 7, 0], [0, m.size - 7]]
+  const ls = m.size * LOGO_RATIO
+  const lx = (n - ls) / 2
+  const pad = ls * 0.16
+  const k = (ls - pad * 2) / 128
   return (
     <g transform={`translate(${x} ${y}) scale(${size / n})`}>
       <rect width={n} height={n} fill="#fff" />
-      <path d={modulePath(m, false)} fill={color} shapeRendering="crispEdges" />
+      <path d={modulePath(m)} fill="#000" shapeRendering="crispEdges" />
+      {eyes.map(([ex, ey]) => (
+        <g key={`${ex}-${ey}`} transform={`translate(${ex + QUIET} ${ey + QUIET})`}>
+          <path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill="#000" fillRule="evenodd" />
+          <rect x={2} y={2} width={3} height={3} fill={QR_PINK} />
+        </g>
+      ))}
+      <rect x={lx} y={lx} width={ls} height={ls} rx={ls * 0.22} fill="#fff" />
+      <g transform={`translate(${lx + pad} ${lx + pad + (ls - pad * 2 - 124 * k) / 2}) scale(${k})`}><path d={TALLY_PATH} fill="#000" /></g>
     </g>
   )
+}
+
+/** Stand-alone code for HTML layouts. */
+function QrBox({ size, url, label }: { size: number; url: string; label: string }) {
+  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} /></svg>
 }
 
 /** Deterministic wobble so the doodles look hand drawn. */
@@ -97,7 +119,8 @@ function Mark({ x, y, r, color }: { x: number; y: number; r: number; color: stri
   return <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h22" stroke={color} strokeWidth={3} strokeLinecap="round" />
 }
 
-function Social() {
+function Social({ qrRef }: { qrRef: string }) {
+  const url = VISUAL_URL(qrRef)
   return (
     <div className="art social">
       <svg className="doodles" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden>
@@ -107,7 +130,7 @@ function Social() {
         <Face x={180} y={318} r={32} rot={14} seed={9} mood="open" hair="curl" />
         <Phone x={228} y={300} rot={18} />
         <Face x={268} y={500} r={30} rot={-6} seed={13} hair="bun" />
-        <Bubble x={300} y={396} w={118} h={112} tail="left" seed={17}><Qr x={321} y={414} size={76} /></Bubble>
+        <Bubble x={300} y={396} w={118} h={112} tail="left" seed={17}><Qr x={321} y={414} size={76} url={url} /></Bubble>
         {/* Right arc */}
         <Bubble x={786} y={70} w={108} h={56} tail="right" seed={21}><text x={840} y={106} fontSize={22} {...say}>Yes!</text></Bubble>
         <Face x={912} y={150} r={26} rot={10} seed={23} mood="smile" hair="curl" />
@@ -117,7 +140,7 @@ function Social() {
         <g transform="translate(788 404) rotate(-6)">
           <path d={rect(0, 0, 96, 120, 41)} {...pen} fill="#fff" />
           <text x={48} y={22} fontSize={12} {...say}>Yoga club</text>
-          <Qr x={16} y={30} size={64} />
+          <Qr x={16} y={30} size={64} url={url} />
           <text x={48} y={110} fontSize={10} {...say} fontWeight={600}>Scan to sign up</text>
         </g>
         {/* Little marks, magenta and grey */}
@@ -137,59 +160,164 @@ function Social() {
   )
 }
 
-/* ---------- Changelog: 1200x630 exported at 2x, beige ---------- */
+/* ---------- Changelog: 1200x630 exported at 2x, beige, real product UI ---------- */
+function Wordmark() {
+  return <span className="wordmark" aria-label="tally">tally<svg viewBox="0 0 128 124" width="15" height="15" aria-hidden><path d={TALLY_PATH} fill="#000" /></svg></span>
+}
+
+/** The new QR panel, as it looks in the product. */
+function QrPanelMock({ url }: { url: string }) {
+  return (
+    <div className="pm">
+      <div className="pm-head"><b>QR code</b><span className="pm-x">✕</span></div>
+      <div className="pm-body">
+        <div className="pm-art">
+          <QrBox size={200} url={url} label="QR code" />
+          <b>tally.so/r/KpYalV</b>
+          <span>Made with Tally</span>
+        </div>
+        <div className="pm-actions">
+          <div className="mock-split"><span><Download aria-hidden />Download SVG</span><span className="caret"><ChevronDown aria-hidden /></span></div>
+          <div className="pm-btn"><Palette aria-hidden />Personalize</div>
+        </div>
+        <span className="pm-note">Scans are tagged, so you'll see responses from this code</span>
+      </div>
+    </div>
+  )
+}
+
 function Changelog() {
   return (
     <div className="art changelog">
+      <div className="cl-wm"><Wordmark /></div>
       <div className="cl-copy">
-        <span className="cl-tag">New</span>
         <h1>Your forms,<br />now on paper</h1>
-        <p>Grab a QR code for any form, right next to Copy on the Share tab.</p>
+        <p>Grab your code from any form, right next to Copy.</p>
       </div>
       <div className="browser">
         <div className="browser-bar">
           <span className="dots"><i /><i /><i /></span>
-          <span className="address">tally.so/forms/QoKz0A/share</span>
+          <span className="address">tally.so/forms/KpYalV/share</span>
         </div>
         <div className="browser-body">
-          <div className="mock-dim" aria-hidden />
-          <div className="mock-modal">
-            <div className="mock-head"><b>QR code</b><span>Print it, stick it, share it.</span></div>
-            <div className="mock-grid">
-              <div className="mock-preview">
-                <svg viewBox="0 0 200 200" width="190" height="190" aria-label="QR code"><Qr size={200} url="https://tally.so/r/QoKz0A?ref=qr" /></svg>
-                <b>tally.so/r/QoKz0A</b>
-                <span>For anyone who'd rather type.</span>
-              </div>
-              <div className="mock-controls">
-                <div className="mock-split"><span><Download aria-hidden />Download SVG</span><span className="caret"><ChevronDown aria-hidden /></span></div>
-                <span className="mock-help">Sharp at any size. Best for print.</span>
-                <div className="mock-row"><span>Track responses from QR</span><span className="mock-switch" /></div>
-                <span className="mock-chip">tally.so/r/QoKz0A?ref=qr</span>
-                <div className="mock-sep" />
-                <div className="mock-row"><span><b>Style</b> <em>Black, no logo, medium</em></span><ChevronDown aria-hidden /></div>
-                <div className="mock-seg"><span className="on">Black</span><span>Brand colour</span></div>
-              </div>
-            </div>
+          <div className="pg" aria-hidden>
+            <b className="pg-title">Community picnic RSVP</b>
+            <div className="pg-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span><span>Settings</span></div>
+            <div className="pg-link"><span className="pg-input">https://tally.so/r/KpYalV</span><span className="pg-copy"><Copy aria-hidden />Copy</span><span className="pg-qr" /></div>
           </div>
+          <div className="mock-dim" aria-hidden />
+          <QrPanelMock url={VISUAL_URL('qr-changelog')} />
         </div>
       </div>
     </div>
   )
 }
 
-function Exportable({ title, name, size, children, caption }: { title: string; name: string; size: string; children: ReactNode; caption: ReactNode }) {
+/* ---------- Poster: A-size portrait, 800x1131 exported at 2x ---------- */
+function Poster() {
+  const url = VISUAL_URL('qr-poster')
+  return (
+    <div className="art poster">
+      <div className="po-wm"><Wordmark /></div>
+      <svg className="doodles" viewBox="0 0 800 1131" width="800" height="1131" aria-hidden>
+        <Bubble x={56} y={400} w={120} h={60} tail="left" seed={5}><text x={116} y={437} fontSize={21} {...say}>RSVP!</text></Bubble>
+        <Face x={96} y={530} r={34} rot={-10} seed={3} hair="spikes" />
+        <Bubble x={626} y={420} w={110} h={58} tail="right" seed={21}><text x={681} y={456} fontSize={22} {...say}>Yes!</text></Bubble>
+        <Face x={704} y={560} r={32} rot={12} seed={23} mood="open" hair="curl" />
+        <Face x={120} y={900} r={30} rot={8} seed={13} hair="bun" />
+        <Face x={680} y={910} r={30} rot={-8} seed={37} mood="smile" hair="none" />
+        <Phone x={600} y={980} rot={14} />
+        <Mark x={60} y={650} r={35} color={PINK} />
+        <Mark x={700} y={680} r={-30} color="#d9d9d9" />
+        <Mark x={60} y={1010} r={-40} color={PINK} />
+        <Mark x={720} y={760} r={50} color={PINK} />
+      </svg>
+      <div className="po-copy">
+        <h1>Your forms,<br />now on paper</h1>
+        <p>Grab your code from any form</p>
+      </div>
+      <div className="po-code">
+        <QrBox size={360} url={url} label="QR code" />
+        <b>tally.so/r/KpYalV</b>
+      </div>
+      <div className="po-foot">Made with Tally</div>
+    </div>
+  )
+}
+
+/* ---------- Form cover: 3000x1000, black, no text ---------- */
+const WHITE = '#ffffff'
+const linePen = { fill: 'none', stroke: WHITE, strokeWidth: 5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+/**
+ * Tally shows covers at 25vh, object-fit cover, centred. On a 1440x900 screen that is only the middle
+ * ~470px of the 1000px height, so the poster and its tape sit inside that band.
+ */
+function Cover() {
+  const url = VISUAL_URL('qr-cover')
+  const tick = (x: number, y: number, r: number) => <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h44" stroke={PINK} strokeWidth={7} strokeLinecap="round" />
+  return (
+    <div className="art cover-art">
+      <svg viewBox="0 0 3000 1000" width="100%" height="100%" aria-label="A paper poster with a QR code, taped to a dark wall, and a hand holding up a phone to scan it">
+        <defs>
+          <filter id="poster-shadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="16" stdDeviation="22" floodColor="#ffffff" floodOpacity="0.12" />
+          </filter>
+        </defs>
+        <rect width="3000" height="1000" fill="#000" />
+        {/* Poster */}
+        <g transform="translate(1640 510) rotate(2.5) scale(0.84)">
+          <g filter="url(#poster-shadow)">
+            <rect x={-190} y={-232} width={380} height={464} rx={6} fill="#fff" />
+          </g>
+          <Qr x={-150} y={-200} size={300} url={url} />
+          <rect x={-120} y={128} width={240} height={14} rx={7} fill="#DFDFDF" />
+          <rect x={-86} y={162} width={172} height={14} rx={7} fill="#DFDFDF" />
+          {/* Tape */}
+          <rect x={-70} y={-252} width={140} height={44} rx={4} fill="#DFDFDF" opacity={0.85} transform="rotate(-4)" />
+        </g>
+        {/* Hand holding a phone up to scan */}
+        <g transform="translate(2020 500) rotate(-10) scale(0.84)">
+          <path d={rect(-70, -120, 140, 250, 71)} {...linePen} />
+          <path d="M-45 -92h90v124h-90z" {...linePen} strokeWidth={4} />
+          <path d="M-30 -76h26v26h-26zM8 -40h22v22h-22zM-30 -20h18v18h-18z" fill={WHITE} />
+          <path d="M-18 108h36" {...linePen} />
+          {/* fingers wrapping the left edge, thumb over the right */}
+          <path d="M-70 40c-34 4-40 30-8 34M-70 78c-34 4-38 28-6 32M-70 116c-28 6-30 26-2 28" {...linePen} />
+          <path d="M70 60c30-10 46 6 30 30c-10 14-26 22-34 22" {...linePen} />
+          {/* wrist running off the bottom */}
+          <path d="M-60 140c-10 80-20 160-30 260M60 128c20 80 30 170 36 272" {...linePen} />
+          {/* scan sparks */}
+          <path d="M-110 -170l-28 -26M0 -190v-40M110 -170l28 -26" {...linePen} stroke="#DFDFDF" />
+        </g>
+        {/* Pink ticks, sparingly */}
+        {tick(1330, 330, 35)}
+        {tick(1360, 700, -30)}
+        {tick(1890, 250, -50)}
+        {tick(2300, 690, 20)}
+        {/* Grey secondary marks */}
+        <path d="M1920 760l40 24" stroke="#DFDFDF" strokeWidth={6} strokeLinecap="round" />
+        <path d="M1300 520l-46 6" stroke="#DFDFDF" strokeWidth={6} strokeLinecap="round" />
+      </svg>
+    </div>
+  )
+}
+
+function Exportable({ title, name, w = 1200, h = 630, children, caption, extra, onBeforeExport }: {
+  title: string; name: string; w?: number; h?: number; children: ReactNode; caption: ReactNode; extra?: ReactNode; onBeforeExport?: () => void
+}) {
   const ref = useRef<HTMLDivElement>(null)
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const exportPng = async () => {
     if (!ref.current) return
     setBusy(true)
+    onBeforeExport?.()
     await document.fonts.ready
-    const url = await toPng(ref.current.firstElementChild as HTMLElement, { width: 1200, height: 630, pixelRatio: 2, cacheBust: true })
+    const url = await toPng(ref.current.firstElementChild as HTMLElement, { width: w, height: h, pixelRatio: 2, cacheBust: true })
     const a = document.createElement('a')
     a.href = url
-    a.download = `${name}.png`
+    a.download = `${name}-${w * 2}x${h * 2}.png`
     a.click()
     setBusy(false)
     setDone(true)
@@ -198,44 +326,65 @@ function Exportable({ title, name, size, children, caption }: { title: string; n
   return (
     <section className="v-item">
       <div className="row-between v-head">
-        <div className="stack gap-4"><h2>{title}</h2><span className="small muted">{size}</span></div>
-        <button type="button" className="btn btn-black" onClick={exportPng} disabled={busy} data-export={name}>
-          {done ? <Check aria-hidden /> : <Download aria-hidden />}{done ? 'Exported' : busy ? 'Exporting' : 'Export PNG'}
-        </button>
+        <div className="stack gap-4"><h2>{title}</h2><span className="small muted">{w} × {h}, exported at 2x ({w * 2} × {h * 2})</span></div>
+        <div className="row gap-8">
+          {extra}
+          <button type="button" className="btn btn-black" onClick={exportPng} disabled={busy} data-export={name}>
+            {done ? <Check aria-hidden /> : <Download aria-hidden />}{done ? 'Exported' : busy ? 'Exporting' : 'Export PNG'}
+          </button>
+        </div>
       </div>
-      <div className="v-frame"><div className="v-scale" ref={ref}>{children}</div></div>
+      <div className="v-frame" style={{ aspectRatio: `${w} / ${h}`, maxWidth: w < h ? 560 : undefined }}>
+        <div className="v-scale" ref={ref} style={{ width: w, height: h, transform: `scale(calc(100cqw / ${w}px))` }}>{children}</div>
+      </div>
       <div className="v-caption small">{caption}</div>
     </section>
   )
 }
 
+type Network = 'linkedin' | 'x'
+
 export default function Visuals() {
+  const [net, setNet] = useState<Network>('linkedin')
   return (
     <main className="visuals">
       <header className="v-top">
         <a href="../" className="row gap-8" style={{ textDecoration: 'none' }}><TallyMark size={18} /><b>Share, redesigned</b></a>
         <span className="small muted">Task 2: announcing QR codes</span>
       </header>
-      <Exportable title="Changelog image" name="tally-qr-changelog-2400x1260" size="1200 × 630, exported at 2x (2400 × 1260)"
+      <Exportable title="Changelog image" name="tally-qr-changelog"
         caption={<>
           <p><b>Your forms, now on paper</b></p>
-          <p>Some forms belong offline: on a poster, a flyer, a menu or a name badge. You can now grab a QR code for any form, right next to Copy on the Share tab.</p>
+          <p>Some forms belong offline: on a poster, a flyer, a menu or a name badge. Grab your code from any form, right next to Copy on the Share tab.</p>
           <ul>
             <li><b>Ready to print.</b> Download it as SVG, PDF or high-res PNG. It stays sharp from sticker size to A0.</li>
-            <li><b>Make it yours.</b> Pick your brand colour or classic black, add your logo in the middle, and choose a size.</li>
-            <li><b>Human-friendly too.</b> Your short link is printed under the code, for anyone without a camera handy.</li>
-            <li><b>Know what worked.</b> Turn on the ?ref=qr tag to see how many responses came from your poster.</li>
+            <li><b>Make it yours.</b> It comes in Tally black with the Tally mark. Personalize it with your own colour and logo.</li>
+            <li><b>One code per spot.</b> Make a code for the poster, the flyer and the slides, then download them all at once.</li>
+            <li><b>Know what worked.</b> Scans are tagged, so each code gets its own row in Insights.</li>
             <li><b>On your phone?</b> Save the code to your photos or share it straight from the share sheet.</li>
           </ul>
           <p>Open any form, go to Share, and hit QR code. Happy printing!</p>
         </>}>
         <Changelog />
       </Exportable>
-      <Exportable title="Social image" name="tally-qr-social-2400x1260" size="2400 × 1260"
-        caption={<p>One form, one QR code, endless places to stick it. New on the Share tab: download your QR code, add your logo and see how many responses came from it. ✨</p>}>
-        <Social />
+      <Exportable title="Poster" name="tally-qr-poster" w={800} h={1131}
+        caption={<p>Print it, stick it up, and every scan shows up as qr-poster in Insights.</p>}>
+        <Poster />
       </Exportable>
-      <p className="xs muted" style={{ textAlign: 'center' }}>Psst. The codes in these images really scan. Try the ones on the social image.</p>
+      <Exportable title="Form cover" name="tally-qr-cover" w={1500} h={500}
+        caption={<p>Cover for the easter-egg form. No text, so it works behind any form title. The code opens tally.so/r/KpYalV?ref=qr-cover.</p>}>
+        <Cover />
+      </Exportable>
+      <Exportable title={`Social image: ${net === 'linkedin' ? 'LinkedIn' : 'X'}`} name={`tally-qr-social-${net}`}
+        extra={<div className="segmented" role="tablist" aria-label="Network" style={{ width: 180 }}>
+          {(['linkedin', 'x'] as Network[]).map((n) => (
+            <button key={n} type="button" role="tab" aria-selected={net === n} onClick={() => setNet(n)}>{n === 'linkedin' ? 'LinkedIn' : 'X'}</button>
+          ))}
+        </div>}
+        caption={<p>One form, one QR code, endless places to stick it. New on the Share tab: download your QR code, make one per spot, and see which one brought responses. ✨</p>}>
+        <Social key={net} qrRef={`qr-${net}`} />
+      </Exportable>
+      <p className="xs muted" style={{ textAlign: 'center' }}>Psst. The codes in these images really scan. Each one is tagged with where it was seen.</p>
     </main>
   )
 }

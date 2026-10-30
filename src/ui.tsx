@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Check, Copy, X } from 'lucide-react'
+import { Check, ChevronDown, Copy, X } from 'lucide-react'
 import { copyText, useIsMobile, useStore } from './store'
-import { buildSvg } from './qr'
+import { codeSvg, svgSrc, type QrStyle } from './qr'
 
 export function Switch({ checked, onChange, label, id }: { checked: boolean; onChange: (v: boolean) => void; label: string; id?: string }) {
   return (
@@ -52,20 +52,38 @@ export function CopyButton({ text, className = '', big = false, label = 'Copy', 
   )
 }
 
-export function SmallCopy({ text, label = 'Copy' }: { text: string; label?: string }) {
+export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: { text: string; label?: string; toastText?: string }) {
   const [copied, setCopied] = useState(false)
   const { toast } = useStore()
   return (
-    <button type="button" className="btn btn-secondary btn-sm" aria-label={`${label} ${text}`}
-      onClick={async () => { setCopied(true); setTimeout(() => setCopied(false), 2000); await copyText(text); toast('Link copied. Go spread the word.') }}>
-      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}{copied ? 'Copied' : label}
+    <button type="button" className={`btn btn-secondary btn-sm ${copied ? 'is-copied' : ''}`} aria-label={`${label} ${text.length > 80 ? '' : text}`.trim()}
+      onClick={async () => { setCopied(true); setTimeout(() => setCopied(false), 2000); await copyText(text); toast(toastText) }}>
+      {copied ? <Check aria-hidden /> : <Copy aria-hidden />}{label}
+      <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
     </button>
   )
 }
 
-export function QrImage({ url, color = '#000', logo = false, size = 120, label }: { url: string; color?: string; logo?: boolean; size?: number; label?: string }) {
-  const src = useMemo(() => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(buildSvg({ url, shortLink: '', color, logo, madeWithTally: false }, { caption: false })), [url, color, logo])
-  return <img src={src} width={size} height={size} alt={label ?? `QR code for ${url}`} style={{ display: 'block', imageRendering: 'pixelated' }} draggable />
+export function QrImage({ url, style, size = 120, label }: { url: string; style: QrStyle; size?: number; label?: string }) {
+  const src = useMemo(() => svgSrc(codeSvg(url, style)), [url, style])
+  return <img src={src} width={size} height={size} alt={label ?? `QR code for ${url}`} style={{ display: 'block' }} draggable />
+}
+
+/** A row that opens in place. No pop-ups on top of the share sheet. */
+export function Expand({ id, icon, title, help, right, open, onToggle, children }: {
+  id: string; icon?: ReactNode; title: ReactNode; help?: ReactNode; right?: ReactNode; open: boolean; onToggle: () => void; children: ReactNode
+}) {
+  return (
+    <div className={`expand ${open ? 'is-open' : ''}`}>
+      <button type="button" className="list-row" aria-expanded={open} aria-controls={`x-${id}`} onClick={onToggle}>
+        {icon && <span className="row-icon">{icon}</span>}
+        <span className="grow"><span className="title row gap-8">{title}</span>{help && <span className="help" style={{ display: 'block' }}>{help}</span>}</span>
+        {right}
+        <ChevronDown aria-hidden className="expand-chev" />
+      </button>
+      {open && <div className="expand-body" id={`x-${id}`}>{children}</div>}
+    </div>
+  )
 }
 
 function useEscape(onClose: () => void, active: boolean) {
