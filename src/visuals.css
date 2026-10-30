@@ -48,7 +48,7 @@ body { background: #fafafa; }
 .pm-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #dfdfdf; }
 .pm-head b { font-size: 16px; font-weight: 600; } .pm-x { color: #777672; font-size: 13px; }
 .pm-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-.pm-art { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pm-art { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .pm-art b { font-size: 15px; font-weight: 600; margin-top: 2px; color: #37352f; } .pm-art span { font-size: 11px; color: #777672; }
 .pm-actions { display: flex; gap: 8px; }
 .pm-actions .mock-split { flex: 1; font-size: 14px; }
@@ -88,3 +88,4 @@ body { background: #fafafa; }
 /* Cover */
 .cover-art { background: #000; }
 .cover-art svg { display: block; }
+.pm-mark { position: absolute; right: 4px; bottom: 2px; }

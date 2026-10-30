@@ -1,7 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
 import { Download, ChevronDown, Check, Copy, Palette } from 'lucide-react'
-import { LOGO_RATIO, PINK as QR_PINK, QUIET, matrix, modulePath } from './qr'
+import { LOGO_RATIO, QUIET, matrix, modulePath } from './qr'
+
+/** Tally's own marketing art keeps the asterisk and pink centres. The product default is plain black. */
+const QR_PINK = '#D915C4'
 import { TALLY_PATH } from './mark'
 import { TallyMark } from './chrome'
 
@@ -11,8 +14,8 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG, in the default Tally style: black, pink eyes, the mark in the middle. */
-function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string }) {
+/** A real, scannable code drawn as SVG. Marketing style by default; `plain` matches the product's default code. */
+function Qr({ x = 0, y = 0, size, url, plain = false }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
   const eyes = [[0, 0], [m.size - 7, 0], [0, m.size - 7]]
@@ -23,22 +26,22 @@ function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number;
   return (
     <g transform={`translate(${x} ${y}) scale(${size / n})`}>
       <rect width={n} height={n} fill="#fff" />
-      <path d={modulePath(m)} fill="#000" shapeRendering="crispEdges" />
+      <path d={modulePath(m, !plain)} fill="#000" shapeRendering="crispEdges" />
       {eyes.map(([ex, ey]) => (
         <g key={`${ex}-${ey}`} transform={`translate(${ex + QUIET} ${ey + QUIET})`}>
           <path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill="#000" fillRule="evenodd" />
-          <rect x={2} y={2} width={3} height={3} fill={QR_PINK} />
+          <rect x={2} y={2} width={3} height={3} fill={plain ? '#000' : QR_PINK} />
         </g>
       ))}
-      <rect x={lx} y={lx} width={ls} height={ls} rx={ls * 0.22} fill="#fff" />
-      <g transform={`translate(${lx + pad} ${lx + pad + (ls - pad * 2 - 124 * k) / 2}) scale(${k})`}><path d={TALLY_PATH} fill="#000" /></g>
+      {!plain && <rect x={lx} y={lx} width={ls} height={ls} rx={ls * 0.22} fill="#fff" />}
+      {!plain && <g transform={`translate(${lx + pad} ${lx + pad + (ls - pad * 2 - 124 * k) / 2}) scale(${k})`}><path d={TALLY_PATH} fill="#000" /></g>}
     </g>
   )
 }
 
 /** Stand-alone code for HTML layouts. */
-function QrBox({ size, url, label }: { size: number; url: string; label: string }) {
-  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} /></svg>
+function QrBox({ size, url, label, plain = false }: { size: number; url: string; label: string; plain?: boolean }) {
+  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} plain={plain} /></svg>
 }
 
 /** Deterministic wobble so the doodles look hand drawn. */
@@ -172,9 +175,10 @@ function QrPanelMock({ url }: { url: string }) {
       <div className="pm-head"><b>QR code</b><span className="pm-x">✕</span></div>
       <div className="pm-body">
         <div className="pm-art">
-          <QrBox size={200} url={url} label="QR code" />
+          <QrBox size={200} url={url} label="QR code" plain />
           <b>tally.so/r/KpYalV</b>
           <span>Made with Tally</span>
+          <svg className="pm-mark" viewBox="0 0 128 124" width="13" height="13" aria-hidden><path d={TALLY_PATH} fill="#000" /></svg>
         </div>
         <div className="pm-actions">
           <div className="mock-split"><span><Download aria-hidden />Download SVG</span><span className="caret"><ChevronDown aria-hidden /></span></div>
@@ -358,8 +362,8 @@ export default function Visuals() {
           <p>Some forms belong offline: on a poster, a flyer, a menu or a name badge. Grab your code from any form, right next to Copy on the Share tab.</p>
           <ul>
             <li><b>Ready to print.</b> Download it as SVG, PDF or high-res PNG. It stays sharp from sticker size to A0.</li>
-            <li><b>Make it yours.</b> It comes in Tally black with the Tally mark. Personalize it with your own colour and logo.</li>
-            <li><b>One code per spot.</b> Make a code for the poster, the flyer and the slides, then download them all at once.</li>
+            <li><b>Make it yours.</b> It starts in plain black. Personalize it with your own colour and logo.</li>
+            <li><b>One code per spot.</b> Make a code for the poster, the flyer and the slides, and download each one when you need it.</li>
             <li><b>Know what worked.</b> Scans are tagged, so each code gets its own row in Insights.</li>
             <li><b>On your phone?</b> Save the code to your photos or share it straight from the share sheet.</li>
           </ul>

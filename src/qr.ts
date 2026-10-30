@@ -9,14 +9,13 @@ export const SIZES: Record<QrSize, { label: string; hint: string; mm: number }> 
 }
 export type QrFormat = 'svg' | 'pdf' | 'png'
 
-/** Tally style is the default. "Your brand" swaps in the creator's colour and logo. */
+/** Plain black is the default. "Your brand" adds the creator's colour and logo. */
 export interface QrStyle {
   mode: 'tally' | 'brand'
   color: string
   /** Data URL of an uploaded logo, or null for the sample logo. */
   logo: string | null
 }
-export const PINK = '#D915C4'
 export const DEFAULT_STYLE: QrStyle = { mode: 'tally', color: '#2E6B4F', logo: null }
 
 export interface QrOptions {
@@ -66,17 +65,16 @@ function sampleLogo(x: number, y: number, s: number, color: string) {
 </g>`
 }
 
-/** The Tally mark, centred on a white tile. */
-function tallyLogo(x: number, y: number, s: number) {
-  const pad = s * 0.16
-  const inner = s - pad * 2
-  const k = inner / 128
-  return `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * 0.22}" fill="#fff"/>
-<g transform="translate(${x + pad} ${y + pad + (inner - 124 * k) / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
+/** Free plan: a small Tally mark in the corner of the code area, never on the modules. */
+function cornerMark(x: number, y: number, s: number) {
+  const k = s / 128
+  return `<g transform="translate(${x} ${y}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
 }
 
+export const hasLogo = (st: QrStyle) => st.mode === 'brand'
+
 function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
-  if (st.mode === 'tally') return tallyLogo(x, y, s)
+  if (st.mode === 'tally') return ''
   if (st.logo) {
     return `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * 0.22}" fill="#fff"/>
 <image href="${st.logo}" x="${x + s * 0.08}" y="${y + s * 0.08}" width="${s * 0.84}" height="${s * 0.84}" preserveAspectRatio="xMidYMid meet"/>`
@@ -85,7 +83,7 @@ function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
 }
 
 export const moduleColor = (st: QrStyle) => (st.mode === 'tally' ? '#000000' : st.color)
-export const accentColor = (st: QrStyle) => (st.mode === 'tally' ? PINK : st.color)
+export const accentColor = (st: QrStyle) => moduleColor(st)
 
 /** Path data for the data modules (finders drawn separately), in module units, offset by the quiet zone. */
 export function modulePath(m: Matrix, withLogo = true, withFinders = false) {
@@ -131,10 +129,16 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${codeW} ${h}" width="${codeW}" height="${h}">`,
     `<rect width="${codeW}" height="${h}" fill="#ffffff"/>`,
-    `<path transform="scale(${unit})" d="${modulePath(m)}" fill="${main}" shape-rendering="crispEdges"/>`,
+    `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${main}" shape-rendering="crispEdges"/>`,
     finderSvg(m, unit, main, accentColor(o.style)),
     logoMarkup(o.style, logoXY, logoXY, logoS),
   ]
+  if (o.madeWithTally && caption) {
+    // Bottom-right corner of the white code area, in the margin and clear of the modules.
+    const ms = unit * 2.2
+    const xy = codeW - QUIET * unit + unit * 1.4
+    parts.push(cornerMark(xy, xy, ms))
+  }
   if (caption) {
     let y = codeW + 24
     parts.push(`<text x="${codeW / 2}" y="${y}" text-anchor="middle" font-family="Inter, Helvetica, Arial, sans-serif" font-size="34" font-weight="600" fill="#37352F">${o.shortLink}</text>`)
@@ -205,7 +209,7 @@ export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
   fill(main)
   for (let y = 0; y < m.size; y++)
     for (let x = 0; x < m.size; x++)
-      if (m.get(x, y) && !inLogo(m, x, y) && !inFinder(m, x, y))
+      if (m.get(x, y) && !(hasLogo(o.style) && inLogo(m, x, y)) && !inFinder(m, x, y))
         doc.rect(x0 + (x + QUIET) * unit, y0 + (y + QUIET) * unit, unit + 0.01, unit + 0.01, 'F')
   for (const [fx, fy] of [[0, 0], [m.size - 7, 0], [0, m.size - 7]]) {
     const x = x0 + (fx + QUIET) * unit
@@ -216,12 +220,14 @@ export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
     fill(accentColor(o.style))
     doc.rect(x + 2 * unit, y + 2 * unit, 3 * unit, 3 * unit, 'F')
   }
-  // Logo tile, rendered from the same SVG markup.
-  const logoS = m.size * LOGO_RATIO
-  const tile = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${logoMarkup(o.style, 0, 0, 100)}</svg>`
-  const c = await svgToCanvas(tile, 6)
-  const lx = x0 + (QUIET + (m.size - logoS) / 2) * unit
-  doc.addImage(c.toDataURL('image/png'), 'PNG', lx, y0 + (QUIET + (m.size - logoS) / 2) * unit, logoS * unit, logoS * unit)
+  if (hasLogo(o.style)) {
+    // Logo tile, rendered from the same SVG markup.
+    const logoS = m.size * LOGO_RATIO
+    const tile = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">${logoMarkup(o.style, 0, 0, 100)}</svg>`
+    const c = await svgToCanvas(tile, 6)
+    const lx = x0 + (QUIET + (m.size - logoS) / 2) * unit
+    doc.addImage(c.toDataURL('image/png'), 'PNG', lx, y0 + (QUIET + (m.size - logoS) / 2) * unit, logoS * unit, logoS * unit)
+  }
   const fs = Math.max(9, Math.min(28, total / 5))
   let ty = y0 + total + fs * 0.35 + 2
   doc.setFont('helvetica', 'bold')
@@ -240,6 +246,10 @@ export async function pdfBlob(o: QrOptions, size: QrSize): Promise<Blob> {
     doc.setFontSize(Math.max(7, fs * 0.55))
     doc.setTextColor(119, 118, 114)
     doc.text('Made with Tally', 105, ty, { align: 'center' })
+    const ms = unit * 2.2
+    const off = (m.size + QUIET) * unit + unit * 1.4
+    const mk = await svgToCanvas(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 124" width="128" height="124"><path d="${TALLY_PATH}" fill="#000"/></svg>`, 2)
+    doc.addImage(mk.toDataURL('image/png'), 'PNG', x0 + off, y0 + off, ms, ms * 124 / 128)
   }
   return doc.output('blob')
 }

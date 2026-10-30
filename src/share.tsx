@@ -1,15 +1,15 @@
 import { useState, type ReactNode } from 'react'
-import { Facebook, Gmail, Instagram, Linkedin, Outlook, WhatsApp, XLogo } from './brand'
+import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, Code, Download, FolderDown, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert, Image as ImageIcon,
+  ArrowUpRight, ChevronDown, Code, Download, Globe, Link2, Mail, Megaphone, Pencil, Plus, QrCode, Share, Store as StoreIcon, TriangleAlert, Image as ImageIcon,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore } from './store'
 import { CopyButton, Expand, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { TallyMark } from './chrome'
 import { download, fileFor } from './qr'
-import { FORMATS, fileName, safeStyle } from './qrpanel'
+import { fileName, safeStyle } from './qrpanel'
 
-export type Channel = 'link' | 'social' | 'email' | 'embed' | 'inperson'
+export type Channel = 'link' | 'social' | 'email' | 'inperson'
 
 export function useNativeShare() {
   const { toast } = useStore()
@@ -78,7 +78,6 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
           { value: 'link', label: 'Link', icon: <Link2 aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
           { value: 'email', label: 'Email', icon: <Mail aria-hidden /> },
-          { value: 'embed', label: 'Embed', icon: <Code aria-hidden /> },
           { value: 'inperson', label: 'In person', icon: <StoreIcon aria-hidden /> },
         ]}
       />
@@ -93,18 +92,6 @@ function Row({ icon, title, help, right }: { icon?: ReactNode; title: ReactNode;
       <span className="grow"><span className="title row gap-8">{title}</span>{help && <span className="help" style={{ display: 'block' }}>{help}</span>}</span>
       {right}
     </div>
-  )
-}
-
-/** A whole row that opens somewhere else. */
-function LinkRow({ icon, title, href }: { icon: ReactNode; title: string; href: string }) {
-  const external = href.startsWith('http')
-  return (
-    <a className="list-row" href={href} {...(external ? { target: '_blank', rel: 'noreferrer' } : {})}>
-      <span className="row-icon">{icon}</span>
-      <span className="grow"><span className="title">{title}</span></span>
-      <ArrowUpRight aria-hidden />
-    </a>
   )
 }
 
@@ -123,8 +110,6 @@ export const SOCIAL: { ref: string; label: string; icon: ReactNode; open?: (link
 const EMAIL_SUBJECT = `Quick one: ${FORM_TITLE}`
 const emailBody = (link: string) => `Hi!\n\nWe're getting the picnic together and would love to know if you can make it. It takes a minute:\n\n${link}`
 export const emailHref = (link: string) => `mailto:?subject=${enc(EMAIL_SUBJECT)}&body=${enc(emailBody(link))}`
-export const gmailHref = (link: string) => `https://mail.google.com/mail/?view=cm&fs=1&su=${enc(EMAIL_SUBJECT)}&body=${enc(emailBody(link))}`
-export const outlookHref = (link: string) => `https://outlook.live.com/mail/0/deeplink/compose?subject=${enc(EMAIL_SUBJECT)}&body=${enc(emailBody(link))}`
 
 /* ---------- Link ---------- */
 
@@ -284,36 +269,32 @@ function EmbedPanel() {
   )
 }
 
+/** Secondary: a plain link that opens the embed options in place. */
+function EmbedLink() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="stack gap-12 embed-link">
+      <button type="button" className="link-btn embed-toggle" aria-expanded={open} aria-controls="embed-options" onClick={() => setOpen((v) => !v)}>
+        <Code aria-hidden />Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+      </button>
+      {open && <div id="embed-options"><EmbedPanel /></div>}
+    </div>
+  )
+}
+
 /* ---------- In person ---------- */
 
 const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
 
 function InPersonPanel() {
   const s = useStore()
-  const { settings, setSettings, placements } = s
+  const { settings, placements } = s
   const [other, setOther] = useState('')
-  const [busy, setBusy] = useState(false)
   const style = safeStyle(settings.style)
   const opts = (ref: string) => ({ url: s.url(ref), shortLink: s.shortLink, style, madeWithTally: true })
   const one = async (ref: string) => {
     download(await fileFor(opts(ref), settings.format, settings.size), fileName(ref, settings.format))
     s.markDownloaded()
-  }
-  const all = async (zip: boolean) => {
-    if (!placements.length) return
-    setBusy(true)
-    try {
-      if (zip) {
-        const { default: JSZip } = await import('jszip')
-        const z = new JSZip()
-        for (const p of placements) z.file(fileName(p.ref, settings.format), await fileFor(opts(p.ref), settings.format, settings.size))
-        download(await z.generateAsync({ type: 'blob' }), `${slugify(FORM_TITLE)}-qr-codes.zip`)
-      } else {
-        for (const p of placements) { await one(p.ref); await new Promise((r) => setTimeout(r, 250)) }
-      }
-      s.markDownloaded()
-      s.toast(`${placements.length} QR codes downloaded. Time to print!`)
-    } finally { setBusy(false) }
   }
   const add = (label: string) => {
     const p = s.addPlacement(label)
@@ -339,28 +320,18 @@ function InPersonPanel() {
         </ul>
       )}
       <div className="stack gap-8">
-        <span className="xs" style={{ fontWeight: 600 }}>Add a spot</span>
+        <span className="xs" style={{ fontWeight: 600 }}>Add another placement</span>
         <div className="chips">
           {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
         </div>
         <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!other.trim()) return; add(other); setOther('') }}>
           <div className="input-group" style={{ flex: 1 }}>
             <span className="prefix">qr-</span>
-            <input aria-label="Other spot" placeholder="library" value={other} onChange={(e) => setOther(slugify(e.target.value))} />
+            <input aria-label="Placement name" placeholder="library" value={other} onChange={(e) => setOther(slugify(e.target.value))} />
           </div>
           <button type="submit" className="btn btn-secondary" disabled={!other}><Plus aria-hidden />Add</button>
         </form>
       </div>
-      {placements.length > 1 && (
-        <div className="download-all">
-          <Segmented label="Format" value={settings.format} onChange={(f) => setSettings({ ...settings, format: f })}
-            options={FORMATS.map((f) => ({ value: f.id, label: f.label }))} />
-          <div className="row gap-8">
-            <button type="button" className="btn btn-black" style={{ flex: 1 }} disabled={busy} onClick={() => all(true)}><FolderDown aria-hidden />Download all (.zip)</button>
-            <button type="button" className="btn btn-secondary" disabled={busy} onClick={() => all(false)}>One file each</button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
@@ -370,7 +341,6 @@ function InPersonPanel() {
 export function ChannelPanel({ channel }: { channel: Channel }) {
   const { url } = useStore()
   if (channel === 'link') return <LinkPanel />
-  if (channel === 'embed') return <EmbedPanel />
   if (channel === 'inperson') return <InPersonPanel />
   if (channel === 'social') {
     return (
@@ -392,11 +362,9 @@ export function ChannelPanel({ channel }: { channel: Channel }) {
   return (
     <div className="stack gap-8">
       <p className="small muted" style={{ margin: 0 }}>Drop it in your newsletter or inbox.</p>
-      <div className="stack">
-        <LinkRow icon={<Gmail />} title="Gmail" href={gmailHref(link)} />
-        <LinkRow icon={<Outlook />} title="Outlook" href={outlookHref(link)} />
-        <LinkRow icon={<Mail aria-hidden />} title="Mail app" href={emailHref(link)} />
-        <Row icon={<Link2 aria-hidden />} title="Email link" right={<SmallCopy text={link} />} />
+      <div className="row gap-8">
+        <a className="btn btn-secondary btn-sm" href={emailHref(link)}><Mail aria-hidden />Write email</a>
+        <SmallCopy text={link} />
       </div>
       <p className="xs muted" style={{ margin: 0 }}>The link is tagged, so you'll see responses from email.</p>
     </div>
@@ -414,6 +382,7 @@ export function ShareBlock() {
       <LinkBar />
       <ChannelPicker value={channel} onChange={setChannel} />
       <div role="tabpanel"><ChannelPanel channel={channel} /></div>
+      <EmbedLink />
     </div>
   )
 }

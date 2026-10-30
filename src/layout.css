@@ -286,7 +286,6 @@ a.list-row { text-decoration: none; color: inherit; }
 .chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border-radius: 14px; border: 0; background: #fff; box-shadow: var(--ring); font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text); }
 .chip:hover { background: #fafafa; }
 .chip svg { width: 13px; height: 13px; color: var(--grey-3); }
-.download-all { display: flex; flex-direction: column; gap: 8px; padding-top: 4px; }
 
 /* Insights, rebuilt from the live tab */
 .ins { margin-top: 20px; display: flex; flex-direction: column; gap: 20px; }
@@ -354,3 +353,9 @@ a.list-row { text-decoration: none; color: inherit; }
 
 .placements .grow { flex: 1; min-width: 0; }
 .embed-cards.is-sheet .embed-thumb { contain: size layout; width: 100%; }
+
+.embed-toggle { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: 14px; }
+.embed-toggle svg { width: 15px; height: 15px; }
+.embed-link { border-top: 1px solid var(--divider); padding-top: 12px; }
+.proto-pill { position: fixed; right: 12px; bottom: calc(12px + var(--safe-b)); z-index: 40; height: 28px; padding: 0 10px; border-radius: 14px; border: 0; background: rgba(255,255,255,.94); box-shadow: var(--pop), var(--border) 0 0 0 1px; font-size: 11px; font-weight: 600; color: var(--grey-2); cursor: pointer; }
+.proto-close { border: 0; background: none; color: var(--grey-3); font-size: 12px; padding: 5px 8px; cursor: pointer; }

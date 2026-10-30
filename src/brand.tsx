@@ -1,5 +1,5 @@
-import { siFacebook, siGmail, siInstagram, siWhatsapp, siX, type SimpleIcon } from 'simple-icons'
-import { BriefcaseBusiness, Mail } from 'lucide-react'
+import { siFacebook, siInstagram, siWhatsapp, siX, type SimpleIcon } from 'simple-icons'
+import { BriefcaseBusiness } from 'lucide-react'
 
 /** Official marks from Simple Icons, in each brand's own colour. */
 function Si({ icon, size = 18 }: { icon: SimpleIcon; size?: number }) {
@@ -14,7 +14,5 @@ export const WhatsApp = () => <Si icon={siWhatsapp} />
 export const Instagram = () => <Si icon={siInstagram} />
 export const Facebook = () => <Si icon={siFacebook} />
 export const XLogo = () => <Si icon={siX} />
-export const Gmail = () => <Si icon={siGmail} />
-/** Simple Icons no longer ships LinkedIn or Outlook marks, so these two use neutral icons. */
+/** Simple Icons no longer ships a LinkedIn mark, so it uses a neutral icon. */
 export const Linkedin = () => <BriefcaseBusiness aria-hidden className="neutral-brand" />
-export const Outlook = () => <Mail aria-hidden className="neutral-brand" />

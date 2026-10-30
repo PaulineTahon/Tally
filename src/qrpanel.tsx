@@ -114,7 +114,7 @@ export function QrPanel() {
       {personalize && (
         <div className="personalize stack gap-12" id="qr-personalize">
           <Segmented label="Style" value={style.mode} onChange={(m) => setStyle({ mode: m })}
-            options={[{ value: 'tally', label: 'Tally' }, { value: 'brand', label: 'Your brand' }]} />
+            options={[{ value: 'tally', label: 'Black' }, { value: 'brand', label: 'Your brand' }]} />
           {style.mode === 'brand' && (
             <>
               <div className="row-between">

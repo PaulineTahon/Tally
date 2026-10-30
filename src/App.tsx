@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { StoreProvider, useStore } from './store'
+import { StoreProvider, useIsMobile, useStore } from './store'
 import { Editor, ShareTab } from './screens'
 import { Insights, Submissions, type InsightsState } from './insights'
 import { PublishedSheet } from './modals'
@@ -26,6 +26,9 @@ function Inner() {
   const [r, setR] = useState(readRoute)
   const [sheet, setSheet] = useState(r.route === 'edit' && r.publish)
   const s = useStore()
+  const mobile = useIsMobile()
+  const [navOpen, setNavOpen] = useState(false)
+  useEffect(() => { setNavOpen(false) }, [r.route, r.state])
   useEffect(() => {
     const on = () => setR(readRoute())
     window.addEventListener('hashchange', on)
@@ -48,7 +51,9 @@ function Inner() {
       <PublishedSheet open={sheet && !s.qrOpen} onClose={() => setSheet(false)} />
       <QrPanel />
 
-      <nav className="proto-nav" aria-label="Prototype screens">
+      {/* On phones the prototype bar folds into one small button, so it doesn't cover the screen. */}
+      {mobile && !navOpen && <button type="button" className="proto-pill" onClick={() => setNavOpen(true)} aria-expanded={false}>Screens</button>}
+      {(!mobile || navOpen) && <nav className="proto-nav" aria-label="Prototype screens">
         <span className="proto-label">Prototype</span>
         <a href="#/edit" aria-current={r.route === 'edit'}>Publish</a>
         <a href="#/share" aria-current={r.route === 'share'}>Share tab</a>
@@ -61,7 +66,8 @@ function Inner() {
           </select>
         )}
         <a href="./visuals/">Visuals</a>
-      </nav>
+        {mobile && <button type="button" className="proto-close" aria-label="Hide prototype bar" onClick={() => setNavOpen(false)}>✕</button>}
+      </nav>}
     </>
   )
 }

@@ -11,17 +11,17 @@ People don't really want to "share". They want enough of the right responses, fa
 
 I started with the quick win, then the bigger bet:
 
-1. **A share sheet right after Publish.** One link, one Copy and the QR code in a fixed spot next to it. A "Share to" picker covers Link, Social, Email, Embed and In person. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
+1. **A share sheet right after Publish.** One link, one Copy and the QR code in a fixed spot next to it. A "Share to" picker covers Link, Social, Email and In person, with "Embed on your site" as a quieter link underneath. On a phone it's a bottom sheet with a full-width Share button that opens the native share sheet.
 2. **No pop-ups on top of the sheet.** Link ending, link preview and custom domain open in place, with clear Pro labels. Changing the link ending warns you first that printed codes and shared links still point to the old one.
-3. **A QR code that looks like Tally out of the box.** Black with pink corners and the Tally mark in the middle, error correction level H so it still scans. One Download button (SVG, PDF or PNG) and Personalize to swap in your own colour and logo. Scans are always tagged with `?ref=qr`.
-4. **One code per spot.** Under In person you can make a code for the poster, the flyer, the slides or the newspaper (`?ref=qr-poster`, `?ref=qr-flyer`), then download them all as a zip or one file each. Your last settings are remembered.
+3. **A plain black QR code, print-ready by default.** On the free plan a small Tally mark sits in the corner, never on the code. One Download button (SVG, PDF or PNG) and Personalize to add your own colour and logo, with error correction level H so it still scans. Scans are always tagged with `?ref=qr`.
+4. **One code per spot.** Under In person you can make a code for the poster, the flyer, the slides or the newspaper (`?ref=qr-poster`, `?ref=qr-flyer`), and re-download any of them from the list. Your last settings are remembered.
 5. **Sources in Insights.** The Sources panel on the Insights tab lists `?ref` values next to the referrers, with a Submissions column and a QR icon for each code. This is the part I'd push for most: it turns sharing into a loop.
 
 ## What to try
 
 - **Publish** in the editor and watch the share sheet open. Hit Copy and see it confirm in place.
 - Click the QR code next to the link. Download it, then try Personalize. Scan it with your phone.
-- Open **In person**, add a few spots and download them all.
+- Open **In person**, add another placement and download its code.
 - Open **Link ending** and type a new one to see the warning.
 - Go to **Insights** and switch between the example states in the prototype bar.
 - Try everything at phone width too.
@@ -32,7 +32,7 @@ The visuals page has the changelog image, a poster, social images for LinkedIn a
 
 ## Built with
 
-Vite, React and TypeScript. `qrcode` for the codes (error correction level H, so a logo in the middle still scans), `jspdf` for vector PDFs, `jszip` for downloading several codes at once and `html-to-image` for the PNG exports. Icons are Lucide, brand logos come from Simple Icons, and the type is Inter, to stay close to Tally's own UI.
+Vite, React and TypeScript. `qrcode` for the codes (error correction level H, so a logo in the middle still scans), `jspdf` for vector PDFs and `html-to-image` for the PNG exports. Icons are Lucide, brand logos come from Simple Icons, and the type is Inter, to stay close to Tally's own UI.
 
 ```bash
 npm install
