@@ -35,68 +35,103 @@ function wobble(points: [number, number][], seed: number, amt = 2.2, close = tru
   return d
 }
 const rect = (x: number, y: number, w: number, h: number, seed: number) => wobble([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], seed)
-const line = (x1: number, y1: number, x2: number, y2: number, seed: number) => wobble([[x1, y1], [x2, y2]], seed, 1.4, false)
 
-const ink = { fill: 'none', stroke: '#000', strokeWidth: 3, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-const tick = { fill: 'none', stroke: PINK, strokeWidth: 3.4, strokeLinecap: 'round' as const }
 
-function Ticks({ x, y, r = 0 }: { x: number; y: number; r?: number }) {
+
+/* ---------- Social: 2400x1260, white, composed like Tally's own share image ---------- */
+const DOODLE = '#444444'
+const pen = { fill: 'none', stroke: DOODLE, strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+
+function circle(cx: number, cy: number, r: number, seed: number) {
+  const pts: [number, number][] = []
+  for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 1.08]) }
+  return wobble(pts, seed, r * 0.05)
+}
+
+/** A quick doodled face. Mood changes the mouth, hair changes the top. */
+function Face({ x, y, r = 30, rot = 0, seed = 1, mood = 'smile', hair = 'curl' }: { x: number; y: number; r?: number; rot?: number; seed?: number; mood?: 'smile' | 'open' | 'flat'; hair?: 'curl' | 'spikes' | 'bun' | 'none' }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${r})`} {...tick}>
-      <path d="M0 -14 L0 -26" /><path d="M10 -10 L19 -19" /><path d="M-10 -10 L-19 -19" />
+    <g transform={`translate(${x} ${y}) rotate(${rot})`} {...pen}>
+      <path d={circle(0, 0, r, seed)} />
+      <path d={`M${-r * 0.42} ${-r * 0.1}q3 -4 6 0`} />
+      <path d={`M${r * 0.2} ${-r * 0.12}q3 -4 6 0`} />
+      <path d={`M${-r * 0.05} ${r * 0.02}l-3 ${r * 0.22}h5`} strokeWidth={1.8} />
+      {mood === 'smile' && <path d={`M${-r * 0.38} ${r * 0.42}q${r * 0.38} ${r * 0.3} ${r * 0.74} 0`} />}
+      {mood === 'open' && <path d={circle(r * 0.02, r * 0.5, r * 0.14, seed + 3)} />}
+      {mood === 'flat' && <path d={`M${-r * 0.3} ${r * 0.5}h${r * 0.55}`} />}
+      {hair === 'curl' && <path d={`M${-r * 0.7} ${-r * 0.7}c${r * 0.2} ${-r * 0.5} ${r * 0.9} ${-r * 0.6} ${r * 1.1} ${-r * 0.1}c${r * 0.1} ${-r * 0.4} ${r * 0.5} ${-r * 0.3} ${r * 0.4} ${r * 0.1}`} />}
+      {hair === 'spikes' && <path d={`M${-r * 0.6} ${-r * 0.8}l${r * 0.15} ${-r * 0.35}l${r * 0.15} ${r * 0.25}l${r * 0.2} ${-r * 0.35}l${r * 0.15} ${r * 0.3}l${r * 0.25} ${-r * 0.3}l${r * 0.1} ${r * 0.35}`} />}
+      {hair === 'bun' && <path d={circle(r * 0.1, -r * 1.25, r * 0.28, seed + 7)} />}
     </g>
   )
 }
 
-/* ---------- Social: 2400x1260, white ---------- */
+function Bubble({ x, y, w, h, tail = 'left', seed = 1, children }: { x: number; y: number; w: number; h: number; tail?: 'left' | 'right'; seed?: number; children?: ReactNode }) {
+  const pts: [number, number][] = []
+  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; pts.push([x + w / 2 + Math.cos(a) * w / 2, y + h / 2 + Math.sin(a) * h / 2]) }
+  const tx = tail === 'left' ? x + w * 0.22 : x + w * 0.78
+  const dir = tail === 'left' ? -1 : 1
+  return (
+    <g>
+      <path d={wobble(pts, seed, 2)} {...pen} fill="#fff" />
+      <path d={`M${tx - 8 * dir} ${y + h - 3} l${10 * dir} 16 l${2 * dir} -14`} {...pen} fill="#fff" />
+      {children}
+    </g>
+  )
+}
+
+const say = { fontFamily: 'Inter, sans-serif', fontWeight: 700, fill: DOODLE, textAnchor: 'middle' as const }
+
+function Phone({ x, y, rot = 0 }: { x: number; y: number; rot?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot})`}>
+      <path d={rect(0, 0, 34, 58, 61)} {...pen} fill="#fff" />
+      <path d="M8 8h18v18H8z" {...pen} strokeWidth={1.6} />
+      <path d="M12 12h4v4h-4zM20 18h3v3h-3z" fill={DOODLE} />
+      <path d="M13 50h8" {...pen} />
+    </g>
+  )
+}
+
+function Mark({ x, y, r, color }: { x: number; y: number; r: number; color: string }) {
+  return <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h22" stroke={color} strokeWidth={3} strokeLinecap="round" />
+}
+
 function Social() {
   return (
     <div className="art social">
       <svg className="doodles" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden>
-        {/* Wedding card */}
-        <g transform="translate(96 300) rotate(-8 110 140) scale(0.92)">
-          <path d={rect(0, 0, 220, 280, 7)} {...ink} fill="#fff" />
-          <path d={line(20, 24, 200, 24, 3)} {...ink} strokeWidth={2} />
-          <path d="M98 52c-8-12-28-6-20 10l20 18 20-18c8-16-12-22-20-10z" {...ink} strokeWidth={2.4} />
-          <text x="110" y="110" textAnchor="middle" className="hand">Sam &amp; Noor</text>
-          <text x="110" y="132" textAnchor="middle" className="hand small">say yes by June 1</text>
-          <Qr x={60} y={146} size={100} />
-          <text x="110" y="266" textAnchor="middle" className="hand small">Scan to RSVP</text>
+        {/* Left arc */}
+        <Face x={290} y={150} r={24} rot={-12} seed={3} hair="spikes" />
+        <Bubble x={318} y={58} w={112} h={58} tail="left" seed={5}><text x={374} y={94} fontSize={20} {...say}>RSVP!</text></Bubble>
+        <Face x={180} y={318} r={32} rot={14} seed={9} mood="open" hair="curl" />
+        <Phone x={228} y={300} rot={18} />
+        <Face x={268} y={500} r={30} rot={-6} seed={13} hair="bun" />
+        <Bubble x={300} y={396} w={118} h={112} tail="left" seed={17}><Qr x={321} y={414} size={76} /></Bubble>
+        {/* Right arc */}
+        <Bubble x={786} y={70} w={108} h={56} tail="right" seed={21}><text x={840} y={106} fontSize={22} {...say}>Yes!</text></Bubble>
+        <Face x={912} y={150} r={26} rot={10} seed={23} mood="smile" hair="curl" />
+        <Bubble x={930} y={232} w={140} h={60} tail="left" seed={29}><text x={1000} y={268} fontSize={17} {...say}>2 lattes pls</text></Bubble>
+        <Face x={1010} y={350} r={30} rot={-14} seed={31} mood="open" hair="spikes" />
+        <Face x={918} y={512} r={28} rot={8} seed={37} mood="smile" hair="none" />
+        <g transform="translate(788 404) rotate(-6)">
+          <path d={rect(0, 0, 96, 120, 41)} {...pen} fill="#fff" />
+          <text x={48} y={22} fontSize={12} {...say}>Yoga club</text>
+          <Qr x={16} y={30} size={64} />
+          <text x={48} y={110} fontSize={10} {...say} fontWeight={600}>Scan to sign up</text>
         </g>
-        <Ticks x={318} y={322} r={20} />
-        {/* Menu */}
-        <g transform="translate(880 290) rotate(6 115 150) scale(0.92)">
-          <path d={rect(0, 0, 230, 300, 11)} {...ink} fill="#fff" />
-          <text x="115" y="40" textAnchor="middle" className="hand big">Menu</text>
-          {[64, 86, 108, 130].map((yy, i) => <path key={yy} d={line(24, yy, i % 2 ? 160 : 190, yy, 20 + i)} {...ink} strokeWidth={2} />)}
-          <path d="M28 158c10-14 30-14 40 0" {...ink} strokeWidth={2.2} />
-          <path d="M24 160h48" {...ink} strokeWidth={2.2} />
-          <Qr x={110} y={160} size={100} />
-          <text x="160" y="284" textAnchor="middle" className="hand small">Scan to order</text>
-        </g>
-        <Ticks x={862} y={300} r={-30} />
-        {/* Flyer on a lamppost */}
-        <g transform="translate(468 400)">
-          <path d={wobble([[132, -30], [132, 200]], 41, 1.5, false)} {...ink} strokeWidth={6} />
-          <g transform="rotate(-4 130 80)">
-            <path d={rect(40, 0, 184, 180, 31)} {...ink} fill="#fff" />
-            <circle cx="66" cy="8" r="5" fill={PINK} />
-            <text x="132" y="34" textAnchor="middle" className="hand">Yoga in the park</text>
-            <Qr x={92} y={46} size={80} />
-            <text x="132" y="152" textAnchor="middle" className="hand small">Scan to sign up</text>
-          </g>
-        </g>
-        <Ticks x={700} y={410} r={40} />
-        {/* Little extras */}
-        <path d={wobble([[70, 90], [120, 50], [175, 90], [130, 140]], 77, 3)} {...ink} />
-        <path d="M98 90l20 14 30-34" {...tick} />
-        <path d={wobble([[1030, 70], [1120, 70], [1120, 140], [1030, 140]], 91, 3)} {...ink} />
-        <path d="M1045 94h50M1045 114h36" {...ink} strokeWidth={2} />
-        <Ticks x={1140} y={70} r={30} />
+        {/* Little marks, magenta and grey */}
+        <Mark x={205} y={175} r={35} color={PINK} />
+        <Mark x={225} y={420} r={-20} color="#d9d9d9" />
+        <Mark x={210} y={590} r={-40} color={PINK} />
+        <Mark x={455} y={250} r={55} color={PINK} />
+        <Mark x={980} y={60} r={-45} color={PINK} />
+        <Mark x={1060} y={440} r={10} color="#d9d9d9" />
+        <Mark x={1010} y={588} r={50} color={PINK} />
+        <Mark x={730} y={540} r={-30} color="#d9d9d9" />
       </svg>
       <div className="social-copy">
         <h1>Scan to <span style={{ color: PINK }}>RSVP</span>. Scan to order.<br />Scan to sign up.</h1>
-        <p><TallyMark size={18} /> Tally</p>
       </div>
     </div>
   )

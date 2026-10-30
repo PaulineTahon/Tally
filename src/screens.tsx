@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, Code, ChevronRight, ChevronDown, QrCode, Globe, Check, Zap, Mail } from 'lucide-react'
+import { Loader2, X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, Code, ChevronRight, ChevronDown, QrCode, Globe, Check, Zap, Mail } from 'lucide-react'
 import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useReducedMotion, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
-import { ShareBlock, useNativeShare } from './share'
+import { ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
 import { Pro, SmallCopy } from './ui'
 import { Instagram } from './brand'
 
@@ -35,7 +35,7 @@ export function Editor({ onPublished, published }: { onPublished: () => void; pu
           <button type="button" className="btn btn-ghost btn-sm">{mobile ? <Eye aria-hidden /> : 'Preview'}</button>
           <Avatar size={22} />
           <button type="button" className={`btn btn-blue btn-sm publish-btn ${phase}`} onClick={publish} aria-live="polite">
-            {phase === 'publishing' ? <><TallyMark size={14} spin />Publishing</> : phase === 'done' ? <><Check aria-hidden />Published</> : 'Publish'}
+            {phase === 'publishing' ? <><Loader2 aria-hidden className="spin" />Publishing</> : phase === 'done' ? <><Check aria-hidden />Published</> : 'Publish'}
           </button>
         </div>
       </header>
@@ -78,17 +78,27 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
   const [embedOpen, setEmbedOpen] = useState(false)
   const [newSource, setNewSource] = useState('')
   const best = [...s.sources].sort((a, b) => b.responses - a.responses)[0]
+  const total = s.sources.reduce((t, x) => t + x.responses, 0) + EXAMPLE_UNTAGGED
+  const bestOpen = SOCIAL.find((x) => x.ref === best.ref)?.open
+  const bestHref = bestOpen ? bestOpen(s.url(best.ref)) : best.ref === 'email' ? emailHref(s.url('email')) : null
+  const [nudgeGone, setNudgeGone] = useState(() => { try { return localStorage.getItem(NUDGE_KEY) === '1' } catch { return false } })
+  const dismissNudge = () => { setNudgeGone(true); try { localStorage.setItem(NUDGE_KEY, '1') } catch { /* private mode */ } }
   return (
     <Shell>
       <DashHeader onEdit={onEdit} />
       <div className="page">
         <FormTitle tab="share" onTab={onTab} />
         <div className="share-page">
-          <div className="nudge">
-            <Zap aria-hidden />
-            <span className="grow">12 responses, slowing down. Give it another push?</span>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => best.ref === 'qr' ? (s.setQrRef('qr'), s.setQrOpen(true)) : share(s.url(best.ref))}>Share on {best.label}</button>
-          </div>
+          {!nudgeGone && (
+            <div className="nudge" role="note">
+              <Zap aria-hidden />
+              <span className="grow">{total} responses, slowing down. Most came from {best.label}. Give it another push?</span>
+              {bestHref
+                ? <a className="btn btn-secondary btn-sm" href={bestHref} target="_blank" rel="noreferrer">Share on {best.label}</a>
+                : <button type="button" className="btn btn-secondary btn-sm" onClick={() => best.ref === 'qr' ? (s.setQrRef('qr'), s.setQrOpen(true)) : share(s.url(best.ref))}>Share on {best.label}</button>}
+              <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label="Dismiss" onClick={dismissNudge}><X aria-hidden /></button>
+            </div>
+          )}
 
           <section className="stack gap-16" aria-labelledby="share-h">
             <h2 id="share-h" className="section-h">Share</h2>
@@ -104,12 +114,12 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
             <div className="card tracked">
               {s.sources.map((src) => (
                 <div className="tracked-row" key={src.ref}>
-                  <span className="src-icon">{iconFor(src.kind)}</span>
+                  <span className="src-icon">{iconFor(src.ref, src.kind)}</span>
                   <span className="grow">
                     <span className="title">{src.label}</span>
                     <span className="mono xs muted">{s.display(src.ref)}</span>
                   </span>
-                  {!mobile && <span className="xs muted count">{src.responses} responses</span>}
+                  {!mobile && <span className="xs muted count">{src.responses} {src.responses === 1 ? 'response' : 'responses'}</span>}
                   {src.kind === 'qr' || src.kind === 'place'
                     ? <button type="button" className="btn btn-secondary btn-sm" onClick={() => { s.setQrRef(src.ref); s.setQrOpen(true) }}><QrCode aria-hidden />QR</button>
                     : <SmallCopy text={s.url(src.ref)} />}
@@ -128,27 +138,24 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
           </section>
 
           <section className="stack gap-8 secondary" aria-labelledby="more-h">
-            <h2 id="more-h" className="section-h small-h">More ways to share</h2>
-            <button type="button" className="list-row" aria-expanded={embedOpen} onClick={() => setEmbedOpen((v) => !v)}>
-              <span className="row-icon"><Code aria-hidden /></span>
-              <span className="grow"><span className="title">Embed on a website</span><span className="help" style={{ display: 'block' }}>{mobile ? 'Works best on desktop' : 'Standard, popup or full page'}</span></span>
-              {embedOpen ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
-            </button>
-            {embedOpen && (
+            <h2 id="more-h" className="section-h small-h">Embed Form</h2>
+            {mobile ? (
+              <button type="button" className="list-row" aria-expanded={embedOpen} onClick={() => setEmbedOpen((v) => !v)}>
+                <span className="row-icon"><Code aria-hidden /></span>
+                <span className="grow"><span className="title">Embed on a website</span><span className="help" style={{ display: 'block' }}>Works best on desktop</span></span>
+                {embedOpen ? <ChevronDown aria-hidden /> : <ChevronRight aria-hidden />}
+              </button>
+            ) : <p className="small" style={{ margin: 0 }}>Use these options to embed your form into your own website.</p>}
+            {(!mobile || embedOpen) && (
               <div className="embed-cards">
                 {['Standard', 'Popup', 'Full page'].map((t) => (
                   <button type="button" key={t} className="embed-card">
-                    <span className={`embed-thumb ${t.replace(' ', '').toLowerCase()}`} aria-hidden><i /><i /><i /><b /></span>
+                    <span className={`embed-thumb ${t.replace(' ', '').toLowerCase()}`} aria-hidden><i /><i /><i /><b /><em /></span>
                     <span>{t}</span>
                   </button>
                 ))}
               </div>
             )}
-            <div className="list-row" style={{ cursor: 'default' }}>
-              <span className="row-icon"><Globe aria-hidden /></span>
-              <span className="grow"><span className="title row gap-8">Use your own domain <Pro /></span><span className="help" style={{ display: 'block' }}>Like forms.yourdomain.com</span></span>
-              <button type="button" className="btn btn-secondary btn-sm">Set up</button>
-            </div>
           </section>
         </div>
       </div>
@@ -156,7 +163,11 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
   )
 }
 
-function iconFor(kind: string) {
+const NUDGE_KEY = 'share-nudge-dismissed'
+
+function iconFor(ref: string, kind: string) {
+  const social = SOCIAL.find((x) => x.ref === ref)
+  if (social) return social.icon
   if (kind === 'qr' || kind === 'place') return <QrCode aria-hidden />
   if (kind === 'email') return <Mail aria-hidden />
   if (kind === 'social') return <Instagram />
@@ -204,7 +215,17 @@ export function Results({ onTab, onEdit, state, onGetLink }: { onTab: (t: Tab) =
             )}
             {state === 'nosources' && (
               <div className="empty">
-                <span className="empty-art" aria-hidden>🧭</span>
+                <div className="sample" aria-label="Sample breakdown, not your data">
+                  <div className="row-between"><span className="xs muted">Here's how your sources will show up</span><span className="badge badge-grey">Sample</span></div>
+                  <ol className="src-list sample-list" aria-hidden>
+                    {[['QR code', 6], ['Email', 4], ['Instagram', 2]].map(([l, n]) => (
+                      <li key={l}>
+                        <div className="row-between"><span className="src-name">{l}</span><span className="src-n"><b>{n}</b></span></div>
+                        <div className="bar"><span style={{ width: `${(Number(n) / 6) * 100}%` }} /></div>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
                 <b>No sources yet</b>
                 <span className="small muted" style={{ maxWidth: 360 }}>Share a tagged link or your QR code, and we'll show you where responses come from.</span>
                 <button type="button" className="btn btn-black btn-sm" onClick={onGetLink}>Get a tagged link</button>

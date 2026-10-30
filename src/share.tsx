@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, XLogo } from './brand'
 import {
-  ChevronRight, Link2, Mail, Megaphone, QrCode, Share, Store as StoreIcon, MessageCircle, Plus, Pencil,
+  ChevronRight, ExternalLink, Link2, Mail, Megaphone, QrCode, Share, Store as StoreIcon, MessageCircle, Plus, Pencil,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_TITLE, slugify, useIsMobile, useStore } from './store'
 import { CopyButton, Pro, QrImage, Segmented, SmallCopy } from './ui'
@@ -26,7 +26,7 @@ export function useNativeShare() {
 }
 
 /** Link, single Copy and the QR thumbnail. On mobile: full-width Share with Copy and QR code beside it. */
-export function LinkBar({ compactQr = false }: { compactQr?: boolean }) {
+export function LinkBar({ compactQr = false, hideQr = false }: { compactQr?: boolean; hideQr?: boolean }) {
   const { display, url, setQrOpen, setQrRef, trackQr } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
@@ -44,9 +44,11 @@ export function LinkBar({ compactQr = false }: { compactQr?: boolean }) {
         </button>
         <div className="row gap-8">
           <CopyButton text={url()} className="btn-secondary" big />
-          <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={openQr}>
-            <QrCode aria-hidden />QR code
-          </button>
+          {!hideQr && (
+            <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={openQr}>
+              <QrCode aria-hidden />QR code
+            </button>
+          )}
         </div>
       </div>
     )
@@ -58,9 +60,11 @@ export function LinkBar({ compactQr = false }: { compactQr?: boolean }) {
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
       </div>
       <CopyButton text={url()} />
-      <button type="button" className="qr-thumb" onClick={openQr} aria-label="QR code" title="QR code">
-        <QrImage url={qrUrl} size={compactQr ? 26 : 28} label="" />
-      </button>
+      {!hideQr && (
+        <button type="button" className="qr-thumb" onClick={openQr} aria-label="QR code" title="QR code">
+          <QrImage url={qrUrl} size={compactQr ? 26 : 28} label="" />
+        </button>
+      )}
     </div>
   )
 }
@@ -95,13 +99,22 @@ function Row({ icon, title, help, right, onClick }: { icon?: ReactNode; title: R
     : <div className="list-row" style={{ cursor: 'default' }}>{inner}</div>
 }
 
-const SOCIAL = [
+const enc = encodeURIComponent
+export const SHARE_TEXT = `Quick one: ${FORM_TITLE}. It takes a minute.`
+
+/** Where each network's own share screen lives. Instagram has none on the web, so it's Copy only. */
+export const SOCIAL: { ref: string; label: string; icon: ReactNode; action?: string; open?: (link: string) => string }[] = [
+  { ref: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle aria-hidden />, action: 'Send', open: (l) => `https://wa.me/?text=${enc(`${SHARE_TEXT} ${l}`)}` },
   { ref: 'instagram', label: 'Instagram', icon: <Instagram /> },
-  { ref: 'linkedin', label: 'LinkedIn', icon: <Linkedin /> },
-  { ref: 'whatsapp', label: 'WhatsApp', icon: <MessageCircle aria-hidden /> },
-  { ref: 'facebook', label: 'Facebook', icon: <Facebook /> },
-  { ref: 'x', label: 'X', icon: <XLogo /> },
+  { ref: 'linkedin', label: 'LinkedIn', icon: <Linkedin />, action: 'Post', open: (l) => `https://www.linkedin.com/sharing/share-offsite/?url=${enc(l)}` },
+  { ref: 'x', label: 'X', icon: <XLogo />, action: 'Post', open: (l) => `https://x.com/intent/post?text=${enc(SHARE_TEXT)}&url=${enc(l)}` },
+  { ref: 'facebook', label: 'Facebook', icon: <Facebook />, action: 'Post', open: (l) => `https://www.facebook.com/sharer/sharer.php?u=${enc(l)}` },
 ]
+
+export function emailHref(link: string) {
+  const body = `Hi!\n\nWe're getting the picnic together and would love to know if you can make it. It takes a minute:\n\n${link}`
+  return `mailto:?subject=${enc(`Quick one: ${FORM_TITLE}`)}&body=${enc(body)}`
+}
 
 export function ChannelPanel({ channel }: { channel: Channel }) {
   const store = useStore()
@@ -113,7 +126,8 @@ export function ChannelPanel({ channel }: { channel: Channel }) {
         <p className="small muted" style={{ margin: 0 }}>Copy it, paste it anywhere.</p>
         <div className="stack">
           <Row icon={<Pencil aria-hidden />} title={<>Link ending <Pro /></>} help="Make it yours, like tally.so/r/summer-rsvp." onClick={() => setEndingOpen(true)} />
-          <Row icon={<Link2 aria-hidden />} title={<>Link preview <Pro /></>} help="How your link looks in chats and on social." onClick={() => setPreviewOpen(true)} />
+          <Row icon={<Link2 aria-hidden />} title="Link preview" help="How your link looks in chats and on social." onClick={() => setPreviewOpen(true)}
+            right={<span className="row gap-4"><span className="customize-link">Customize</span><Pro /></span>} />
         </div>
       </div>
     )
@@ -124,7 +138,11 @@ export function ChannelPanel({ channel }: { channel: Channel }) {
         <p className="small muted" style={{ margin: 0 }}>Post it where your people are.</p>
         <div className="stack">
           {SOCIAL.map((s) => (
-            <Row key={s.ref} icon={s.icon} title={s.label} help={<span className="mono">{display(s.ref)}</span>} right={<SmallCopy text={url(s.ref)} />} />
+            <Row key={s.ref} icon={s.icon} title={s.label} help={<span className="mono">{display(s.ref)}</span>}
+              right={<span className="row gap-4">
+                {s.open && <a className="btn btn-secondary btn-sm" href={s.open(url(s.ref))} target="_blank" rel="noreferrer" aria-label={`${s.action} on ${s.label}`}><ExternalLink aria-hidden />{s.action}</a>}
+                <SmallCopy text={url(s.ref)} />
+              </span>} />
           ))}
         </div>
         <p className="xs muted" style={{ margin: 0 }}>Each link is tagged, so you'll know which post worked.</p>
@@ -132,7 +150,7 @@ export function ChannelPanel({ channel }: { channel: Channel }) {
     )
   }
   if (channel === 'email') {
-    const href = `mailto:?subject=${encodeURIComponent(FORM_TITLE)}&body=${encodeURIComponent(`Got a minute? ${url('email')}`)}`
+    const href = emailHref(url('email'))
     return (
       <div className="stack gap-8">
         <p className="small muted" style={{ margin: 0 }}>Drop it in your newsletter or inbox.</p>
@@ -148,9 +166,9 @@ export function ChannelPanel({ channel }: { channel: Channel }) {
   return (
     <div className="stack gap-12">
       <div className="row gap-12" style={{ alignItems: 'flex-start' }}>
-        <button type="button" className="qr-thumb qr-thumb-lg" onClick={() => openFor('qr')} aria-label="Open QR code">
+        <span className="qr-thumb qr-thumb-lg" aria-hidden>
           <QrImage url={store.trackQr ? url('qr') : url()} size={64} label="" />
-        </button>
+        </span>
         <div className="stack gap-8" style={{ flex: 1 }}>
           <p className="small muted" style={{ margin: 0 }}>Posters, slides, flyers, name badges. Anyone can scan it to open your form.</p>
           <div><button type="button" className="btn btn-black btn-sm" onClick={() => openFor('qr')}><QrCode aria-hidden />Get QR code</button></div>
@@ -175,7 +193,10 @@ export function ShareBlock({ initial = 'link' }: { initial?: Channel }) {
   const [channel, setChannel] = useState<Channel>(initial)
   return (
     <div className="stack gap-16">
-      <LinkBar />
+      <div className="stack gap-8">
+        <LinkBar hideQr={channel === 'inperson'} />
+        <div className="row gap-4"><a className="custom-domain" href="#/share">Use custom domain</a><Pro /></div>
+      </div>
       <ChannelPicker value={channel} onChange={setChannel} />
       <div role="tabpanel"><ChannelPanel channel={channel} /></div>
     </div>

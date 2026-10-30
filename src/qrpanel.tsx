@@ -8,7 +8,7 @@ type Format = 'svg' | 'pdf' | 'png'
 const FORMATS: { id: Format; label: string; help: string }[] = [
   { id: 'svg', label: 'SVG', help: 'Sharp at any size. Best for print.' },
   { id: 'pdf', label: 'PDF', help: 'Ready to print' },
-  { id: 'png', label: 'PNG', help: 'For screens and slides' },
+  { id: 'png', label: 'PNG', help: 'PNG works best in Canva, Word and Slides' },
 ]
 const BRAND = '#6B3FD6'
 
@@ -145,7 +145,7 @@ export function QrPanel() {
                     <input className="input" value={hex} onChange={(e) => { setHex(e.target.value); if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setBrand(e.target.value) }} aria-label="Brand colour hex" style={{ width: 110 }} />
                   </div>
                 )}
-                {lowContrast && <span className="xs" style={{ color: '#a14b00' }}>That shade is too light to scan reliably, so we'll keep it black. Try a darker one.</span>}
+                {lowContrast && <span className="xs" style={{ color: 'var(--danger)' }}>That shade is too light to scan reliably, so we'll keep it black. Try a darker one.</span>}
               </div>
               <div className="row-between">
                 <label htmlFor="qr-logo" style={{ fontSize: 15 }}>Add logo in the middle</label>
@@ -160,6 +160,9 @@ export function QrPanel() {
             </div>
           )}
         </div>
+
+        <hr className="divider" />
+        <RespondentView link={shown} tracked={s.trackQr} />
       </div>
     </div>
   )
@@ -180,6 +183,33 @@ export function QrPanel() {
       </Dialog>
       {full && <FullQr url={url} color={color} logo={logo} onClose={() => setFull(false)} />}
     </>
+  )
+}
+
+/** The thank-you screen someone sees after scanning and submitting. */
+function RespondentView({ link, tracked }: { link: string; tracked: boolean }) {
+  return (
+    <div className="stack gap-8">
+      <div className="row-between">
+        <span style={{ fontSize: 15, fontWeight: 500 }}>Respondent view</span>
+        <span className="xs muted">{tracked ? 'After scanning your code' : 'After opening your link'}</span>
+      </div>
+      <div className="respondent">
+        <div className="phone-mini phone-ty" aria-label="Preview of the thank-you screen">
+          <div className="phone-bar">{link}</div>
+          <div className="ty-body">
+            <span className="ty-emoji" aria-hidden>🧺</span>
+            <b>Thanks, you're on the list!</b>
+            <span>See you at the picnic.</span>
+          </div>
+          <div className="ty-foot">
+            <span>Made with Tally</span>
+            <a href="https://tally.so" target="_blank" rel="noreferrer">{tracked ? 'Make a QR form like this' : 'Make a form like this'}</a>
+          </div>
+        </div>
+        <span className="xs muted">The small "Made with Tally" line stays below your content. People who scanned get a link to make a QR form of their own.</span>
+      </div>
+    </div>
   )
 }
 

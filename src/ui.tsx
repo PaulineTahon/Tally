@@ -43,9 +43,11 @@ export function CopyButton({ text, className = '', big = false, label = 'Copy', 
     if (toastText) toast(toastText)
   }
   return (
-    <button type="button" className={`btn btn-black ${big ? 'btn-lg' : ''} ${className}`} onClick={onClick} aria-label={copied ? 'Copied' : `${label} ${text}`}>
+    <button type="button" className={`btn btn-black ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={`${label} ${text}`}>
       {copied ? <Check aria-hidden /> : <Copy aria-hidden />}
-      <span style={{ minWidth: big ? 64 : 52, textAlign: 'left' }}>{copied ? 'Copied' : label}</span>
+      {/* Same as today's Tally: the icon turns into a check, the label stays. */}
+      <span>{label}</span>
+      <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>
     </button>
   )
 }

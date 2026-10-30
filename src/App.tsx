@@ -30,6 +30,7 @@ function Inner() {
     window.addEventListener('hashchange', on)
     return () => window.removeEventListener('hashchange', on)
   }, [])
+  useEffect(() => { s.setQrOpen(false); s.setEndingOpen(false); s.setPreviewOpen(false) }, [r.route, r.state]) // eslint-disable-line
   useEffect(() => { if (r.qr) s.setQrOpen(true) }, []) // eslint-disable-line
   const go = useCallback((route: Route, extra = '') => { window.location.hash = `/${route}${extra}`; window.scrollTo(0, 0) }, [])
   const onTab = (t: Tab) => go(t === 'submissions' || t === 'insights' ? 'results' : 'share')

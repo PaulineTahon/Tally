@@ -14,12 +14,13 @@ export interface Source {
 
 /** Example numbers only, shown with an "Example data" label in the UI. */
 export const EXAMPLE_SOURCES: Source[] = [
-  { ref: 'qr', label: 'QR code', kind: 'qr', responses: 18 },
-  { ref: 'email', label: 'Email', kind: 'email', responses: 11 },
-  { ref: 'instagram', label: 'Instagram', kind: 'social', responses: 7 },
-  { ref: 'poster-library', label: 'Poster, library', kind: 'place', responses: 4 },
+  { ref: 'whatsapp', label: 'WhatsApp', kind: 'social', responses: 4 },
+  { ref: 'qr', label: 'QR code', kind: 'qr', responses: 3 },
+  { ref: 'email', label: 'Email', kind: 'email', responses: 2 },
+  { ref: 'instagram', label: 'Instagram', kind: 'social', responses: 1 },
+  { ref: 'poster-library', label: 'Poster, library', kind: 'place', responses: 1 },
 ]
-export const EXAMPLE_UNTAGGED = 9
+export const EXAMPLE_UNTAGGED = 1
 
 interface Toast { id: number; text: string }
 
