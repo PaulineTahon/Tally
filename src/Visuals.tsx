@@ -384,7 +384,7 @@ export default function Visuals() {
             <li><b>Know what worked.</b> Every code is tagged, so each one gets its own row in Insights.</li>
             <li><b>On your phone?</b> Save the code to your photos or share it straight from the share sheet.</li>
           </ul>
-          <p>Open any form, go to Share, and hit QR code. Happy printing!</p>
+          <p>Open any form, go to Share, and hit QR Code. Happy printing!</p>
         </>}>
         <Changelog />
       </Exportable>

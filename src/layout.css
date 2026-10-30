@@ -385,3 +385,8 @@ a.list-row { text-decoration: none; color: inherit; }
 /* Sources glyphs: one size, one muted color */
 .src-glyph { display: inline-flex; width: 14px; height: 14px; color: var(--grey-3); flex: none; }
 .src-glyph svg { width: 14px; height: 14px; }
+
+.placements li.is-editing { align-items: flex-start; background: var(--surface-2); }
+.placements li.is-editing > .grow.small { align-self: center; }
+.input-sm { height: 32px; font-size: 14px; }
+.panel-sources .bars li.is-sub .bar-cell { margin-left: 18px; }

@@ -12,25 +12,27 @@ const RANGES: { id: Range; label: string }[] = [
   { id: '24h', label: 'Last 24 hours' }, { id: '7d', label: 'Last 7 days' }, { id: '30d', label: 'Last 30 days' }, { id: 'all', label: 'All time' },
 ]
 
-interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
+interface SourceRow { name: string; visits: number; subs: number; qr?: boolean; sub?: boolean }
 
-/** Example numbers for the prototype. Direct / None is the real referrer row; the rest are ?ref values, shown by place name. */
+/**
+ * Example numbers for the prototype. Direct / None is the real referrer row; the rest are ?ref values,
+ * shown by name. The main code (ref=qr) is its own row, and each extra code sits under it. Never merged.
+ */
+const ALL: SourceRow[] = [
+  { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Direct / None', visits: 9, subs: 1 },
+  { name: 'Main QR code', visits: 6, subs: 1, qr: true }, { name: 'Poster', visits: 5, subs: 2, qr: true, sub: true }, { name: 'Flyer', visits: 5, subs: 1, qr: true, sub: true },
+  { name: 'Email', visits: 5, subs: 2 }, { name: 'Instagram', visits: 2, subs: 1 },
+  { name: 'LinkedIn', visits: 1, subs: 0 }, { name: 'Facebook', visits: 1, subs: 0 }, { name: 'X', visits: 1, subs: 0 },
+]
 const DATA: Record<Range, SourceRow[]> = {
-  all: [
-    { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'Email', visits: 5, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 2, subs: 1 },
-    { name: 'LinkedIn', visits: 1, subs: 0 }, { name: 'Facebook', visits: 1, subs: 0 }, { name: 'X', visits: 1, subs: 0 },
-  ],
-  '30d': [
-    { name: 'WhatsApp', visits: 14, subs: 4 }, { name: 'Poster', visits: 11, subs: 3, qr: true }, { name: 'Direct / None', visits: 9, subs: 1 },
-    { name: 'Email', visits: 5, subs: 2 }, { name: 'Flyer', visits: 5, subs: 1, qr: true }, { name: 'Instagram', visits: 2, subs: 1 },
-    { name: 'LinkedIn', visits: 1, subs: 0 }, { name: 'Facebook', visits: 1, subs: 0 }, { name: 'X', visits: 1, subs: 0 },
-  ],
+  all: ALL,
+  '30d': ALL,
   '7d': [
-    { name: 'Poster', visits: 6, subs: 2, qr: true }, { name: 'WhatsApp', visits: 5, subs: 1 }, { name: 'Direct / None', visits: 3, subs: 0 },
-    { name: 'Flyer', visits: 2, subs: 1, qr: true }, { name: 'Email', visits: 1, subs: 0 },
+    { name: 'WhatsApp', visits: 5, subs: 1 }, { name: 'Direct / None', visits: 3, subs: 0 },
+    { name: 'Main QR code', visits: 3, subs: 1, qr: true }, { name: 'Poster', visits: 3, subs: 1, qr: true, sub: true }, { name: 'Flyer', visits: 2, subs: 1, qr: true, sub: true },
+    { name: 'Email', visits: 1, subs: 0 },
   ],
-  '24h': [{ name: 'Poster', visits: 2, subs: 1, qr: true }, { name: 'Direct / None', visits: 1, subs: 0 }],
+  '24h': [{ name: 'Main QR code', visits: 2, subs: 1, qr: true }, { name: 'Direct / None', visits: 1, subs: 0 }],
 }
 const DAYS: Record<Range, number[][]> = {
   all: [[2, 0], [5, 1], [8, 3], [6, 2], [4, 1], [3, 0], [2, 1], [4, 1], [3, 0], [5, 2], [2, 0], [1, 0], [2, 1], [2, 0]],
@@ -189,7 +191,7 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
       </div>
       <ul className="bars">
         {rows.map((r) => (
-          <li key={r.name}>
+          <li key={r.name} className={r.sub ? 'is-sub' : undefined}>
             <span className="bar-cell">
               <span className="bar-fill" style={{ width: `${(r.visits / max) * 100}%` }} />
               <span className="bar-text"><SourceGlyph row={r} />{r.name}</span>

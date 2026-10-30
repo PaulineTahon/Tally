@@ -1,14 +1,14 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, Store as StoreIcon, TriangleAlert,
+  ArrowUpRight, ChevronDown, Code, Copy, MoreHorizontal, Download, Globe, Link2, Mail, Megaphone, Plus, QrCode, Settings2, Share, TriangleAlert, PencilLine, Trash2,
 } from 'lucide-react'
-import { canNativeShare, copyText, FORM_ID, FORM_TITLE, slugify, useIsMobile, useStore, type Source } from './store'
+import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, slugify, useIsMobile, useStore, type Source } from './store'
 import { Collapse, CopyButton, Expand, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { fileName, safeStyle } from './qrpanel'
 
-export type Channel = 'link' | 'social' | 'email' | 'inperson'
+export type Channel = 'link' | 'social' | 'email' | 'qr'
 
 export function useNativeShare() {
   const { toast } = useStore()
@@ -27,12 +27,12 @@ export function useNativeShare() {
   }
 }
 
-/** Link, single Copy and the QR code. The QR stays in this position whatever channel is open. */
-export function LinkBar() {
-  const { display, url, setQrOpen, setQrRef } = useStore()
+/** Link, single Copy and the QR Code button, which opens the QR Code tab below. */
+export function LinkBar({ onQr }: { onQr: () => void }) {
+  const { display, url } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
-  const openQr = () => { setQrRef('qr'); setQrOpen(true) }
+  const openQr = onQr
   if (mobile) {
     return (
       <div className="stack gap-8">
@@ -46,7 +46,7 @@ export function LinkBar() {
         <div className="row gap-8">
           <CopyButton text={url()} className="btn-secondary" big />
           <button type="button" className="btn btn-secondary btn-lg" style={{ flex: 1 }} onClick={openQr}>
-            <QrCode aria-hidden />QR code
+            <QrCode aria-hidden />QR Code
           </button>
         </div>
       </div>
@@ -59,7 +59,7 @@ export function LinkBar() {
       </div>
       <CopyButton text={url()} />
       <button type="button" className="btn btn-secondary" onClick={openQr}>
-        <QrCode aria-hidden />QR code
+        <QrCode aria-hidden />QR Code
       </button>
     </div>
   )
@@ -75,7 +75,7 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
           { value: 'link', label: 'Link', icon: <Link2 aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
           { value: 'email', label: 'Email', icon: <Mail aria-hidden /> },
-          { value: 'inperson', label: 'In person', icon: <StoreIcon aria-hidden /> },
+          { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
         ]}
       />
     </div>
@@ -302,7 +302,7 @@ function sourceIcon(src: Source) {
 /** Every code and tracked link, by place name. Refs only live in the URLs and file names. */
 export function PlaceList({ only }: { only?: 'qr' }) {
   const s = useStore()
-  const rows = only ? s.sources.filter((x) => x.kind === only) : s.sources
+  const rows = only ? s.placements : s.sources
   if (!rows.length) return null
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
@@ -319,6 +319,9 @@ function PlaceRow({ p }: { p: Source }) {
   const [menu, setMenu] = useState(false)
   const [up, setUp] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [renaming, setRenaming] = useState(false)
+  const [name, setName] = useState(p.label)
+  const [confirming, setConfirming] = useState(false)
   const more = useRef<HTMLButtonElement>(null)
   const qr = p.kind === 'qr'
   const link = s.url(p.ref)
@@ -339,15 +342,49 @@ function PlaceRow({ p }: { p: Source }) {
     const r = more.current?.getBoundingClientRect()
     const box = more.current?.closest('.modal-body, .sheet-body')?.getBoundingClientRect()
     const floor = Math.min(window.innerHeight, box?.bottom ?? Infinity)
-    setUp(!!r && r.bottom + (qr ? 230 : 100) > floor)
+    setUp(!!r && r.bottom + (qr ? (main ? 270 : 320) : 100) > floor)
     setMenu((m) => !m)
   }
   const pick = (fn: () => void) => () => { setMenu(false); fn() }
+  const main = p.ref === MAIN_QR
+  const remove = () => {
+    // A code that already brought in responses asks first. Its responses stay in Insights either way.
+    if (p.responses > 0) { setConfirming(true); return }
+    s.removeSource(p.ref); s.toast(`${p.label} deleted`)
+  }
+  const icon = qr
+    ? <span className="qr-thumb is-static" aria-hidden><QrImage url={link} style={style} size={30} label="" /></span>
+    : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>
+  if (renaming) {
+    const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast('Code renamed') }
+    return (
+      <li className="is-editing">
+        {icon}
+        <form className="stack gap-4 grow" onSubmit={(e) => { e.preventDefault(); save() }}>
+          <div className="row gap-8">
+            <input className="input input-sm grow" autoFocus aria-label={`New name for ${p.label}`} value={name}
+              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setRenaming(false) } }} />
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(p.label); setRenaming(false) }}>Cancel</button>
+            <button type="submit" className="btn btn-black btn-sm" disabled={!name.trim()}>Save</button>
+          </div>
+          <span className="xs muted">The link stays the same, so printed codes keep working.</span>
+        </form>
+      </li>
+    )
+  }
+  if (confirming) {
+    return (
+      <li className="is-editing" role="alert">
+        {icon}
+        <span className="grow small">Delete {p.label}? Its {n} stay in Insights.</span>
+        <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>Cancel</button>
+        <button type="button" className="btn btn-danger btn-sm" autoFocus onClick={() => { s.removeSource(p.ref); s.toast(`${p.label} deleted`) }}>Delete</button>
+      </li>
+    )
+  }
   return (
     <li>
-      {qr
-        ? <span className="qr-thumb is-static" aria-hidden><QrImage url={link} style={style} size={30} label="" /></span>
-        : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>}
+      {icon}
       <span className="title grow">{p.label}</span>
       <span className="xs muted count">{n}</span>
       {qr ? (
@@ -367,11 +404,14 @@ function PlaceRow({ p }: { p: Source }) {
         <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
           {qr && <button role="menuitem" onClick={pick(() => { s.setQrRef(p.ref); s.setQrOpen(true) })}><QrCode aria-hidden />View code</button>}
           <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />Copy link</button>
+          {qr && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />Rename</button>}
           {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />Open link</a>}
           {qr && <div className="menu-sep" role="separator" />}
           {qr && (['svg', 'pdf', 'png'] as QrFormat[]).map((f) => (
             <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
           ))}
+          {qr && !main && <div className="menu-sep" role="separator" />}
+          {qr && !main && <button role="menuitem" className="danger" onClick={pick(remove)}><Trash2 aria-hidden />Delete</button>}
         </Menu>
       </span>
     </li>
@@ -379,36 +419,49 @@ function PlaceRow({ p }: { p: Source }) {
 }
 
 /** The same add input everywhere: it asks for a place name, never a ref. */
-export function AddPlace({ label, onAdd }: { label: string; onAdd: (name: string) => void }) {
+export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster or Library' }: { label: string; onAdd: (name: string) => void; placeholder?: string }) {
   const [name, setName] = useState('')
   const field = useRef<HTMLInputElement>(null)
   return (
     <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
-      <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder="Place name, like Poster or Library" value={name} onChange={(e) => setName(e.target.value)} />
+      <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} />
       <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
     </form>
   )
 }
 
-function InPersonPanel() {
+/** One ready-made code first. Extra codes per place are optional, and free. */
+function QrCodePanel() {
   const s = useStore()
+  const mobile = useIsMobile()
+  const [adding, setAdding] = useState(false)
   const add = (label: string) => {
     const p = s.addPlacement(label)
     s.toast(`Code added for ${p.label}`)
   }
-  const missing = SUGGESTED.filter((l) => !s.placements.some((p) => p.ref === `qr-${slugify(l)}`))
+  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
+  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>One code per place, so you can see which one brings in responses.</p>
+      <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
       <PlaceList only="qr" />
       <div className="stack gap-8">
-        <span className="xs" style={{ fontWeight: 600 }}>Add Another Code</span>
-        {missing.length > 0 && (
-          <div className="chips">
-            {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
+        <div>
+          <button type="button" className="btn btn-secondary btn-sm" aria-expanded={adding} aria-controls="add-code" onClick={() => setAdding((v) => !v)}>
+            <Plus aria-hidden />Add another code
+          </button>
+        </div>
+        <span className="xs muted">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
+        <Collapse open={adding} id="add-code" gap={8}>
+          <div className="stack gap-8">
+            <AddPlace label="Add another code" placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
+            {missing.length > 0 && (
+              <div className="chips">
+                {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
+              </div>
+            )}
           </div>
-        )}
-        <AddPlace label="Add another code" onAdd={add} />
+        </Collapse>
       </div>
     </div>
   )
@@ -419,7 +472,7 @@ function InPersonPanel() {
 export function ChannelPanel({ channel }: { channel: Channel }) {
   const { url } = useStore()
   if (channel === 'link') return <LinkPanel />
-  if (channel === 'inperson') return <InPersonPanel />
+  if (channel === 'qr') return <QrCodePanel />
   if (channel === 'social') {
     return (
       <div className="stack gap-8">
@@ -457,7 +510,7 @@ export function ShareBlock() {
   const setChannel = (c: Channel) => { lastChannel = c; setChannelState(c) }
   return (
     <div className="stack gap-16">
-      <LinkBar />
+      <LinkBar onQr={() => setChannel('qr')} />
       <ChannelPicker value={channel} onChange={setChannel} />
       <div role="tabpanel"><ChannelPanel channel={channel} /></div>
       <EmbedLink />

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Download, Maximize2, Share, ImageDown, X, Check, Palette, Upload } from 'lucide-react'
 import { EASTER_EGG, FORM_TITLE, canNativeShare, slugify, useIsMobile, useStore } from './store'
-import { Collapse, Dialog, Menu, Segmented } from './ui'
+import { Collapse, Dialog, Menu, Segmented, Pro } from './ui'
 import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -114,7 +114,7 @@ export function QrPanel() {
       <Collapse open={personalize} gap={16}>
         <div className="personalize stack gap-12" id="qr-personalize">
           <Segmented label="Style" value={style.mode} onChange={(m) => setStyle({ mode: m })}
-            options={[{ value: 'tally', label: 'Black' }, { value: 'brand', label: 'Your brand' }]} />
+            options={[{ value: 'tally', label: 'Black' }, { value: 'brand', label: <>Your brand <Pro /></> }]} />
           {style.mode === 'brand' && (
             <>
               <div className="row-between">

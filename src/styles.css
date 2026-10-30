@@ -60,6 +60,7 @@ a { color: inherit; }
 .btn-black:hover, .btn-black.is-copied { background: var(--text); }
 .btn-secondary.is-copied { background: var(--surface-2); }
 .btn-blue { background: var(--blue); color: #fff; }
+.btn-danger { background: var(--danger); color: #fff; }
 .btn-blue:hover { background: var(--blue-hover); }
 .btn-ghost:hover { background: var(--hover); color: var(--grey-1); }
 .btn-secondary { background: #fff; color: var(--text); box-shadow: var(--ring); }

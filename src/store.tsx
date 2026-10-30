@@ -13,12 +13,14 @@ export interface Source {
   responses: number
 }
 
+/** Every form has one ready-made code. Its ref is qr for good, whatever it's called. */
+export const MAIN_QR = 'qr'
+
 /** Example numbers only, shown with an "Example data" label in the UI. */
 export const EXAMPLE_SOURCES: Source[] = [
   { ref: 'whatsapp', label: 'WhatsApp', kind: 'social', responses: 4 },
-  { ref: 'qr-poster', label: 'Poster', kind: 'qr', responses: 3 },
+  { ref: MAIN_QR, label: 'Main code', kind: 'qr', responses: 4 },
   { ref: 'email', label: 'Email', kind: 'email', responses: 2 },
-  { ref: 'qr-flyer', label: 'Flyer', kind: 'qr', responses: 1 },
   { ref: 'instagram', label: 'Instagram', kind: 'social', responses: 1 },
 ]
 
@@ -53,6 +55,8 @@ interface Store {
   setQrOpen: (v: boolean) => void
   placements: Source[]
   addPlacement: (label: string) => Source
+  renameSource: (ref: string, label: string) => void
+  removeSource: (ref: string) => void
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
@@ -113,21 +117,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return s
   }, [sources])
 
+  /** Extra codes get qr-<place>, made unique once and never changed, so printed copies keep their tag. */
   const addPlacement = useCallback((label: string) => {
-    const ref = `qr-${slugify(label) || 'code'}`
-    const existing = sources.find((s) => s.ref === ref)
-    if (existing) return existing
-    const s: Source = { ref, label: label.trim(), kind: 'qr', responses: 0 }
+    const name = label.trim()
+    const same = sources.find((s) => s.kind === 'qr' && s.label.toLowerCase() === name.toLowerCase())
+    if (same) return same
+    const base = `qr-${slugify(name) || 'code'}`
+    let ref = base
+    for (let i = 2; sources.some((s) => s.ref === ref); i++) ref = `${base}-${i}`
+    const s: Source = { ref, label: name, kind: 'qr', responses: 0 }
     setSources((all) => [...all, s])
     return s
   }, [sources])
-  const placements = useMemo(() => sources.filter((s) => s.kind === 'qr'), [sources])
+  /** Renaming only changes what you see. The ref, and so the link, stays the same. */
+  const renameSource = useCallback((ref: string, label: string) => {
+    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, label: label.trim() || s.label } : s)))
+  }, [])
+  const removeSource = useCallback((ref: string) => {
+    if (ref === MAIN_QR) return
+    setSources((all) => all.filter((s) => s.ref !== ref))
+  }, [])
+  /** The main code first, then the others in the order they were made. */
+  const placements = useMemo(() => {
+    const qr = sources.filter((s) => s.kind === 'qr')
+    return [...qr.filter((s) => s.ref === MAIN_QR), ...qr.filter((s) => s.ref !== MAIN_QR)]
+  }, [sources])
 
   const value = useMemo<Store>(() => ({
     slug, setSlug, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
-    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, placements, addPlacement, settings, setSettings,
-  }), [slug, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, settings, setSettings])
+    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings,
+  }), [slug, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, placements, addPlacement, renameSource, removeSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
