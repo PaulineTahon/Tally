@@ -16,7 +16,7 @@ export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: 
   const ls = m.size * LOGO_RATIO
   const lx = (n - ls) / 2
   return (
-    <g transform={`translate(${x} ${y}) scale(${size / n})`}>
+    <g data-layer="QR code" transform={`translate(${x} ${y}) scale(${size / n})`}>
       <rect width={n} height={n} fill="#fff" />
       <path d={modulePath(m, true)} fill="#000" shapeRendering="crispEdges" />
       {eyes.map(([ex, ey]) => (
@@ -70,9 +70,9 @@ export function CoverArt({ url, slice = false }: { url: string; slice?: boolean 
           <feDropShadow dx="0" dy="10" stdDeviation="16" floodColor="#000" floodOpacity="0.08" />
         </filter>
       </defs>
-      <rect width="3000" height="1000" fill="#F7F7F6" />
+      <rect data-layer="Background" width="3000" height="1000" fill="#F7F7F6" />
       {/* Poster */}
-      <g transform="translate(1350 505) rotate(2.5) scale(0.66)">
+      <g data-layer="Poster" transform="translate(1350 505) rotate(2.5) scale(0.66)">
         <rect x={-190} y={-232} width={380} height={464} rx={6} fill="#fff" stroke={GREY} strokeWidth={3} filter="url(#cover-shadow)" />
         <Qr x={-150} y={-200} size={300} url={url} />
         <rect x={-120} y={128} width={240} height={14} rx={7} fill={GREY} />
@@ -80,7 +80,7 @@ export function CoverArt({ url, slice = false }: { url: string; slice?: boolean 
         <rect x={-70} y={-254} width={140} height={44} rx={4} fill={GREY} transform="rotate(-4)" />
       </g>
       {/* Hand holding a phone up to scan */}
-      <g transform="translate(1710 500) rotate(-8) scale(0.66)">
+      <g data-layer="Hand and phone" transform="translate(1710 500) rotate(-8) scale(0.66)">
         <path d={rect(-70, -120, 140, 250, 71)} {...pen} fill="#fff" />
         <path d="M-45 -92h90v124h-90z" {...pen} strokeWidth={4} />
         {/* The phone shows the same real code, never a fake pattern. */}
@@ -93,12 +93,14 @@ export function CoverArt({ url, slice = false }: { url: string; slice?: boolean 
         <path d="M-110 -170l-28 -26M0 -190v-40M110 -170l28 -26" {...pen} stroke={GREY} />
       </g>
       {/* Three pink ticks, well away from the code */}
-      {tick(1120, 410, 35)}
-      {tick(1560, 380, -50)}
-      {tick(1880, 610, 20)}
-      {/* Grey secondary marks */}
-      <path d="M1140 570l-44 6" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
-      <path d="M1580 670l38 22" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
+      <g data-layer="Accent marks">
+        {tick(1120, 410, 35)}
+        {tick(1560, 380, -50)}
+        {tick(1880, 610, 20)}
+        {/* Grey secondary marks */}
+        <path d="M1140 570l-44 6" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
+        <path d="M1580 670l38 22" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
+      </g>
     </svg>
   )
 }

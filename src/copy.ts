@@ -1,5 +1,8 @@
 /** UI strings, kept together for copy review. */
 
+/** Title of the demo form every printed code opens. One place, so a new title is a one-line change. */
+export const EGG_TITLE = 'Scanned your way here'
+
 export const rowCopy = {
   download: (place: string, format: string) => `Download ${place} as ${format.toUpperCase()}`,
   copyLink: 'Copy link',
@@ -53,7 +56,7 @@ export const planCopy = {
   seePlans: 'See plans',
   domainSaved: 'Custom domain saved.',
   previewSaved: 'Link preview updated.',
-  styleSaved: 'Style saved for your codes.',
+  logoSaved: 'Logo saved for your codes.',
 }
 
 /**
@@ -61,16 +64,20 @@ export const planCopy = {
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
-  socialIntro: 'Used for every channel below. The link is added for you.',
   messageLabel: 'Message',
+  edit: 'Edit',
+  editMessage: 'Edit message',
+  messageDone: 'Done',
+  messageHint: 'Used for every channel below. The link is added for you.',
+  messageEmpty: 'Just the link',
+  copiedInline: 'Copied',
+  copyFor: (place: string) => `Copy link for ${place}`,
+  copyMessageAria: 'Copy message with the link',
   defaultMessage: (title: string) => `I'd love your answers to ${title}.`,
   send: 'Send',
   copyMessageAndLink: 'Copy message',
-  copyLinkOnly: 'Copy link only',
   messageCopied: 'Message copied',
   linkCopied: 'Link copied',
-  moreFor: (place: string) => `More for ${place}`,
-  socialHint: 'Responses from copied messages show up under Copied message in Insights.',
   emailIntro: 'Edit the message below, then send it from your mail app or paste it anywhere.',
   subjectLabel: 'Subject',
   bodyLabel: 'Message',

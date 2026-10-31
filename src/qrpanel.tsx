@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Download, Maximize2, Share, X, Palette, Upload } from 'lucide-react'
+import { ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload } from 'lucide-react'
 import { EASTER_EGG, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
-import { Collapse, Dialog, Menu, Segmented, Pro, Switch, UpgradeButton } from './ui'
-import { buildSvg, codeSvg, contrastOnWhite, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
+import { EGG_TITLE } from './copy'
+import { Collapse, Dialog, Menu, Pro, Switch, UpgradeButton } from './ui'
+import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
   { id: 'svg', label: 'SVG', help: 'Sharp at any size. Best for print.' },
@@ -12,11 +13,6 @@ export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
 ]
 
 export const fileName = (ref: string, ext: string) => `${slugify(FORM_TITLE)}-${ref}.${ext}`
-
-/** Keeps a too-light brand color from breaking the scan. */
-export function safeStyle(st: QrStyle): QrStyle {
-  return st.mode === 'brand' && contrastOnWhite(st.color) < 3 ? { ...st, color: '#000000' } : st
-}
 
 /**
  * Phones: the system share sheet with the print-size PNG (it covers Save to Photos).
@@ -38,12 +34,13 @@ export const QR_COPY = {
   otherFormats: 'Other formats',
   downloaded: 'QR code downloaded. Time to print!',
   showLink: 'Show link under code',
-  logoHelp: 'Your logo replaces the Tally mark in the middle.',
+  logo: 'Add your logo',
+  logoHelp: 'Replaces the Tally mark in the middle. Codes stay black so they always scan.',
 }
 
 export function useQrOptions(ref: string): QrOptions {
   const s = useStore()
-  return { url: qrUrl(ref), shortLink: s.shortLink, style: safeStyle(s.settings.style), showLink: s.settings.showLink }
+  return { url: qrUrl(ref), shortLink: s.shortLink, style: s.settings.style, showLink: s.settings.showLink }
 }
 
 export function QrPanel() {
@@ -52,12 +49,11 @@ export function QrPanel() {
   const { settings, setSettings } = s
   const { style } = settings
   const [personalize, setPersonalize] = useState(false)
-  const [hex, setHex] = useState(style.color)
   const [menu, setMenu] = useState(false)
   const [printing, setPrinting] = useState(0)
   const [full, setFull] = useState(false)
   const file = useRef<HTMLInputElement>(null)
-  // On Free you can try a color and logo here, but they are only a draft until you upgrade.
+  // On Free you can try a logo here, but it is only a draft until you upgrade.
   const [draft, setDraft] = useState<QrStyle | null>(null)
   const pro = s.plan === 'pro'
   const shown = draft ?? style
@@ -65,15 +61,13 @@ export function QrPanel() {
     if (!s.qrOpen) { setPersonalize(false); setMenu(false); setDraft(null); s.setQrPersonalize(false) }
     else if (s.qrPersonalize) setPersonalize(true)
   }, [s.qrOpen]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => { setHex(shown.color) }, [shown.color])
 
   const ref = s.qrRef
   const placement = s.placements.find((p) => p.ref === ref)
   const opts = useQrOptions(ref)
-  const previewOpts = { ...opts, style: safeStyle(shown) }
-  const lowContrast = shown.mode === 'brand' && contrastOnWhite(shown.color) < 3
+  const previewOpts = { ...opts, style: shown }
   const setStyle = (p: Partial<QrStyle>) => (pro ? setSettings({ ...settings, style: { ...style, ...p } }) : setDraft({ ...shown, ...p }))
-  const unsaved = !pro && draft !== null && draft.mode === 'brand'
+  const unsaved = !pro && draft !== null && draft.logo !== null
 
   const doDownload = async (f: QrFormat) => {
     if (ref === MAIN_QR) tick('download-main')
@@ -94,7 +88,7 @@ export function QrPanel() {
   const onLogo = (f?: File) => {
     if (!f) return
     const r = new FileReader()
-    r.onload = () => setStyle({ mode: 'brand', logo: String(r.result) })
+    r.onload = () => setStyle({ logo: String(r.result) })
     r.readAsDataURL(f)
   }
 
@@ -126,7 +120,7 @@ export function QrPanel() {
 
   const personalizeBtn = (
     <button type="button" className={`btn btn-secondary ${mobile ? 'btn-lg btn-block' : ''}`} aria-expanded={personalize} aria-controls="qr-personalize" onClick={() => setPersonalize((v) => !v)}>
-      <Palette aria-hidden />Personalize
+      <SlidersHorizontal aria-hidden />Personalize
     </button>
   )
 
@@ -149,28 +143,14 @@ export function QrPanel() {
             <label className="field-label" htmlFor="qr-show-link">{QR_COPY.showLink}</label>
             <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
           </div>
-          <Segmented label="Style" value={shown.mode} onChange={(m) => setStyle({ mode: m })}
-            options={[{ value: 'tally', label: 'Black' }, { value: 'brand', label: <>Your brand <Pro /></> }]} />
-          {shown.mode === 'brand' && (
-            <>
-              <div className="row-between">
-                <span className="field-label">Color</span>
-                <div className="row gap-8">
-                  <input type="color" value={shown.color} onChange={(e) => setStyle({ color: e.target.value })} aria-label="Brand color" className="swatch" />
-                  <input className="input" value={hex} onChange={(e) => { setHex(e.target.value); if (/^#[0-9a-fA-F]{6}$/.test(e.target.value)) setStyle({ color: e.target.value }) }} aria-label="Brand color hex" style={{ width: 100 }} />
-                </div>
-              </div>
-              {lowContrast && <span className="xs" style={{ color: 'var(--danger)' }}>That shade is too light to scan reliably, so we'll keep it black. Try a darker one.</span>}
-              <div className="row-between">
-                <span className="stack"><span className="field-label">Logo</span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
-                <div className="row gap-8">
-                  {shown.logo && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStyle({ logo: null })}>Remove</button>}
-                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()}><Upload aria-hidden />{shown.logo ? 'Replace' : 'Upload'}</button>
-                  <input ref={file} type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onChange={(e) => onLogo(e.target.files?.[0])} />
-                </div>
-              </div>
-            </>
-          )}
+          <div className="row-between">
+            <span className="stack"><span className="field-label">{QR_COPY.logo} <Pro /></span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
+            <div className="row gap-8">
+              {shown.logo && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStyle({ logo: null })}>Remove</button>}
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()}><Upload aria-hidden />{shown.logo ? 'Replace' : 'Upload'}</button>
+              <input ref={file} type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = '' }} />
+            </div>
+          </div>
           {unsaved && (
             <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(null)}>Cancel</button>
@@ -209,7 +189,7 @@ function FullQr({ url, style, onClose }: { url: string; style: QrStyle; onClose:
       <button ref={btn} type="button" className="btn btn-ghost icon-btn full-close" style={{ width: 44, height: 44 }} onClick={onClose} aria-label="Close"><X aria-hidden /></button>
       <img src={svgSrc(codeSvg(url, style))} alt={`QR code that opens ${url}`} />
       <div className="qr-shortlink" style={{ fontSize: 22 }}>{s.shortLink}</div>
-      <a className="small egg" href={EASTER_EGG} target="_blank" rel="noreferrer">Look ma, no typing.</a>
+      <a className="small egg" href={EASTER_EGG} target="_blank" rel="noreferrer">{EGG_TITLE}</a>
     </div>
   )
 }

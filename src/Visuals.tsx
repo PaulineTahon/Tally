@@ -22,7 +22,7 @@ function circle(cx: number, cy: number, r: number, seed: number) {
 /** A quick doodled face. Mood changes the mouth, hair changes the top. */
 function Face({ x, y, r = 30, rot = 0, seed = 1, mood = 'smile', hair = 'curl' }: { x: number; y: number; r?: number; rot?: number; seed?: number; mood?: 'smile' | 'open' | 'flat'; hair?: 'curl' | 'spikes' | 'bun' | 'none' }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rot})`} {...pen}>
+    <g data-layer="Face" transform={`translate(${x} ${y}) rotate(${rot})`} {...pen}>
       <path d={circle(0, 0, r, seed)} />
       <path d={`M${-r * 0.42} ${-r * 0.1}q3 -4 6 0`} />
       <path d={`M${r * 0.2} ${-r * 0.12}q3 -4 6 0`} />
@@ -43,7 +43,7 @@ function Bubble({ x, y, w, h, tail = 'left', seed = 1, children }: { x: number; 
   const tx = tail === 'left' ? x + w * 0.22 : x + w * 0.78
   const dir = tail === 'left' ? -1 : 1
   return (
-    <g>
+    <g data-layer="Speech bubble">
       <path d={wobble(pts, seed, 2)} {...pen} fill="#fff" />
       <path d={`M${tx - 8 * dir} ${y + h - 3} l${10 * dir} 16 l${2 * dir} -14`} {...pen} fill="#fff" />
       {children}
@@ -55,7 +55,7 @@ const say = { fontFamily: 'Inter, sans-serif', fontWeight: 700, fill: DOODLE, te
 
 function Phone({ x, y, rot = 0, url }: { x: number; y: number; rot?: number; url: string }) {
   return (
-    <g transform={`translate(${x} ${y}) rotate(${rot})`}>
+    <g data-layer="Phone" transform={`translate(${x} ${y}) rotate(${rot})`}>
       <path d={rect(0, 0, 34, 58, 61)} {...pen} fill="#fff" />
       {/* A real code on the screen, never a fake pattern. */}
       <Qr x={6} y={8} size={22} url={url} />
@@ -65,14 +65,14 @@ function Phone({ x, y, rot = 0, url }: { x: number; y: number; rot?: number; url
 }
 
 function Mark({ x, y, r, color }: { x: number; y: number; r: number; color: string }) {
-  return <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h22" stroke={color} strokeWidth={3} strokeLinecap="round" />
+  return <path data-layer="Accent mark" transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h22" stroke={color} strokeWidth={3} strokeLinecap="round" />
 }
 
 function Social({ qrRef }: { qrRef: string }) {
   const url = VISUAL_URL(qrRef)
   return (
     <div className="art social">
-      <svg className="doodles" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden>
+      <svg data-layer="Doodles" className="doodles" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden>
         {/* Left arc */}
         <Face x={290} y={150} r={24} rot={-12} seed={3} hair="spikes" />
         <Bubble x={318} y={58} w={112} h={58} tail="left" seed={5}><text x={374} y={94} fontSize={20} {...say}>RSVP!</text></Bubble>
@@ -86,7 +86,7 @@ function Social({ qrRef }: { qrRef: string }) {
         <Bubble x={930} y={232} w={140} h={60} tail="left" seed={29}><text x={1000} y={268} fontSize={17} {...say}>2 lattes pls</text></Bubble>
         <Face x={1010} y={350} r={30} rot={-14} seed={31} mood="open" hair="spikes" />
         <Face x={918} y={512} r={28} rot={8} seed={37} mood="smile" hair="none" />
-        <g transform="translate(788 404) rotate(-6)">
+        <g data-layer="Yoga club flyer" transform="translate(788 404) rotate(-6)">
           <path d={rect(0, 0, 96, 120, 41)} {...pen} fill="#fff" />
           <text x={48} y={22} fontSize={12} {...say}>Yoga club</text>
           <Qr x={16} y={30} size={64} url={url} />
@@ -102,8 +102,8 @@ function Social({ qrRef }: { qrRef: string }) {
         <Mark x={1010} y={588} r={50} color={PINK} />
         <Mark x={730} y={540} r={-30} color="#d9d9d9" />
       </svg>
-      <div className="social-copy">
-        <h1>Scan to <span style={{ color: PINK }}>RSVP</span>. Scan to order.<br />Scan to sign up.</h1>
+      <div className="social-copy" data-layer="Copy">
+        <h1 data-layer="Headline">Scan to <span style={{ color: PINK }}>RSVP</span>. Scan to order.<br />Scan to sign up.</h1>
       </div>
     </div>
   )
@@ -126,7 +126,7 @@ function ShareTabMock({ url }: { url: string }) {
     </div>
   )
   return (
-    <div className="pg" aria-hidden>
+    <div className="pg" data-layer="Share tab UI" aria-hidden>
       <b className="pg-title">Community picnic RSVP</b>
       <div className="pg-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span><span>Settings</span></div>
       <div className="pg-link">
@@ -137,7 +137,7 @@ function ShareTabMock({ url }: { url: string }) {
       <div className="sm-seg"><span>Social</span><span>Email</span><span className="on">QR Code</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
-          <span className="sm-big"><QrBox size={132} url={url} label="QR code" /></span>
+          <span className="sm-big" data-layer="Main code"><QrBox size={132} url={url} label="QR code" /></span>
           <span className="sm-main-text"><span className="sm-name">Main code</span><span className="sm-n">Ready to print</span></span>
           <span className="sm-dl"><Download aria-hidden />Download SVG</span>
         </div>
@@ -158,13 +158,13 @@ const QrIcon = () => (
 function Changelog() {
   return (
     <div className="art changelog">
-      <div className="cl-wm"><Wordmark /></div>
-      <div className="cl-copy">
-        <h1>Your forms, out in the real world</h1>
-        <p>Every form now comes with a QR code, ready the moment you publish.</p>
+      <div className="cl-wm" data-layer="Tally wordmark"><Wordmark /></div>
+      <div className="cl-copy" data-layer="Copy">
+        <h1 data-layer="Headline">Your forms, out in the real world</h1>
+        <p data-layer="Subline">Every form now comes with a QR code, ready the moment you publish.</p>
       </div>
-      <div className="browser">
-        <div className="browser-bar">
+      <div className="browser" data-layer="Browser window">
+        <div className="browser-bar" data-layer="Browser bar">
           <span className="dots"><i /><i /><i /></span>
           <span className="address">tally.so/forms/KpYalV/share</span>
         </div>
@@ -183,7 +183,7 @@ const POST = {
   bullets: [
     ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
     ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],
-    ['Make it yours (Pro).', 'Add your brand color and logo.'],
+    ['Make it yours (Pro).', 'Add your logo in the middle of the code. Codes stay black, so they always scan.'],
     ['On your phone?', 'Save your code to your photos or share it straight away.'],
   ] as [string, string][],
   end: 'Happy sharing!',

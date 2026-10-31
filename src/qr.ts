@@ -6,14 +6,18 @@ export const PNG_MIN_PX = 3200
 export const PDF_CODE_MM = 120
 export type QrFormat = 'svg' | 'pdf' | 'png'
 
-/** Plain black is the default. "Your brand" adds the creator's color and logo. */
+/**
+ * Codes are always black. The one personal touch is your own logo (Pro), which replaces
+ * the Tally asterisk in the middle. Anyone who wants another colour can recolour the SVG.
+ */
 export interface QrStyle {
-  mode: 'tally' | 'brand'
-  color: string
-  /** Data URL of an uploaded logo, or null for the sample logo. */
+  /** Data URL of an uploaded logo, or null for the Tally asterisk. */
   logo: string | null
 }
-export const DEFAULT_STYLE: QrStyle = { mode: 'tally', color: '#2E6B4F', logo: null }
+export const DEFAULT_STYLE: QrStyle = { logo: null }
+
+/** The only colour a code is ever drawn in. */
+export const QR_INK = '#000000'
 
 export interface QrOptions {
   url: string
@@ -65,7 +69,7 @@ export const TILE_RADIUS = 0.24
  */
 export function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
   const tile = `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * TILE_RADIUS}" ry="${s * TILE_RADIUS}" fill="#fff"/>`
-  if (st.mode === 'brand' && st.logo) {
+  if (st.logo) {
     const p = s * 0.14
     return `${tile}<image href="${st.logo}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/>`
   }
@@ -73,9 +77,6 @@ export function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
   const k = (s - p * 2) / 128
   return `${tile}<g transform="translate(${x + p} ${y + p + (128 - 124) * k / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
 }
-
-export const moduleColor = (st: QrStyle) => (st.mode === 'tally' ? '#000000' : st.color)
-export const accentColor = (st: QrStyle) => moduleColor(st)
 
 /** Path data for the data modules (finders drawn separately), in module units, offset by the quiet zone. */
 export function modulePath(m: Matrix, withLogo = true, withFinders = false) {
@@ -91,14 +92,14 @@ export function modulePath(m: Matrix, withLogo = true, withFinders = false) {
   return d
 }
 
-/** The three corner eyes: outer ring in the main color, centre in the accent. */
-export function finderSvg(m: Matrix, unit: number, main: string, accent: string) {
+/** The three corner eyes, in black. */
+export function finderSvg(m: Matrix, unit: number) {
   const n = m.size
   return [[0, 0], [n - 7, 0], [0, n - 7]].map(([fx, fy]) => {
     const x = (fx + QUIET) * unit
     const y = (fy + QUIET) * unit
-    return `<path d="M${x} ${y}h${7 * unit}v${7 * unit}h${-7 * unit}z M${x + unit} ${y + unit}v${5 * unit}h${5 * unit}v${-5 * unit}z" fill="${main}" fill-rule="evenodd"/>` +
-      `<rect x="${x + 2 * unit}" y="${y + 2 * unit}" width="${3 * unit}" height="${3 * unit}" fill="${accent}"/>`
+    return `<path d="M${x} ${y}h${7 * unit}v${7 * unit}h${-7 * unit}z M${x + unit} ${y + unit}v${5 * unit}h${5 * unit}v${-5 * unit}z" fill="${QR_INK}" fill-rule="evenodd"/>` +
+      `<rect x="${x + 2 * unit}" y="${y + 2 * unit}" width="${3 * unit}" height="${3 * unit}" fill="${QR_INK}"/>`
   }).join('')
 }
 
@@ -117,12 +118,11 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
   const h = codeW + capH
   const logoS = m.size * LOGO_RATIO * unit
   const logoXY = (codeW - logoS) / 2
-  const main = moduleColor(o.style)
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${codeW} ${h}" width="${codeW}" height="${h}">`,
     `<rect width="${codeW}" height="${h}" fill="#ffffff"/>`,
-    `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${main}" shape-rendering="crispEdges"/>`,
-    finderSvg(m, unit, main, accentColor(o.style)),
+    `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${QR_INK}" shape-rendering="crispEdges"/>`,
+    finderSvg(m, unit),
     logoMarkup(o.style, logoXY, logoXY, logoS),
   ]
   if (caption) {
@@ -175,11 +175,6 @@ export async function pngBlob(o: QrOptions): Promise<Blob> {
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
 }
 
-function hexToRgb(hex: string): [number, number, number] {
-  const h = hex.replace('#', '')
-  return [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number]
-}
-
 /** PDF on A4, code centred at 12 cm. Modules are vector, so it scales to any paper size. The logo tile is a sharp image. */
 export async function pdfBlob(o: QrOptions): Promise<Blob> {
   const { jsPDF } = await import('jspdf')
@@ -189,9 +184,7 @@ export async function pdfBlob(o: QrOptions): Promise<Blob> {
   const unit = total / (m.size + QUIET * 2)
   const x0 = (210 - total) / 2
   const y0 = Math.max(20, (297 - total) / 2 - 20)
-  const fill = (hex: string) => { const [r, g, b] = hexToRgb(hex); doc.setFillColor(r, g, b) }
-  const main = moduleColor(o.style)
-  fill(main)
+  doc.setFillColor(0, 0, 0)
   for (let y = 0; y < m.size; y++)
     for (let x = 0; x < m.size; x++)
       if (m.get(x, y) && !(hasLogo(o.style) && inLogo(m, x, y)) && !inFinder(m, x, y))
@@ -199,10 +192,8 @@ export async function pdfBlob(o: QrOptions): Promise<Blob> {
   for (const [fx, fy] of [[0, 0], [m.size - 7, 0], [0, m.size - 7]]) {
     const x = x0 + (fx + QUIET) * unit
     const y = y0 + (fy + QUIET) * unit
-    fill(main)
     doc.rect(x, y, 7 * unit, unit, 'F'); doc.rect(x, y + 6 * unit, 7 * unit, unit, 'F')
     doc.rect(x, y, unit, 7 * unit, 'F'); doc.rect(x + 6 * unit, y, unit, 7 * unit, 'F')
-    fill(accentColor(o.style))
     doc.rect(x + 2 * unit, y + 2 * unit, 3 * unit, 3 * unit, 'F')
   }
   if (hasLogo(o.style)) {
@@ -235,11 +226,3 @@ export async function fileFor(o: QrOptions, format: QrFormat): Promise<Blob> {
   return pngBlob(o)
 }
 
-/** WCAG contrast ratio of a color against white. */
-export function contrastOnWhite(hex: string) {
-  const lum = hexToRgb(hex)
-    .map((v) => v / 255)
-    .map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
-  const L = 0.2126 * lum[0] + 0.7152 * lum[1] + 0.0722 * lum[2]
-  return 1.05 / (L + 0.05)
-}

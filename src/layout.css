@@ -138,8 +138,6 @@
 .disclosure svg { width: 16px; height: 16px; color: var(--grey-3); transition: transform 100ms ease-in-out; }
 .seg-hint { font-size: 11px; font-weight: 500; color: var(--grey-3); }
 .segmented:has(.seg-hint) button { height: 40px; }
-.swatch { width: 36px; height: 36px; border: 0; border-radius: 8px; padding: 0; background: none; box-shadow: var(--ring); cursor: pointer; }
-.swatch::-webkit-color-swatch-wrapper { padding: 4px; } .swatch::-webkit-color-swatch { border: 0; border-radius: 5px; }
 .full-qr { position: fixed; inset: 0; background: #fff; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; padding-bottom: calc(24px + var(--safe-b)); }
 .full-qr img { width: min(86vw, 70vh); height: auto; image-rendering: pixelated; }
 .full-close { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); right: 12px; }
@@ -449,3 +447,43 @@ a.list-row { text-decoration: none; color: inherit; }
 .single-side .link-btn { display: inline-flex; align-items: center; gap: 4px; }
 .single-side .link-btn svg { width: 14px; height: 14px; }
 .single-link { display: block; margin-top: 6px; font-size: 12px; font-weight: 600; line-height: 1.2; color: var(--text); }
+
+/* ---------- Calmer share sheet ---------- */
+/* Two quiet text links on one line, grey, not blue. */
+.link-extras { gap: 16px; flex-wrap: nowrap; }
+.link-extras .link-btn { color: var(--grey-2); font-size: 13px; white-space: nowrap; }
+.link-extras .link-btn:hover { color: var(--text); text-decoration: none; }
+.link-btn.quiet { color: var(--grey-2); }
+.link-btn.quiet:hover { color: var(--text); text-decoration: none; }
+@media (max-width: 757px) { .link-extras { gap: 12px; } }
+
+/* Message, collapsed to one line */
+.msg-line { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 14px; min-height: 28px; }
+.msg-label { color: var(--grey-3); flex: none; }
+.msg-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.msg-line .link-btn { flex: none; }
+
+/* Channel rows: the whole row is the button */
+.ch-list { list-style: none; margin: 0 -10px; padding: 0; display: flex; flex-direction: column; }
+.ch-row {
+  display: flex; align-items: center; gap: 12px; width: 100%; min-height: 44px; padding: 6px 10px;
+  border: 0; border-radius: 8px; background: transparent; font: inherit; color: var(--text); text-align: left; text-decoration: none; cursor: pointer;
+  transition: background-color 120ms ease, transform 120ms var(--ease-out);
+}
+.ch-row .title { font-size: 15px; font-weight: 500; flex: 1; min-width: 0; }
+@media (hover: hover) and (pointer: fine) { .ch-row:hover { background: var(--hover); } .ch-row:hover .ch-a { color: var(--grey-2); } }
+.ch-row:active { background: rgba(0, 0, 0, 0.06); transform: scale(0.99); }
+.ch-row:focus-visible { outline: 3px solid var(--focus); outline-offset: -1px; }
+.ch-trail { display: inline-grid; align-items: center; justify-items: end; flex: none; color: var(--grey-4); }
+.ch-trail > * { grid-area: 1 / 1; transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out); }
+.ch-a { width: 16px; height: 16px; transition: color 120ms ease, opacity 140ms var(--ease-out), transform 140ms var(--ease-out); }
+.ch-b { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 500; color: var(--grey-1); opacity: 0; transform: translateY(2px); white-space: nowrap; }
+.ch-b svg { width: 14px; height: 14px; }
+.ch-trail[data-on='true'] .ch-a { opacity: 0; transform: scale(0.8); }
+.ch-trail[data-on='true'] .ch-b { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .ch-row, .ch-trail > *, .ch-a { transition: opacity 120ms ease; transform: none !important; } }
+/* Link preview inside More Link Options: never wider than the sheet. */
+.collapse { grid-template-columns: minmax(0, 1fr); }
+.more-box .lp-row { min-width: 0; }
+.more-box .lp-row .lp-title { flex: 1; }
+.more-box .lp-row .btn { flex: none; white-space: nowrap; }

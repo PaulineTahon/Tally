@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, ChevronDown, Code, Copy, Link2, Palette, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Settings2, Share, PencilLine, Trash2,
+  ArrowUpRight, ChevronDown, Copy, MessageSquareText, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MESSAGE_REF, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
 import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
-import { QR_COPY, fileName, safeStyle, saveOrShare } from './qrpanel'
+import { QR_COPY, fileName, saveOrShare } from './qrpanel'
 import { endingCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 
@@ -80,16 +80,6 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
           { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
         ]}
       />
-    </div>
-  )
-}
-
-function Row({ icon, title, help, right }: { icon?: ReactNode; title: ReactNode; help?: ReactNode; right?: ReactNode }) {
-  return (
-    <div className="list-row is-static">
-      {icon && <span className="row-icon">{icon}</span>}
-      <span className="grow"><span className="title row gap-8">{title}</span>{help && <span className="help" style={{ display: 'block' }}>{help}</span>}</span>
-      {right}
     </div>
   )
 }
@@ -180,54 +170,26 @@ function LinkEnding() {
   )
 }
 
-/** Under the link bar: one preview row, then two secondary links that open in place. */
+/** Under the link bar: two quiet links that open in place. The link preview lives in More Link Options. */
 function LinkDetails() {
   const s = useStore()
   const [domain, setDomain] = useState('')
-  const [customize, setCustomize] = useState(false)
   const [more, setMore] = useState(false)
   const [embed, setEmbed] = useState(false)
   const [lpTitle, setLpTitle] = useState(FORM_TITLE)
   const [lpDesc, setLpDesc] = useState(PREVIEW_DESC)
   const [lpImg, setLpImg] = useState<string | null>(null)
   const defaultImg = `${import.meta.env.BASE_URL}link-preview.jpg`
-  const resetPreview = () => { setCustomize(false); setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
+  const resetPreview = () => { setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
+  const previewDirty = lpTitle !== FORM_TITLE || lpDesc !== PREVIEW_DESC || lpImg !== null
   return (
     <div className="stack gap-8">
-      <div className="lp-row" aria-label="Link preview">
-        <img className="lp-thumb" src={(customize && lpImg) || defaultImg} alt="" />
-        <span className="lp-title grow">{(customize ? lpTitle : FORM_TITLE) || FORM_TITLE}</span>
-        <button type="button" className="link-btn small" aria-expanded={customize} aria-controls="lp-edit" onClick={() => (customize ? resetPreview() : setCustomize(true))}>
-          Customize
-        </button>
-      </div>
-      <Collapse open={customize} id="lp-edit" gap={8}>
-        <div className="stack gap-8 lp-edit">
-          <span className="field-label row gap-4">Link Preview <Pro /></span>
-          <label className="field-label" htmlFor="lp-title">Title</label>
-          <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
-          <label className="field-label" htmlFor="lp-desc">Description</label>
-          <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
-          <div className="row-between">
-            <span className="field-label">Image</span>
-            <label className="btn btn-secondary btn-sm">Replace
-              <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
-            </label>
-          </div>
-          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>
-            {s.plan === 'pro'
-              ? <button type="button" className="btn btn-black btn-sm" onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
-              : <UpgradeButton onClick={s.upgrade} />}
-          </div>
-        </div>
-      </Collapse>
-      <div className="row gap-16 link-extras">
+      <div className="row link-extras">
         <button type="button" className="link-btn embed-toggle" aria-expanded={more} aria-controls="more-options" onClick={() => setMore((v) => !v)}>
-          <Settings2 aria-hidden />More Link Options <Pro /><ChevronDown aria-hidden className="expand-chev" style={{ transform: more ? 'rotate(180deg)' : undefined }} />
+          More Link Options <Pro /><ChevronDown aria-hidden className="expand-chev" style={{ transform: more ? 'rotate(180deg)' : undefined }} />
         </button>
         <button type="button" className="link-btn embed-toggle" aria-expanded={embed} aria-controls="embed-options" onClick={() => setEmbed((v) => !v)}>
-          <Code aria-hidden />Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: embed ? 'rotate(180deg)' : undefined }} />
+          Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: embed ? 'rotate(180deg)' : undefined }} />
         </button>
       </div>
       <Collapse open={more} id="more-options" gap={8}>
@@ -245,6 +207,28 @@ function LinkDetails() {
               {s.plan === 'pro'
                 ? <button type="button" className="btn btn-black btn-sm" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
                 : <UpgradeButton disabled={!domain} onClick={s.upgrade} />}
+            </div>
+          </div>
+          <hr className="divider" />
+          <div className="stack gap-8" id="lp-edit">
+            <span className="field-label row gap-4">Link Preview <Pro /></span>
+            <span className="xs muted">What people see when you paste the link in a chat or a post.</span>
+            <div className="lp-row" aria-label="Link preview">
+              <img className="lp-thumb" src={lpImg || defaultImg} alt="" />
+              <span className="lp-title grow">{lpTitle || FORM_TITLE}</span>
+              <label className="btn btn-secondary btn-sm">Replace image
+                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+              </label>
+            </div>
+            <label className="field-label" htmlFor="lp-title">Title</label>
+            <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+            <label className="field-label" htmlFor="lp-desc">Description</label>
+            <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+            <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+              {previewDirty && <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>}
+              {s.plan === 'pro'
+                ? <button type="button" className="btn btn-black btn-sm" disabled={!previewDirty} onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
+                : <UpgradeButton disabled={!previewDirty} onClick={s.upgrade} />}
             </div>
           </div>
         </div>
@@ -366,7 +350,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
   }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
   const { settings } = s
-  const style = safeStyle(settings.style)
+  const style = settings.style
   const [menu, setMenu] = useState(false)
   const [up, setUp] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -506,7 +490,7 @@ function SingleCode({ pulse }: { pulse: number }) {
   const s = useStore()
   const reduced = useReducedMotion()
   const p = s.placements[0]
-  const style = safeStyle(s.settings.style)
+  const style = s.settings.style
   const link = qrUrl(p.ref)
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(p.label)
@@ -566,7 +550,7 @@ function SingleCode({ pulse }: { pulse: number }) {
         </div>
         <div>
           <button type="button" className="link-btn small" onClick={() => { s.setQrRef(p.ref); s.setQrPersonalize(true); s.setQrOpen(true) }}>
-            <Palette aria-hidden />Personalize
+            <SlidersHorizontal aria-hidden />Personalize
           </button>
         </div>
       </div>
@@ -621,36 +605,68 @@ function QrCodePanel({ pulse }: { pulse: number }) {
 
 /* ---------- Panels ---------- */
 
+/** One channel row: the whole row is the tap target. WhatsApp opens, the rest copy and confirm in place. */
+function ChannelRow({ icon, label, href, text, aria }: { icon: ReactNode; label: string; href?: string; text?: string; aria: string }) {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<number>()
+  const copy = async () => {
+    setCopied(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(() => setCopied(false), 1600)
+    if (text) await copyText(text)
+  }
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+  const body = <>
+    <span className="row-icon">{icon}</span>
+    <span className="title grow">{label}</span>
+    <span className="ch-trail" data-on={copied} aria-hidden>
+      {href ? <ArrowUpRight className="ch-a" /> : <><Copy className="ch-a" /><span className="ch-b"><Check />{shareCopy.copiedInline}</span></>}
+    </span>
+  </>
+  return (
+    <li>
+      {href
+        ? <a className="ch-row" href={href} target="_blank" rel="noreferrer" aria-label={aria}>{body}</a>
+        : <button type="button" className={`ch-row ${copied ? 'is-copied' : ''}`} aria-label={aria} onClick={copy}>{body}<span className="sr-only" aria-live="polite">{copied ? shareCopy.copiedInline : ''}</span></button>}
+    </li>
+  )
+}
+
 function SocialPanel() {
   const s = useStore()
   const [message, setMessage] = useState(draft.message)
-  const [menu, setMenu] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const field = useRef<HTMLTextAreaElement>(null)
+  const editBtn = useRef<HTMLButtonElement>(null)
   const update = (v: string) => { draft.message = v; setMessage(v) }
-  const copyMessage = async () => { await copyText(withLink(message, s.url(MESSAGE_REF)).replace('\n\n', ' ')); s.toast(shareCopy.messageCopied) }
-  const copyLink = async () => { await copyText(s.url()); s.toast(shareCopy.linkCopied) }
+  const done = () => { setEditing(false); requestAnimationFrame(() => editBtn.current?.focus({ preventScroll: true })) }
+  useEffect(() => { if (editing) field.current?.focus({ preventScroll: true }) }, [editing])
   return (
     <div className="stack gap-8">
-      <p className="small muted" style={{ margin: 0 }}>{shareCopy.socialIntro}</p>
-      <label className="field-label" htmlFor="share-message">{shareCopy.messageLabel}</label>
-      <textarea id="share-message" className="input textarea" rows={2} value={message} onChange={(e) => update(e.target.value)} />
-      <div className="stack">
-        {SOCIAL.map((x) => (
-          <Row key={x.ref} icon={x.icon} title={x.label}
-            right={x.open ? (
-              <span className="row gap-4">
-                <a className="btn btn-secondary btn-sm" href={`https://wa.me/?text=${enc(`${message.trim()} ${s.url(x.ref)}`)}`} target="_blank" rel="noreferrer" aria-label={`${shareCopy.send} on ${x.label}`}><ArrowUpRight aria-hidden />{shareCopy.send}</a>
-                <span style={{ position: 'relative', display: 'inline-flex' }}>
-                  <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={shareCopy.moreFor(x.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
-                  <Menu open={menu} onClose={() => setMenu(false)} style={{ top: 34, right: 0, minWidth: 220 }}>
-                    <button role="menuitem" onClick={() => { setMenu(false); copyMessage() }}><Copy aria-hidden />{shareCopy.copyMessageAndLink}</button>
-                    <button role="menuitem" onClick={() => { setMenu(false); copyLink() }}><Link2 aria-hidden />{shareCopy.copyLinkOnly}</button>
-                  </Menu>
-                </span>
-              </span>
-            ) : <SmallCopy text={s.url(x.ref)} />} />
-        ))}
-      </div>
-      <p className="xs muted" style={{ margin: 0 }}>{shareCopy.socialHint}</p>
+      {editing ? (
+        <div className="stack gap-8 msg-edit">
+          <div className="row-between">
+            <label className="field-label" htmlFor="share-message">{shareCopy.messageLabel}</label>
+            <button type="button" className="link-btn quiet small" onClick={done}>{shareCopy.messageDone}</button>
+          </div>
+          <textarea ref={field} id="share-message" className="input textarea" rows={2} value={message} onChange={(e) => update(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); done() } }} />
+          <span className="xs muted">{shareCopy.messageHint}</span>
+        </div>
+      ) : (
+        <div className="msg-line">
+          <span className="msg-label">{shareCopy.messageLabel}:</span>
+          <span className="msg-text">{message.trim() || shareCopy.messageEmpty}</span>
+          <button ref={editBtn} type="button" className="link-btn quiet small" aria-label={shareCopy.editMessage} onClick={() => setEditing(true)}>{shareCopy.edit}</button>
+        </div>
+      )}
+      <ul className="ch-list" aria-label="Share to">
+        {SOCIAL.map((x) => x.open
+          ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={`${shareCopy.send} on ${x.label}`} href={`https://wa.me/?text=${enc(`${message.trim()} ${s.url(x.ref)}`)}`} />
+          : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={`${shareCopy.copyFor(x.label)}`} text={s.url(x.ref)} />)}
+        <ChannelRow icon={<MessageSquareText aria-hidden />} label={shareCopy.copyMessageAndLink} aria={shareCopy.copyMessageAria}
+          text={withLink(message, s.url(MESSAGE_REF)).replace('\n\n', ' ')} />
+      </ul>
     </div>
   )
 }

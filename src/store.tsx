@@ -44,7 +44,7 @@ export function datasetForHash(hash: string): Dataset {
   return onEdit && new URLSearchParams(q).get('pub') !== 'data' ? 'fresh' : 'example'
 }
 
-/** The prototype can play the free plan or Pro. Free lets you explore Pro settings, but not save them. */
+/** The prototype can play the free plan or Pro. Free lets you try the link ending and a logo, but not save them. */
 export type Plan = 'free' | 'pro'
 const PLAN_KEY = 'proto-plan'
 export const PRICING_URL = 'https://tally.so/pricing'
@@ -58,7 +58,9 @@ function loadSettings(): QrSettings {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (!raw) return base
     const v = JSON.parse(raw)
-    return { style: { ...DEFAULT_STYLE, ...v.style }, format: v.format ?? 'png', showLink: v.showLink ?? true }
+    // Older saves carried a colour and a mode; only an uploaded logo carries over.
+    const logo = v.style?.mode !== 'tally' && typeof v.style?.logo === 'string' ? v.style.logo : null
+    return { style: { ...DEFAULT_STYLE, logo }, format: v.format ?? 'png', showLink: v.showLink ?? true }
   } catch { return base }
 }
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
