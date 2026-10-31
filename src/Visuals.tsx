@@ -132,9 +132,8 @@ function ShareTabMock({ url }: { url: string }) {
       <div className="pg-link">
         <span className="pg-input">tally.so/r/KpYalV</span>
         <span className="pg-copy"><Copy aria-hidden />Copy</span>
-        <span className="pg-btn"><QrIcon />QR Code</span>
       </div>
-      <div className="sm-seg"><span>Social</span><span>Email</span><span className="on">QR Code</span></div>
+      <div className="sm-seg"><span className="on">QR Code</span><span>Social</span><span>Email</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
           <span className="sm-big" data-layer="Main code"><QrBox size={132} url={url} label="QR code" /></span>
@@ -179,7 +178,7 @@ function Changelog() {
 /** The changelog post, in one place. */
 const POST = {
   title: 'Your forms, out in the real world',
-  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and hit QR Code.',
+  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and your code is on the first tab, QR Code.',
   bullets: [
     ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
     ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],

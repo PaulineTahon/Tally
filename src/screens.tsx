@@ -11,15 +11,17 @@ import { AddPlace, PlaceList, ShareBlock, SOCIAL, emailHref, useNativeShare } fr
 
 export type PublishState = 'first' | 'empty' | 'data'
 
-export function Editor({ onPublished, published, pub }: { onPublished: () => void; published: boolean; pub: PublishState }) {
+export function Editor({ onPublished, published, pub }: { onPublished: (first: boolean) => void; published: boolean; pub: PublishState }) {
   const mobile = useIsMobile()
   const s = useStore()
   const [phase, setPhase] = useState<'idle' | 'done'>(published ? 'done' : 'idle')
   const publish = () => {
+    // The very first publish of this form, as opposed to reopening the sheet from Published.
+    const first = pub === 'first' && phase === 'idle'
     setPhase('done')
     // The full sheet only helps when nobody has answered yet. After that, a quiet toast with a way back to it.
-    if (pub === 'data') s.toast(publishCopy.updated, { action: { label: publishCopy.share, onClick: onPublished } })
-    else onPublished()
+    if (pub === 'data') s.toast(publishCopy.updated, { action: { label: publishCopy.share, onClick: () => onPublished(false) } })
+    else onPublished(first)
   }
   return (
     <div className="editor">

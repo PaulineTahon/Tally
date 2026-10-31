@@ -29,12 +29,11 @@ export function useNativeShare() {
   }
 }
 
-/** Link, single Copy and the QR Code button, which opens the QR Code tab below. */
-export function LinkBar({ onQr }: { onQr: () => void }) {
+/** The link and Copy, the one primary action. The QR code is the first Share To tab below. */
+export function LinkBar() {
   const { display, url } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
-  const openQr = onQr
   if (mobile) {
     return (
       <div className="stack gap-8">
@@ -48,9 +47,6 @@ export function LinkBar({ onQr }: { onQr: () => void }) {
             <Share aria-hidden />Share
           </button>
           <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} className="btn-secondary" big /></span>
-          <button type="button" className="btn btn-secondary btn-lg" onClick={openQr}>
-            <QrCode aria-hidden />QR Code
-          </button>
         </div>
       </div>
     )
@@ -61,9 +57,6 @@ export function LinkBar({ onQr }: { onQr: () => void }) {
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
       </div>
       <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} /></span>
-      <button type="button" className="btn btn-secondary" onClick={openQr}>
-        <QrCode aria-hidden />QR Code
-      </button>
     </div>
   )
 }
@@ -75,9 +68,9 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
       <Segmented<Channel>
         label="Share to" value={value} onChange={onChange}
         options={[
+          { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
           { value: 'email', label: 'Email', icon: <Mail aria-hidden /> },
-          { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
         ]}
       />
     </div>
@@ -337,7 +330,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const hit = useRef<HTMLSpanElement>(null)
   const [pulsing, setPulsing] = useState(false)
   const [downloaded, setDownloaded] = useState(false)
-  // Jumped to from the QR Code button: bring the row into view, focus it, pulse once.
+  // When asked to (pulse > 0): bring the row into view, focus it, pulse once.
   useEffect(() => {
     if (!pulse) return
     const el = li.current
@@ -390,7 +383,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     setConfirming(true)
   }
   const confirmDelete = () => { s.removeSource(p.ref); s.toast(rowCopy.deleted(p.label)) }
-  // Code rows use the same plain icon as the QR Code button; the full code is one click away.
+  // Code rows use the same plain QR icon as the QR Code tab; the full code is one click away.
   const icon = qr
     ? <span className="src-icon is-code" aria-hidden><QrCode /></span>
     : <span className="src-icon" aria-hidden>{sourceIcon(p)}</span>
@@ -521,7 +514,7 @@ function SingleCode({ pulse }: { pulse: number }) {
   return (
     <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
       <button type="button" className="single-preview" aria-label={`Open ${p.label} full size`} onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>
-        <QrImage url={link} style={style} size={168} label={`QR code that opens ${s.display()}`} />
+        <QrImage url={link} style={style} size={160} label={`QR code that opens ${s.display()}`} />
         {s.settings.showLink && <span className="single-link">{s.shortLink}</span>}
       </button>
       <div className="stack gap-8 single-side">
@@ -701,19 +694,24 @@ export function ChannelPanel({ channel, pulse = 0 }: { channel: Channel; pulse?:
   return <EmailPanel />
 }
 
-let lastChannel: Channel = 'social'
+/** The last Share To tab you used, kept per browser. QR Code until you pick another. */
+const TAB_KEY = 'share-tab'
+const CHANNELS: Channel[] = ['qr', 'social', 'email']
+function readChannel(): Channel {
+  try { const v = localStorage.getItem(TAB_KEY) as Channel | null; return v && CHANNELS.includes(v) ? v : 'qr' } catch { return 'qr' }
+}
+function saveChannel(c: Channel) { try { localStorage.setItem(TAB_KEY, c) } catch { /* private mode */ } }
 
-export function ShareBlock() {
-  const [channel, setChannelState] = useState<Channel>(lastChannel)
-  const setChannel = (c: Channel) => { lastChannel = c; setChannelState(c) }
-  // Counts jumps from the QR Code button, so the main code row can pulse each time.
-  const [jump, setJump] = useState(0)
+/** `first`: the sheet right after a form's first publish, which always opens on QR Code. */
+export function ShareBlock({ first = false }: { first?: boolean }) {
+  const [channel, setChannelState] = useState<Channel>(() => { if (first) { saveChannel('qr'); return 'qr' } return readChannel() })
+  const setChannel = (c: Channel) => { saveChannel(c); setChannelState(c) }
   return (
     <div className="stack gap-16">
-      <LinkBar onQr={() => { setChannel('qr'); setJump((j) => j + 1) }} />
+      <LinkBar />
       <LinkDetails />
-      <ChannelPicker value={channel} onChange={(c) => { setJump(0); setChannel(c) }} />
-      <div role="tabpanel"><AutoHeight k={channel}><ChannelPanel channel={channel} pulse={jump} /></AutoHeight></div>
+      <ChannelPicker value={channel} onChange={setChannel} />
+      <div role="tabpanel"><AutoHeight k={channel}><ChannelPanel channel={channel} /></AutoHeight></div>
     </div>
   )
 }

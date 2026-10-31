@@ -15,7 +15,7 @@ export const guideCopy = {
       title: 'Start Here',
       items: [
         { id: 'publish-copy', text: 'Publish, then hit Copy.' },
-        { id: 'download-main', text: 'Open QR Code and download the main code.' },
+        { id: 'download-main', text: 'Download the main code from the QR Code tab.' },
         { id: 'add-code', text: 'Add a code for a poster.' },
       ],
     },

@@ -31,6 +31,8 @@ function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr
 function Inner() {
   const [r, setR] = useState(readRoute)
   const [sheet, setSheet] = useState(r.route === 'edit' && r.publish)
+  // Opened straight from a first publish (or the ?published=1 link of one): QR Code tab first.
+  const [sheetFirst, setSheetFirst] = useState(r.route === 'edit' && r.publish && r.pub === 'first')
   const s = useStore()
   const mobile = useIsMobile()
   const [navOpen, setNavOpen] = useState(false)
@@ -57,13 +59,13 @@ function Inner() {
 
   return (
     <>
-      {r.route === 'edit' && <Editor key={r.pub} pub={r.pub} published={r.publish} onPublished={() => setSheet(true)} />}
+      {r.route === 'edit' && <Editor key={r.pub} pub={r.pub} published={r.publish} onPublished={(first) => { setSheetFirst(first); setSheet(true) }} />}
       {r.route === 'share' && <ShareTab onTab={onTab} onEdit={() => go('edit')} />}
       {r.route === 'insights' && <Insights key={r.state} onTab={onTab} onEdit={() => go('edit')} state={r.state} onOpenQr={openQr} onShare={toShare} />}
       {r.route === 'submissions' && <Submissions onTab={onTab} onEdit={() => go('edit')} onShare={() => go('share')} />}
 
       {/* The QR panel replaces the sheet instead of stacking on it; closing it brings the sheet back. */}
-      <PublishedSheet open={sheet && !s.qrOpen} onClose={() => setSheet(false)} />
+      <PublishedSheet open={sheet && !s.qrOpen} first={sheetFirst} onClose={() => { setSheet(false); setSheetFirst(false) }} />
       <QrPanel />
 
       {page && !mobile && <GuideCard key={page} page={page} open={!g.hidden} onClose={g.hide} />}
