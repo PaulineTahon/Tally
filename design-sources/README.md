@@ -44,4 +44,4 @@ Inter 4.1 by Rasmus Andersson, under the SIL Open Font License, so the files are
 
 ## Codes
 
-Codes are always black, with the Tally asterisk on a white rounded square in the middle. Each one opens https://tally.so/r/KpYalV with its own `ref`, so responses show where they came from. If you swap a code, take it from the `qr` folder rather than redrawing it, and scan the export with a phone before publishing.
+Codes are always black, with a white Tally asterisk on a black rounded tile in the middle, inside a thin white margin. The tile is its own group, QR logo, inside each QR code group. Each one opens https://tally.so/r/KpYalV with its own `ref`, so responses show where they came from. If you swap a code, take it from the `qr` folder rather than redrawing it, and scan the export with a phone before publishing.

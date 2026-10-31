@@ -8,7 +8,7 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 export const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG, the same as the product: black, with the Tally asterisk in a rounded square. */
+/** A real, scannable code drawn as SVG, the same as the product: black, with a white Tally asterisk on a black tile. */
 export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
@@ -25,7 +25,7 @@ export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: 
           <rect x={2} y={2} width={3} height={3} fill="#000" />
         </g>
       ))}
-      <g dangerouslySetInnerHTML={{ __html: logoMarkup(DEFAULT_STYLE, lx, lx, ls) }} />
+      <g dangerouslySetInnerHTML={{ __html: logoMarkup(DEFAULT_STYLE, lx, lx, ls, 'data-layer') }} />
     </g>
   )
 }

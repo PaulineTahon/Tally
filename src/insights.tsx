@@ -5,7 +5,7 @@ import { MAIN_QR, useIsMobile, useStore, type Source } from './store'
 import { tick } from './guide'
 import { DIRECT, OTHER_LABEL, rangeKey, type Range } from './seed'
 import { DashHeader, FormTitle, Shell, type Tab } from './chrome'
-import { Menu, Pro } from './ui'
+import { Menu } from './ui'
 
 export type InsightsState = 'data' | 'noqr' | 'empty'
 type View = 'answers' | 'visits' | 'dropoffs'
@@ -260,7 +260,7 @@ function DropOffs() {
       </div>
       <div className="empty-state">
         <TrendingUp aria-hidden className="empty-icon" />
-        <b className="row gap-8" style={{ justifyContent: 'center' }}>Ready to optimize your form? <Pro /></b>
+        <b className="row gap-8" style={{ justifyContent: 'center' }}>Ready to optimize your form?</b>
         <span style={{ maxWidth: 300 }}>Pro users can track question-by-question drop-offs to boost completions.</span>
         <button type="button" className="btn btn-blue btn-sm">Upgrade plan</button>
       </div>

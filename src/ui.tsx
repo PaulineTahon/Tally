@@ -66,12 +66,9 @@ export function AutoHeight({ k, children, slow = false }: { k: string; children:
 
 /** On the free plan, the primary action of a Pro setting. Nothing is saved. */
 export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
-  return <button type="button" className="btn btn-black btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}<Pro /></button>
+  return <button type="button" className="btn btn-black btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
 }
 
-export function Pro() {
-  return <span className="badge" title="Available on Tally Pro">Pro</span>
-}
 
 /** The one primary action. Feedback is instant and in place, no animation in front of it. */
 export function CopyButton({ text, className = '', big = false, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: {

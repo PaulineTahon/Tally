@@ -60,22 +60,31 @@ export function inFinder(m: Matrix, x: number, y: number) {
 /** Every code carries a centre mark, so modules there are always knocked out. Level H covers it. */
 export const hasLogo = (_st: QrStyle) => true
 
-/** Rounded square knockout: corner radius about a quarter of its side. */
+/** Rounded corners on the logo tile: radius about a quarter of its side. */
 export const TILE_RADIUS = 0.24
+/** White margin between the black tile and the modules, as a share of the logo area. */
+export const TILE_MARGIN = 0.1
 
 /**
- * The centre mark: a black Tally asterisk on a white rounded square, on every plan.
- * A logo uploaded in Personalize replaces it. Padding is even on all sides.
+ * The centre mark, on every plan: a white Tally asterisk on a black rounded tile, with a thin
+ * white margin so the tile never touches the modules. The whole area (tile and margin) is
+ * LOGO_RATIO of the code width. A logo uploaded in Personalize replaces it, on a white tile,
+ * since most logos are drawn for a light background.
+ * `layer` names the group: an id in files, a data attribute when it is inlined into a page.
  */
-export function logoMarkup(st: QrStyle, x: number, y: number, s: number) {
-  const tile = `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * TILE_RADIUS}" ry="${s * TILE_RADIUS}" fill="#fff"/>`
+export function logoMarkup(st: QrStyle, x: number, y: number, s: number, layer: 'id' | 'data-layer' = 'id') {
+  const open = `<g ${layer}="QR logo">`
+  const quiet = `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * TILE_RADIUS}" ry="${s * TILE_RADIUS}" fill="#fff"/>`
   if (st.logo) {
     const p = s * 0.14
-    return `${tile}<image href="${st.logo}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/>`
+    return `${open}${quiet}<image href="${st.logo}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/></g>`
   }
-  const p = s * 0.2
-  const k = (s - p * 2) / 128
-  return `${tile}<g transform="translate(${x + p} ${y + p + (128 - 124) * k / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#000"/></g>`
+  const m = s * TILE_MARGIN
+  const t = s - m * 2
+  const tile = `<rect x="${x + m}" y="${y + m}" width="${t}" height="${t}" rx="${t * TILE_RADIUS}" ry="${t * TILE_RADIUS}" fill="#000"/>`
+  const p = t * 0.22
+  const k = (t - p * 2) / 128
+  return `${open}${quiet}${tile}<g transform="translate(${x + m + p} ${y + m + p + (128 - 124) * k / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#fff"/></g></g>`
 }
 
 /** Path data for the data modules (finders drawn separately), in module units, offset by the quiet zone. */
@@ -121,9 +130,11 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${codeW} ${h}" width="${codeW}" height="${h}">`,
     `<rect width="${codeW}" height="${h}" fill="#ffffff"/>`,
+    `<g id="QR code">`,
     `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${QR_INK}" shape-rendering="crispEdges"/>`,
     finderSvg(m, unit),
     logoMarkup(o.style, logoXY, logoXY, logoS),
+    `</g>`,
   ]
   if (caption) {
     let y = codeW + 24

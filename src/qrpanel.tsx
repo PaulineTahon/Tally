@@ -3,7 +3,7 @@ import { ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload }
 import { EASTER_EGG, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE } from './copy'
-import { Collapse, Dialog, Menu, Pro, Switch, UpgradeButton } from './ui'
+import { Collapse, Dialog, Menu, Switch, UpgradeButton } from './ui'
 import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -35,7 +35,7 @@ export const QR_COPY = {
   downloaded: 'QR code downloaded. Time to print!',
   showLink: 'Show link under code',
   logo: 'Add your logo',
-  logoHelp: 'Replaces the Tally mark in the middle. Codes stay black so they always scan.',
+  logoHelp: 'On Pro, your logo replaces the Tally mark in the middle. Codes stay black so they always scan.',
 }
 
 export function useQrOptions(ref: string): QrOptions {
@@ -144,7 +144,7 @@ export function QrPanel() {
             <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
           </div>
           <div className="row-between">
-            <span className="stack"><span className="field-label">{QR_COPY.logo} <Pro /></span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
+            <span className="stack"><span className="field-label">{QR_COPY.logo}</span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
             <div className="row gap-8">
               {shown.logo && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStyle({ logo: null })}>Remove</button>}
               <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()}><Upload aria-hidden />{shown.logo ? 'Replace' : 'Upload'}</button>

@@ -402,7 +402,6 @@ a.list-row { text-decoration: none; color: inherit; }
 .lp-row .lp-thumb { width: 64px; height: 34px; }
 .lp-row .lp-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .link-extras { flex-wrap: wrap; row-gap: 4px; }
-.link-extras .badge { margin-left: 2px; }
 .more-box, .lp-edit { padding: 12px; border-radius: 8px; background: var(--surface-2); }
 .also-list { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 2px; }
 .also-list li { display: flex; align-items: center; gap: 8px; min-height: 32px; padding: 4px 8px; border-radius: 6px; background: #fff; box-shadow: var(--border) 0 0 0 1px; }
@@ -410,7 +409,6 @@ a.list-row { text-decoration: none; color: inherit; }
 .also-list li > .grow { flex: 1; min-width: 0; }
 .input.textarea { height: auto; min-height: 0; padding: 8px 10px; line-height: 1.45; resize: vertical; font: inherit; font-size: 14px; }
 .email-draft { padding: 12px; border-radius: 8px; background: var(--surface-2); }
-.upgrade-btn .badge { margin-left: 6px; background: #fee8fc; }
 
 /* Code rows open the full code. The whole row is the target, except its own buttons. */
 .placements li.is-clickable { cursor: pointer; transition: background-color 150ms var(--ease-out), transform 160ms var(--ease-out); }

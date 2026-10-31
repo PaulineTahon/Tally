@@ -4,10 +4,10 @@ import {
   ArrowUpRight, ChevronDown, Copy, MessageSquareText, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MESSAGE_REF, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { QR_COPY, fileName, saveOrShare } from './qrpanel'
-import { endingCopy, planCopy, rowCopy, shareCopy } from './copy'
+import { endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 
 export type Channel = 'social' | 'email' | 'qr'
@@ -119,7 +119,7 @@ function LinkEnding() {
   const also = [...s.oldEndings].reverse()
   return (
     <div className="stack gap-8">
-      <span className="field-label row gap-4">{endingCopy.label} <Pro /></span>
+      <span className="field-label">{endingCopy.label}</span>
       <span className="xs muted">{endingCopy.help}</span>
       <div className="input-group">
         <span className="prefix">tally.so/r/</span>
@@ -186,7 +186,7 @@ function LinkDetails() {
     <div className="stack gap-8">
       <div className="row link-extras">
         <button type="button" className="link-btn embed-toggle" aria-expanded={more} aria-controls="more-options" onClick={() => setMore((v) => !v)}>
-          More Link Options <Pro /><ChevronDown aria-hidden className="expand-chev" style={{ transform: more ? 'rotate(180deg)' : undefined }} />
+          More Link Options<ChevronDown aria-hidden className="expand-chev" style={{ transform: more ? 'rotate(180deg)' : undefined }} />
         </button>
         <button type="button" className="link-btn embed-toggle" aria-expanded={embed} aria-controls="embed-options" onClick={() => setEmbed((v) => !v)}>
           Embed on your site<ChevronDown aria-hidden className="expand-chev" style={{ transform: embed ? 'rotate(180deg)' : undefined }} />
@@ -197,8 +197,8 @@ function LinkDetails() {
           <LinkEnding />
           <hr className="divider" />
           <div className="stack gap-8">
-            <span className="field-label row gap-4">Custom Domain <Pro /></span>
-            <span className="xs muted">Use your own, like forms.yourdomain.com.</span>
+            <span className="field-label">Custom Domain</span>
+            <span className="xs muted">{linkCopy.domainHelp}</span>
             <div className="input-group">
               <span className="prefix">https://</span>
               <input aria-label="Custom domain" placeholder="forms.yourdomain.com" value={domain} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
@@ -211,8 +211,8 @@ function LinkDetails() {
           </div>
           <hr className="divider" />
           <div className="stack gap-8" id="lp-edit">
-            <span className="field-label row gap-4">Link Preview <Pro /></span>
-            <span className="xs muted">What people see when you paste the link in a chat or a post.</span>
+            <span className="field-label">Link Preview</span>
+            <span className="xs muted">{linkCopy.previewHelp}</span>
             <div className="lp-row" aria-label="Link preview">
               <img className="lp-thumb" src={lpImg || defaultImg} alt="" />
               <span className="lp-title grow">{lpTitle || FORM_TITLE}</span>
