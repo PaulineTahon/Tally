@@ -22,7 +22,7 @@ export const rowCopy = {
 /** Link ending: old endings keep redirecting, and stay reserved for this form. */
 export const endingCopy = {
   label: 'Link Ending',
-  help: 'Make it yours on Pro, like tally.so/r/summer-rsvp.',
+  help: 'With Pro, pick your own ending, like tally.so/r/summer-rsvp.',
   changeNote: 'Old links and printed codes keep working.',
   change: 'Change link',
   save: 'Save',
@@ -38,8 +38,8 @@ export const endingCopy = {
 
 /** More Link Options. Pro is said in the help line, not with a badge. */
 export const linkCopy = {
-  domainHelp: 'Use your own on Pro, like forms.yourdomain.com.',
-  previewHelp: 'On Pro, choose what people see when you paste the link in a chat or a post.',
+  domainHelp: 'With Pro, use your own domain, like forms.yourdomain.com.',
+  previewHelp: 'With Pro, choose what people see when you paste the link in a chat or a post.',
 }
 
 /** Republishing: the full sheet only when it helps. */

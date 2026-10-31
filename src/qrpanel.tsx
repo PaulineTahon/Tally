@@ -35,7 +35,7 @@ export const QR_COPY = {
   downloaded: 'QR code downloaded. Time to print!',
   showLink: 'Show link under code',
   logo: 'Add your logo',
-  logoHelp: 'On Pro, your logo replaces the Tally mark in the middle. Codes stay black so they always scan.',
+  logoHelp: "With Pro, put your logo in the middle instead of the Tally mark. Codes stay black so they're easy to scan.",
 }
 
 export function useQrOptions(ref: string): QrOptions {

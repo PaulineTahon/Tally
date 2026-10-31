@@ -183,7 +183,7 @@ const POST = {
   bullets: [
     ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
     ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],
-    ['Make it yours (Pro).', 'Add your logo in the middle of the code. Codes stay black, so they always scan.'],
+    ['Make it yours (Pro).', 'Add your logo in the middle of the code. Codes stay black, so they are easy to scan.'],
     ['On your phone?', 'Save your code to your photos or share it straight away.'],
   ] as [string, string][],
   end: 'Happy sharing!',
