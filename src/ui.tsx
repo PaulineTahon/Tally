@@ -64,6 +64,25 @@ export function AutoHeight({ k, children, slow = false }: { k: string; children:
   )
 }
 
+/** Tally's Pro pill. Only ever on labels, never inside a button. */
+export function Pro() {
+  return <span className="badge" title="Available on Tally Pro">Pro</span>
+}
+
+/** Every panel sits in the same grid cell, so the box is as tall as the tallest one and nothing below it moves when you switch. */
+export function PanelStack<K extends string>({ active, panels, label }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string }) {
+  return (
+    <div className="panel-stack">
+      {panels.map((p) => (
+        <div key={p.key} role="tabpanel" aria-label={label} aria-hidden={p.key !== active} className={`panel-cell ${p.key === active ? 'is-active' : ''}`}
+          {...(p.key !== active ? { inert: '' } : {})}>
+          {p.node}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 /** On the free plan, the primary action of a Pro setting. Nothing is saved. */
 export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
   return <button type="button" className="btn btn-black btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>

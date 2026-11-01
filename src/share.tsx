@@ -4,7 +4,7 @@ import {
   ArrowUpRight, ChevronDown, Copy, MessageSquareText, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MESSAGE_REF, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, QrImage, Segmented, SmallCopy } from './ui'
+import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { QR_COPY, fileName, saveOrShare } from './qrpanel'
 import { endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
@@ -63,7 +63,7 @@ export function LinkBar() {
 
 export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (c: Channel) => void }) {
   return (
-    <div className="stack gap-8">
+    <div className="stack gap-8 share-to">
       <div className="xs muted" style={{ fontWeight: 600 }}>Share To</div>
       <Segmented<Channel>
         label="Share to" value={value} onChange={onChange}
@@ -112,7 +112,7 @@ function LinkEnding() {
   const also = [...s.oldEndings].reverse()
   return (
     <div className="stack gap-8">
-      <span className="field-label">{endingCopy.label}</span>
+      <span className="field-label row gap-4">{endingCopy.label} <Pro /></span>
       <span className="xs muted">{endingCopy.help}</span>
       <div className="input-group">
         <span className="prefix">tally.so/r/</span>
@@ -190,7 +190,7 @@ function LinkDetails() {
           <LinkEnding />
           <hr className="divider" />
           <div className="stack gap-8">
-            <span className="field-label">Custom Domain</span>
+            <span className="field-label row gap-4">Custom Domain <Pro /></span>
             <span className="xs muted">{linkCopy.domainHelp}</span>
             <div className="input-group">
               <span className="prefix">https://</span>
@@ -204,7 +204,7 @@ function LinkDetails() {
           </div>
           <hr className="divider" />
           <div className="stack gap-8" id="lp-edit">
-            <span className="field-label">Link Preview</span>
+            <span className="field-label row gap-4">Link Preview <Pro /></span>
             <span className="xs muted">{linkCopy.previewHelp}</span>
             <div className="lp-row" aria-label="Link preview">
               <img className="lp-thumb" src={lpImg || defaultImg} alt="" />
@@ -533,15 +533,15 @@ function SingleCode({ pulse }: { pulse: number }) {
         )}
         <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
         <div className="row gap-8 single-dl">
-          <button ref={primary} type="button" className={`btn btn-black btn-sm single-primary ${done === 'png' ? 'is-copied' : ''}`}
+          <button ref={primary} type="button" className={`btn btn-secondary btn-sm single-primary ${done === 'png' ? 'is-copied' : ''}`}
             aria-label={mobile ? QR_COPY.saveOrShare : rowCopy.download(p.label, 'png')} onClick={() => (mobile ? share() : get('png'))}>
-            {mobile ? <Share aria-hidden /> : <IconSwap on={done === 'png'} icon="download" />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
+            {mobile ? <Download aria-hidden /> : <IconSwap on={done === 'png'} icon="download" />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
           </button>
           {(['svg', 'pdf'] as QrFormat[]).map((f) => (
             <button key={f} type="button" className="btn btn-secondary btn-sm" aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>{f.toUpperCase()}</button>
           ))}
         </div>
-        <div>
+        <div className="single-more">
           <button type="button" className="link-btn small" onClick={() => { s.setQrRef(p.ref); s.setQrPersonalize(true); s.setQrOpen(true) }}>
             <SlidersHorizontal aria-hidden />Personalize
           </button>
@@ -711,7 +711,7 @@ export function ShareBlock({ first = false }: { first?: boolean }) {
       <LinkBar />
       <LinkDetails />
       <ChannelPicker value={channel} onChange={setChannel} />
-      <div role="tabpanel"><AutoHeight k={channel}><ChannelPanel channel={channel} /></AutoHeight></div>
+      <PanelStack active={channel} label="Share to" panels={CHANNELS.map((c) => ({ key: c, node: <ChannelPanel channel={c} /> }))} />
     </div>
   )
 }

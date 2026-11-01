@@ -136,7 +136,7 @@
 .split-caret { width: 36px; padding: 0; border-radius: 0 8px 8px 0; border-left: 1px solid rgba(255,255,255,.2); }
 .disclosure { display: flex; align-items: center; justify-content: space-between; width: 100%; background: none; border: 0; padding: 6px 0; cursor: pointer; font-size: 15px; text-align: left; }
 .disclosure svg { width: 16px; height: 16px; color: var(--grey-3); transition: transform 100ms ease-in-out; }
-.seg-hint { font-size: 11px; font-weight: 500; color: var(--grey-3); }
+.seg-hint { font-size: 11px; font-weight: 500; color: var(--grey-2); }
 .segmented:has(.seg-hint) button { height: 40px; }
 .full-qr { position: fixed; inset: 0; background: #fff; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 24px; padding-bottom: calc(24px + var(--safe-b)); }
 .full-qr img { width: min(86vw, 70vh); height: auto; image-rendering: pixelated; }
@@ -471,7 +471,7 @@ a.list-row { text-decoration: none; color: inherit; }
 .ch-row .title { font-size: 15px; font-weight: 500; flex: 1; min-width: 0; }
 @media (hover: hover) and (pointer: fine) { .ch-row:hover { background: var(--hover); } .ch-row:hover .ch-a { color: var(--grey-2); } }
 .ch-row:active { background: rgba(0, 0, 0, 0.06); transform: scale(0.99); }
-.ch-row:focus-visible { outline: 3px solid var(--focus); outline-offset: -1px; }
+.ch-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
 .ch-trail { display: inline-grid; align-items: center; justify-items: end; flex: none; color: var(--grey-4); }
 .ch-trail > * { grid-area: 1 / 1; transition: opacity 140ms var(--ease-out), transform 140ms var(--ease-out); }
 .ch-a { width: 16px; height: 16px; transition: color 120ms ease, opacity 140ms var(--ease-out), transform 140ms var(--ease-out); }
@@ -485,3 +485,28 @@ a.list-row { text-decoration: none; color: inherit; }
 .more-box .lp-row { min-width: 0; }
 .more-box .lp-row .lp-title { flex: 1; }
 .more-box .lp-row .btn { flex: none; white-space: nowrap; }
+
+/* Focus inside a segmented control stays inside its own tab. */
+.segmented button:focus-visible { outline-offset: -2px; }
+
+/* Small text on grey surfaces: the lighter greys drop under 4.5:1 there, so use grey-2 and the deeper blue. */
+.more-box .muted, .lp-edit .muted, .personalize .muted, .email-draft .muted, .callout .muted, .nudge .muted, .sample .muted, .link-card .muted { color: var(--grey-2); }
+.more-box .link-btn:not(.quiet), .lp-edit .link-btn:not(.quiet), .personalize .link-btn:not(.quiet), .email-draft .link-btn:not(.quiet), .link-card .link-btn:not(.quiet) { color: var(--blue-deep); }
+
+/* Share To panels share one grid cell, so the box keeps the tallest panel's height and Done never moves. */
+.panel-stack { display: grid; }
+.panel-cell { grid-area: 1 / 1; min-width: 0; visibility: hidden; }
+.panel-cell.is-active { visibility: visible; animation: panel-in 140ms var(--ease-out); }
+@keyframes panel-in { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .panel-cell.is-active { animation: none; } }
+
+@media (max-width: 757px) {
+  /* Share To on phones: icon and label, 44px tall. */
+  .share-to .segmented button { height: 44px; gap: 5px; }
+  .share-to .segmented button svg { display: inline-block; }
+  /* Text links get a 44px tap area without changing the layout. */
+  .link-btn { position: relative; }
+  .single-more { margin-top: 4px; }
+  .link-btn::before { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
+}
+.more-box .btn-ghost, .lp-edit .btn-ghost, .personalize .btn-ghost, .email-draft .btn-ghost { color: var(--grey-2); }
