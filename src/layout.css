@@ -816,3 +816,10 @@ a.list-row { text-decoration: none; color: inherit; }
 .qr-plain-row { min-height: 32px; }
 .qr-plain-row .field-label { font-weight: 500; }
 @media (max-width: 757px) { .split-out .split-solo { width: 100%; justify-content: center; } }
+/* Pencil: 44px wide, and its hit area reaches 44px tall on a 36px field. */
+.field-icon-btn { position: relative; width: 44px; }
+.field-icon-btn::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
+/* Free with a logo in: Upgrade to download, and Download without logo under it. */
+.split-out.is-upgrade { flex-direction: column; align-items: stretch; gap: 4px; }
+.split-out.is-upgrade .split-plain { justify-content: center; }
+.logo-row { gap: 12px; }

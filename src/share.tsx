@@ -6,7 +6,7 @@ import {
 import { canNativeShare, copyText, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
 import { ActionRow, UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, QrImage, Segmented } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
-import { DownloadSplit, QR_ALERT, QR_COPY, QrDetail, fileName, qrTitle } from './qrpanel'
+import { DownloadSplit, QR_ALERT, QR_COPY, LogoView, QrDetail, fileName, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
@@ -36,7 +36,7 @@ export function LinkBar({ onEdit }: { onEdit?: () => void }) {
   const mobile = useIsMobile()
   const share = useNativeShare()
   const edit = onEdit && (
-    <button type="button" className="field-icon-btn" data-row="ending" aria-label={shareCopy.editLink} title={shareCopy.editLink} onClick={onEdit}><PencilLine aria-hidden /></button>
+    <button type="button" className="field-icon-btn" data-row="ending" aria-label={shareCopy.editLinkName} title={shareCopy.editLink} onClick={onEdit}><PencilLine aria-hidden /></button>
   )
   if (mobile) {
     return (
@@ -100,7 +100,7 @@ export const emailHref = (link: string) => `mailto:?subject=${enc(FORM_TITLE)}&b
 const PREVIEW_DESC = 'Made with Tally, the simplest way to create forms.'
 
 export type ChannelView = 'ch-qr' | 'ch-social' | 'ch-embed'
-export type LinkView = 'main' | 'ending' | 'preview' | 'code' | ChannelView
+export type LinkView = 'main' | 'ending' | 'preview' | 'code' | 'logo' | ChannelView
 
 /** Inside the share sheet a code opens as a detail view; anywhere else, in its own dialog. */
 const OpenCodeCtx = createContext<((ref: string, personalize?: boolean) => void) | null>(null)
@@ -117,7 +117,7 @@ export function useViewStack() {
   const go = useCallback((v: LinkView) => setStack((st) => (v === 'main' ? ['main'] : st[st.length - 1] === v ? st : [...st, v])), [])
   const back = useCallback(() => setStack((st) => (st.length > 1 ? st.slice(0, -1) : st)), [])
   const reset = useCallback(() => setStack(['main']), [])
-  return { view, go, back, reset }
+  return { view, depth: stack.length - 1, go, back, reset }
 }
 export type ViewNav = ReturnType<typeof useViewStack>
 
@@ -139,7 +139,7 @@ function PreviewCard({ img, title, desc }: { img: string; title: string; desc: s
 }
 
 export const VIEW_TITLE: Record<Exclude<LinkView, 'main' | 'code'>, string> = {
-  ending: linkCopy.endingRow, preview: linkCopy.previewRow, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed',
+  ending: linkCopy.endingRow, preview: linkCopy.previewRow, logo: QR_COPY.logoTitle, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed',
 }
 
 /** Back arrow and title of a detail view. In the share modal it sits in the modal header; on the Share tab page, at the top of the view. */
@@ -169,7 +169,7 @@ function useViewFocus(view: LinkView, depth: number) {
       if (forward) { document.getElementById(`lt-title-${view}`)?.focus({ preventScroll: true }); return }
       const el = openers[from.view]
       if (el && el.isConnected && el.offsetParent) el.focus({ preventScroll: true })
-      else (document.querySelector<HTMLElement>(`[role=dialog] [data-row="${from.view}"], [data-row="${from.view}"]`) ?? document.getElementById(`lt-title-${view}`))?.focus({ preventScroll: true })
+      else ([...document.querySelectorAll<HTMLElement>(`[data-row="${from.view}"]`)].find((e) => e.offsetParent) ?? document.getElementById(`lt-title-${view}`))?.focus({ preventScroll: true })
     })
   }, [view, depth])
 }
@@ -571,10 +571,10 @@ function SingleCode({ pulse }: { pulse: number }) {
         {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
         <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
         <p className="small muted" style={{ margin: 0 }}>{QR_COPY.readyLine}</p>
-        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
         <div className="act-rows">
-          <ActionRow icon={<SlidersHorizontal />} label="Personalize" pro onClick={() => openCode(p.ref, true)} />
+          <ActionRow icon={<SlidersHorizontal />} label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(p.ref, true)} />
         </div>
+        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
       </div>
     </div>
   )
@@ -696,19 +696,18 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const { view } = nav
   const s = useStore()
   const entry = entryVariant()
-  const depth = view === 'main' ? 0 : view === 'code' ? 2 : 1
-  useViewFocus(view, depth)
+  useViewFocus(view, nav.depth)
   // A download alert belongs to the place it came from: switching tab or view clears it.
   const { dismissGroup } = s
   useEffect(() => { dismissGroup(QR_ALERT.group) }, [channel, view, dismissGroup])
   const [saved, setSaved] = useState<PreviewDraft>(PREVIEW_DEFAULT)
   const [embed, setEmbed] = useState<EmbedMode | null>(null)
-  const [codePersonalize, setCodePersonalize] = useState(false)
   // Back never saves and never asks: a view starts over from what is saved the next time you open it.
   const [round, setRound] = useState(0)
   const prevView = useRef(view)
-  useEffect(() => { if (prevView.current !== view && prevView.current !== 'main') setRound((n) => n + 1); prevView.current = view }, [view])
-  const openCode = useCallback((ref: string, personalize = false) => { s.setQrRef(ref); setCodePersonalize(personalize); nav.go('code') }, [s, nav])
+  useEffect(() => { if (prevView.current !== view && view === 'main') setRound((n) => n + 1); prevView.current = view }, [view])
+  // Customize code under a code in the tab goes straight to Logo; the code itself opens its own page.
+  const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); nav.go(logo ? 'logo' : 'code') }, [s, nav])
   type Slot = Channel | Exclude<LinkView, 'main'> | 'menu'
   const head = (v: Exclude<LinkView, 'main'>) => (!inModal ? <ViewHead view={v} onBack={nav.back} /> : null)
   const panels: { key: Slot; node: ReactNode }[] = [
@@ -720,7 +719,8 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
     { key: 'ending', node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
     { key: 'preview', node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
-    { key: 'code', node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${codePersonalize}`} refId={s.qrRef} startPersonalize={codePersonalize} /></div> },
+    { key: 'code', node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}`} refId={s.qrRef} onCustomize={() => nav.go('logo')} /></div> },
+    { key: 'logo', node: <div className="stack gap-12">{head('logo')}<LogoView refId={s.qrRef} /></div> },
   ]
   const active: Slot = view === 'main' ? (entry ? 'menu' : channel) : view
   return (
@@ -732,7 +732,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
             <LinkBar onEdit={() => nav.go('ending')} />
             <div className="stack">
               <PreviewStrip draft={saved} />
-              <ActionRow icon={<ImageIcon />} label={linkCopy.customize} pro dataRow="preview" ariaLabel={linkCopy.customizeAria} onClick={() => nav.go('preview')} />
+              <ActionRow icon={<ImageIcon />} label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
             </div>
             {!entry && <ChannelPicker value={channel} onChange={setChannel} />}
           </div>

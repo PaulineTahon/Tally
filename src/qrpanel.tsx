@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload } from 'lucide-react'
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE, planCopy } from './copy'
-import { Dialog, PopMenu, Pro, Switch } from './ui'
+import { ActionRow, Dialog, PopMenu, Pro, Switch } from './ui'
 import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -42,6 +42,9 @@ export const QR_COPY = {
   imageSaved: 'Image saved',
   showLink: 'Show link under code',
   logo: 'Add your logo',
+  withoutLogo: 'Download without logo',
+  customizeCode: 'Customize code',
+  logoTitle: 'Logo',
   logoHelp: "Put your logo in the middle instead of the Tally mark. Codes stay black so they're easy to scan.",
 }
 
@@ -67,15 +70,20 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
   const after = () => { if (refId === MAIN_QR) tick('download-main'); s.markDownloaded(); onDone?.() }
   const get = async (f: QrFormat) => { download(await fileFor(opts, f), fileName(refId, f)); after(); s.toast(QR_COPY.downloadedAs(f), QR_ALERT) }
   const share = async () => { after(); if ((await saveOrShare(opts, refId)) !== 'closed') s.toast(QR_COPY.imageSaved, QR_ALERT) }
+  // The same code with the Tally mark, free on every plan.
+  const plain = { ...opts, style: { ...opts.style, logo: null } }
+  const getPlain = async () => { download(await fileFor(plain, 'png'), fileName(refId, 'png')); after(); s.toast(QR_COPY.downloadedAs('png'), QR_ALERT) }
+  const sharePlain = async () => { after(); if ((await saveOrShare(plain, refId)) !== 'closed') s.toast(QR_COPY.imageSaved, QR_ALERT) }
   const others = FORMATS.filter((f) => (mobile ? true : f.id !== 'png'))
   // Free can try a logo. While one is in, the code can be seen but downloading it is Pro.
   if (s.plan !== 'pro' && s.settings.style.logo) {
     return (
-      <div className="split split-out">
+      <div className="split split-out is-upgrade">
         <button ref={primaryRef} type="button" className={`btn ${upgradePrimary ? 'btn-black' : 'btn-secondary'} btn-sm split-solo ${primaryRef ? 'single-primary' : ''}`}
           aria-haspopup="dialog" onClick={s.upgrade}>
           <Download aria-hidden />{planCopy.upgradeToDownload}
         </button>
+        <button type="button" className="btn btn-ghost btn-sm split-plain" onClick={() => (mobile ? sharePlain() : getPlain())}>{QR_COPY.withoutLogo}</button>
       </div>
     )
   }
@@ -99,82 +107,113 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
   )
 }
 
-/**
- * One code up close: the code, Download and Personalize. In the share sheet it is a detail view
- * (Back and the title in the header); elsewhere it sits in its own dialog.
- */
-export function QrDetail({ refId, startPersonalize = false }: { refId: string; startPersonalize?: boolean }) {
-  const s = useStore()
+/** The code itself, as big as the view allows. A phone can show it full screen. */
+function CodePreview({ refId, printing = 0 }: { refId: string; printing?: number }) {
   const mobile = useIsMobile()
-  const { settings, setSettings } = s
-  const { style } = settings
-  // Opened from a Personalize row: bring the options into view (focus still goes to the title).
-  const section = useRef<HTMLElement>(null)
-  useEffect(() => { if (startPersonalize) requestAnimationFrame(() => section.current?.scrollIntoView({ block: 'nearest' })) }, [startPersonalize])
-  const [printing, setPrinting] = useState(0)
-  const [full, setFull] = useState(false)
-  const file = useRef<HTMLInputElement>(null)
-  // Free can try a logo too: it shows right away, and Download asks to upgrade while it is in.
-  const shown = style
-  const placement = s.placements.find((p) => p.ref === refId)
   const opts = useQrOptions(refId)
-  const previewOpts = { ...opts, style: shown }
-  const setStyle = (p: Partial<QrStyle>) => setSettings({ ...settings, style: { ...style, ...p } })
-  const onLogo = (f?: File) => {
-    if (!f) return
-    const r = new FileReader()
-    r.onload = () => setStyle({ logo: String(r.result) })
-    r.readAsDataURL(f)
-  }
+  const [full, setFull] = useState(false)
+  return (
+    <div className="qr-focus">
+      <div className={`qr-print ${printing ? 'is-printing' : ''}`} key={printing}>
+        <img className="qr-img" src={svgSrc(buildSvg(opts))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
+      </div>
+      {mobile && (
+        <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
+      )}
+      {full && <FullQr url={opts.url} style={opts.style} onClose={() => setFull(false)} />}
+    </div>
+  )
+}
+
+/**
+ * One code up close: the code, Customize code (the same quiet row as Customize preview under the link card),
+ * Download, and the free Show link under code. In the share sheet it is a detail view; elsewhere, its own dialog.
+ */
+export function QrDetail({ refId, onCustomize }: { refId: string; onCustomize: () => void }) {
+  const s = useStore()
+  const { settings, setSettings } = s
+  const [printing, setPrinting] = useState(0)
+  const placement = s.placements.find((p) => p.ref === refId)
   return (
     <div className="stack gap-16">
-      <div className="qr-focus">
-        <div className={`qr-print ${printing ? 'is-printing' : ''}`} key={printing}>
-          <img className="qr-img" src={svgSrc(buildSvg(previewOpts))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
-        </div>
-        {mobile && (
-          <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
-        )}
+      <CodePreview refId={refId} printing={printing} />
+      <div className="act-rows">
+        <ActionRow icon={<SlidersHorizontal />} label={QR_COPY.customizeCode} pro dataRow="logo" onClick={onCustomize} />
       </div>
       <div className="qr-detail-dl">
         <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary onDone={() => setPrinting((n) => n + 1)} />
       </div>
-      {/* Free for everyone, so it sits with the download, not under Personalize. */}
+      {/* Free for everyone, so it sits with the download, not behind Customize code. */}
       <div className="row-between qr-plain-row">
         <label className="field-label" htmlFor="qr-show-link">{QR_COPY.showLink}</label>
         <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
       </div>
-      {/* Personalize has one behaviour: on the code's own page its options are simply shown. */}
-      <section ref={section} className="stack gap-12 qr-section" aria-labelledby="qr-personalize-title">
-        <h3 id="qr-personalize-title" className="field-label row gap-4 qr-section-title"><SlidersHorizontal aria-hidden />Personalize <Pro /></h3>
-        <div className="personalize is-plain stack gap-16" id="qr-personalize">
-            <div className="row-between">
-              <span className="stack"><span className="field-label">{QR_COPY.logo}</span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
-              <div className="row gap-8">
-                {shown.logo && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setStyle({ logo: null })}>Remove</button>}
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()}><Upload aria-hidden />{shown.logo ? 'Replace' : 'Upload'}</button>
-                <input ref={file} type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = '' }} />
-              </div>
-            </div>
-          </div>
-      </section>
       <p className="xs muted qr-tag-line">Responses from this code are tagged, so you'll see where they came from.</p>
-      {full && <FullQr url={opts.url} style={opts.style} onClose={() => setFull(false)} />}
+    </div>
+  )
+}
+
+/**
+ * The Logo view, opened from Customize code: only Add your logo. Free can try it: the logo shows right away,
+ * and while it is in, the one black button is Upgrade to download, with Download without logo next to it.
+ */
+export function LogoView({ refId }: { refId: string }) {
+  const s = useStore()
+  const { settings, setSettings } = s
+  const { style } = settings
+  const file = useRef<HTMLInputElement>(null)
+  const placement = s.placements.find((p) => p.ref === refId)
+  const setLogo = (logo: string | null) => setSettings({ ...settings, style: { ...style, logo } })
+  const onLogo = (f?: File) => {
+    if (!f) return
+    const r = new FileReader()
+    r.onload = () => setLogo(String(r.result))
+    r.readAsDataURL(f)
+  }
+  return (
+    <div className="stack gap-16">
+      <CodePreview refId={refId} />
+      <div className="row-between logo-row">
+        <span className="stack"><span className="field-label row gap-4">{QR_COPY.logo} <Pro /></span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
+        <div className="row gap-8">
+          {style.logo && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setLogo(null)}>Remove</button>}
+          <button type="button" className="btn btn-secondary btn-sm" onClick={() => file.current?.click()}><Upload aria-hidden />{style.logo ? 'Replace' : 'Upload'}</button>
+          <input ref={file} type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = '' }} />
+        </div>
+      </div>
+      <div className="qr-detail-dl">
+        <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary />
+      </div>
     </div>
   )
 }
 
 export const qrTitle = (label: string | undefined, ref: string) => (label && ref !== MAIN_QR ? `QR Code for ${label}` : QR_COPY.yourCode)
 
-/** Outside the share sheet (Insights, a link with ?qr), a code opens in its own dialog. */
+/** Outside the share sheet (Insights, a link with ?qr), a code opens in its own dialog; Customize code goes to Logo inside it. */
 export function QrPanel() {
   const s = useStore()
   const placement = s.placements.find((p) => p.ref === s.qrRef)
   const [round, setRound] = useState(0)
-  useEffect(() => { if (!s.qrOpen) { s.setQrPersonalize(false); setRound((n) => n + 1) } }, [s.qrOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [logo, setLogo] = useState(false)
+  useEffect(() => { if (!s.qrOpen) { s.setQrPersonalize(false); setRound((n) => n + 1) } else setLogo(s.qrPersonalize) }, [s.qrOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Focus: the title on the way in, Customize code on the way back.
+  const first = useRef(true)
+  useEffect(() => {
+    if (first.current) { first.current = false; return }
+    requestAnimationFrame(() => (logo ? document.getElementById('qr-title') : document.querySelector<HTMLElement>('[role=dialog] [data-row="logo"]'))?.focus({ preventScroll: true }))
+  }, [logo])
+  const title = logo
+    ? (
+      <span className="lt-head">
+        <button type="button" className="lt-back" aria-label="Back" title="Back" onClick={() => setLogo(false)}><ArrowLeft aria-hidden /></button>
+        <span className="lt-title-text" tabIndex={-1}>{QR_COPY.logoTitle}</span>
+      </span>
+    )
+    : qrTitle(placement?.label, s.qrRef)
   return (
-    <Dialog open={s.qrOpen} onClose={() => s.setQrOpen(false)} title={qrTitle(placement?.label, s.qrRef)} width={400} snap="full" labelledBy="qr-title">
-      <QrDetail key={`${round}-${s.qrRef}`} refId={s.qrRef} startPersonalize={s.qrPersonalize} />
+    <Dialog open={s.qrOpen} onClose={() => s.setQrOpen(false)} title={title} width={400} snap="full" labelledBy="qr-title">
+      {logo ? <LogoView refId={s.qrRef} /> : <QrDetail key={`${round}-${s.qrRef}`} refId={s.qrRef} onCustomize={() => setLogo(true)} />}
     </Dialog>
   )
 }

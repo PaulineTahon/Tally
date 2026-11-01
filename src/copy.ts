@@ -29,7 +29,7 @@ export const rowCopy = {
  */
 export const OLD_LINK_NOTE = "Your old link {link} keeps working, and so do QR codes you've already printed."
 /** Only when you change a custom ending you had already saved. `{link}` is that old address. */
-export const ENDING_GONE_NOTE = 'The old ending {link} stops working.'
+export const ENDING_GONE_NOTE = "Custom links you've already shared stop working."
 
 export const endingCopy = {
   label: 'Link Ending',
@@ -46,8 +46,7 @@ export const endingCopy = {
 export const linkCopy = {
   endingRow: 'Link ending and domain',
   previewRow: 'Link preview',
-  customize: 'Customize',
-  customizeAria: 'Customize link preview',
+  customize: 'Customize preview',
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',
@@ -164,6 +163,7 @@ export const planCopy = {
  */
 export const shareCopy = {
   editLink: 'Link ending and domain (Pro)',
+  editLinkName: 'Edit link ending and domain',
   tagLine: 'We tag each link so you can see where responses come from.',
   copiedInline: 'Copied',
   copyLink: 'Copy link',

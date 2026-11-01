@@ -137,7 +137,7 @@ function ShareTabMock({ url }: { url: string }) {
         <img className="pg-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
         <span className="pg-card-text"><span className="pg-card-title">Community picnic RSVP</span><span className="pg-card-site">tally.so</span></span>
       </div>
-      <div className="pg-act" data-layer="Customize row"><span className="pg-act-label">Customize<span className="pg-pro">Pro</span></span><span className="pg-chev">›</span></div>
+      <div className="pg-act" data-layer="Customize row"><span className="pg-act-label">Customize preview<span className="pg-pro">Pro</span></span><span className="pg-chev">›</span></div>
       <div className="sm-seg"><span className="on">QR Code</span><span>Social</span><span>Embed</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
