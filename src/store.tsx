@@ -3,7 +3,7 @@ import { Check } from 'lucide-react'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
 import { tick } from './guide'
 import { planCopy } from './copy'
-import { DIRECT, FRESH, MAIN_QR, MESSAGE_REF, SEED, ZERO, type Counts, type SeedPlace } from './seed'
+import { DIRECT, FRESH, MAIN_QR, MAIN_QR_LABEL, SEED, ZERO, type Counts, type SeedPlace } from './seed'
 
 export const FORM_ID = 'KpYalV'
 
@@ -13,7 +13,7 @@ export const FORM_ID = 'KpYalV'
  */
 export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref === MAIN_QR ? mainRefFor(window.location.hash) : ref}`
 
-/** Recording the changelog GIF (codes=main&demo=changelog): the main code carries the changelog ref, like every other visual. */
+/** Recording the changelog GIF (codes=main&demo=changelog): your form's own code carries the changelog ref, like every other visual. */
 function mainRefFor(hash: string) {
   return /[?&]demo=changelog\b/.test(hash) ? 'qr-changelog' : MAIN_QR
 }
@@ -29,7 +29,7 @@ export interface Source {
   counts: Counts
 }
 
-export { MAIN_QR, MESSAGE_REF }
+export { MAIN_QR, MAIN_QR_LABEL }
 
 /** Example numbers only, from the one shared seed. */
 const toSource = (p: SeedPlace): Source => ({ ref: p.ref, label: p.label, kind: p.kind, responses: p.counts.all[1], counts: p.counts })
@@ -209,7 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (ref === MAIN_QR) return
     setSources((all) => all.filter((s) => s.ref !== ref))
   }, [])
-  /** The main code first, then the others in the order they were made. */
+  /** Your form's own code first, then the others in the order they were made. */
   const placements = useMemo(() => {
     const qr = sources.filter((s) => s.kind === 'qr')
     return [...qr.filter((s) => s.ref === MAIN_QR), ...qr.filter((s) => s.ref !== MAIN_QR)]

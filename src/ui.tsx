@@ -69,23 +69,51 @@ export function Pro() {
   return <span className="badge" title="Available on Tally Pro">Pro</span>
 }
 
-/** Every panel sits in the same grid cell, so the box is as tall as the tallest one and nothing below it moves when you switch. */
+/** Tab panels that all stay mounted (so nothing you typed is lost). Only the active one shows, and the box eases to its height on a switch. */
 export function PanelStack<K extends string>({ active, panels, label }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string }) {
+  const inner = useRef<HTMLDivElement>(null)
+  const last = useRef(0)
+  const first = useRef(true)
+  const [h, setH] = useState<number | null>(null)
+  const pinned = useRef(false)
+  pinned.current = h !== null
+  useLayoutEffect(() => {
+    if (first.current) { first.current = false; return }
+    const el = inner.current
+    if (!el) return
+    const from = last.current
+    const to = el.offsetHeight
+    if (to === from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { last.current = to; return }
+    setH(from)
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setH(to)))
+    const t = window.setTimeout(() => setH(null), 320)
+    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
+  }, [active])
+  useEffect(() => {
+    const el = inner.current
+    if (!el) return
+    last.current = el.offsetHeight
+    const ro = new ResizeObserver(() => { if (!pinned.current) last.current = el.offsetHeight })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
   return (
-    <div className="panel-stack">
-      {panels.map((p) => (
-        <div key={p.key} role="tabpanel" aria-label={label} aria-hidden={p.key !== active} className={`panel-cell ${p.key === active ? 'is-active' : ''}`}
-          {...(p.key !== active ? { inert: '' } : {})}>
-          {p.node}
-        </div>
-      ))}
+    <div className={`auto-h panel-stack ${h !== null ? 'is-moving' : ''}`} style={h !== null ? { height: h } : undefined}
+      onTransitionEnd={(e) => { if (e.target === e.currentTarget) setH(null) }}>
+      <div ref={inner}>
+        {panels.map((p) => (
+          <div key={p.key} role="tabpanel" aria-label={label} hidden={p.key !== active} className={`panel-cell ${p.key === active ? 'is-active' : ''}`}>
+            {p.node}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
 
 /** On the free plan, the primary action of a Pro setting. Nothing is saved. */
 export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
-  return <button type="button" className="btn btn-black btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
+  return <button type="button" className="btn btn-secondary btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
 }
 
 

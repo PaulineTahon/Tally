@@ -116,7 +116,7 @@ function Wordmark() {
 }
 
 /** The new QR panel, as it looks in the product. */
-/** The Share tab with the QR Code tab open on the main code, as in the prototype. */
+/** The Share tab with the QR Code tab open, as in the prototype. */
 function ShareTabMock({ url }: { url: string }) {
   const Row = ({ name, n }: { name: string; n: string }) => (
     <div className="sm-row">
@@ -133,11 +133,11 @@ function ShareTabMock({ url }: { url: string }) {
         <span className="pg-input">tally.so/r/KpYalV</span>
         <span className="pg-copy"><Copy aria-hidden />Copy</span>
       </div>
-      <div className="sm-seg"><span className="on">QR Code</span><span>Social</span><span>Email</span></div>
+      <div className="sm-seg"><span>Link</span><span className="on">QR Code</span><span>Social</span><span>Embed</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
-          <span className="sm-big" data-layer="Main code"><QrBox size={132} url={url} label="QR code" /></span>
-          <span className="sm-main-text"><span className="sm-name">Main code</span><span className="sm-n">Ready to print</span></span>
+          <span className="sm-big" data-layer="Your QR Code"><QrBox size={132} url={url} label="QR code" /></span>
+          <span className="sm-main-text"><span className="sm-name">Your QR Code</span><span className="sm-n">Ready to print</span></span>
           <span className="sm-dl"><Download aria-hidden />Download SVG</span>
         </div>
         <Row name="Poster" n="2 responses" />
@@ -178,7 +178,7 @@ function Changelog() {
 /** The changelog post, in one place. */
 const POST = {
   title: 'Your forms, out in the real world',
-  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and your code is on the first tab, QR Code.',
+  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and your code is waiting in the QR Code tab.',
   bullets: [
     ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
     ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],
@@ -274,7 +274,7 @@ function ChangelogGif() {
         <a className="btn btn-black" href={GIF} download="tally-qr-changelog-2400x1600.gif"><Download aria-hidden />Download GIF</a>
       </div>
       <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
-        <img src={GIF} alt="On the Share tab, QR Code opens the main code, then it downloads as SVG" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src={GIF} alt="On the Share tab, the QR Code tab shows your QR code, then it downloads as a PNG" style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
       <div className="v-caption small"><p>For the changelog entry, next to the image above. Social posts and link previews keep using the static image.</p></div>
     </section>

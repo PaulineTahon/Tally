@@ -92,6 +92,6 @@ body { background: #fafafa; }
 .sm-icon { width: 28px; height: 28px; border-radius: 6px; box-shadow: rgba(0,0,0,.12) 0 1px 1px, #dfdfdf 0 0 0 1px; display: flex; align-items: center; justify-content: center; }
 .sm-icon svg { width: 14px; height: 14px; }
 .sm-more { width: 24px; text-align: center; color: #777672; letter-spacing: -1px; }
-.sm-dl { height: 36px; padding: 0 14px; border-radius: 8px; background: #000; color: #fff; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+.sm-dl { height: 36px; padding: 0 14px; border-radius: 8px; background: #fff; color: #37352f; box-shadow: rgba(0,0,0,.12) 0 1px 2px, #dfdfdf 0 0 0 1px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
 .sm-dl svg { width: 15px; height: 15px; }
 .changelog .pg { right: 110px; gap: 14px; }

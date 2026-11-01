@@ -29,6 +29,7 @@ export async function saveOrShare(opts: QrOptions, ref: string): Promise<'shared
 }
 
 export const QR_COPY = {
+  yourCode: 'Your QR Code',
   downloadPng: 'Download PNG',
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',

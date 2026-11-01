@@ -36,8 +36,12 @@ export const endingCopy = {
   removed: (ending: string) => `${ending} removed`,
 }
 
-/** More Link Options. Pro is shown with a badge on each label, never on a button. */
+/** Link tab. Pro is shown with a badge on each label, never on a button. */
 export const linkCopy = {
+  yourLink: 'Your Link',
+  edit: 'Edit',
+  done: 'Done',
+  customize: 'Customize',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'Choose what people see when you paste the link in a chat or a post.',
 }
@@ -66,32 +70,15 @@ export const planCopy = {
 }
 
 /**
- * Social and Email panels. Final wording from the copy review.
+ * Social tab. Final wording from the copy review.
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
-  messageLabel: 'Message',
-  edit: 'Edit',
-  editMessage: 'Edit message',
-  messageDone: 'Done',
-  messageHint: 'Used for every channel below. The link is added for you.',
-  messageEmpty: 'Just the link',
+  editLink: 'Edit link',
+  tagLine: 'We tag each link so you can see where responses come from.',
   copiedInline: 'Copied',
+  copyLink: 'Copy link',
+  open: 'Open',
   copyFor: (place: string) => `Copy link for ${place}`,
-  copyMessageAria: 'Copy message with the link',
-  defaultMessage: (title: string) => `I'd love your answers to ${title}.`,
-  send: 'Send',
-  copyMessageAndLink: 'Copy message',
-  messageCopied: 'Message copied',
-  linkCopied: 'Link copied',
-  emailIntro: 'Edit the message below, then send it from your mail app or paste it anywhere.',
-  subjectLabel: 'Subject',
-  bodyLabel: 'Message',
-  defaultSubject: (title: string) => `Got a minute? ${title}`,
-  defaultBody: (title: string) => `Hi,\n\nI'd love your answers to ${title}. Here's the link:`,
-  linkNote: 'The link is added at the end:',
-  openMail: 'Open in mail app',
-  copyEmail: 'Copy message',
-  emailCopied: 'Message copied',
-  emailHint: 'The link is tagged, so responses from email show up under Email in Insights.',
+  openFor: (place: string) => `Share link on ${place}`,
 }

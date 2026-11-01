@@ -15,14 +15,14 @@ export const guideCopy = {
       title: 'Start Here',
       items: [
         { id: 'publish-copy', text: 'Publish, then hit Copy.' },
-        { id: 'download-main', text: 'Download the main code from the QR Code tab.' },
+        { id: 'download-main', text: 'Download your QR code from the QR Code tab.' },
         { id: 'add-code', text: 'Add a code for a poster.' },
       ],
     },
     share: {
       title: 'Everything You Share, in One Place',
       items: [
-        { id: 'link-ending', text: 'Open More Link Options and change the link ending.' },
+        { id: 'link-ending', text: 'Tap the pencil on your link and change its ending.' },
         { id: 'rename', text: 'Rename a code. Its link stays the same.' },
         { id: 'dismiss-nudge', text: 'Dismiss the nudge.' },
       ],
@@ -30,7 +30,7 @@ export const guideCopy = {
     'insights-data': {
       title: 'See What Worked',
       items: [
-        { id: 'compare-sources', text: 'Compare Main QR code, Poster and Flyer in Sources.' },
+        { id: 'compare-sources', text: 'Compare QR Code, Poster and Flyer in Sources.' },
         { id: 'switch-states', text: 'Switch states in the prototype bar.' },
       ],
     },

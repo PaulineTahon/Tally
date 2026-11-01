@@ -3,7 +3,7 @@ import { ShareBlock } from './share'
 import { useIsMobile } from './store'
 
 /** Opens right after Publish. No celebration overlay in front of Copy, just a 🎉 in the title. */
-/** `first` is the first publish of the form: the sheet opens on QR Code. Reopening it keeps your last tab. */
+/** `first` is the first publish of the form: the sheet opens on Link. Reopening it keeps your last tab. */
 export function PublishedSheet({ open, first, onClose }: { open: boolean; first: boolean; onClose: () => void }) {
   const mobile = useIsMobile()
   return (
