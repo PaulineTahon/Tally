@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
   ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
+  ChartNoAxesColumn,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
@@ -94,7 +95,7 @@ export const emailHref = (link: string) => `mailto:?subject=${enc(FORM_TITLE)}&b
 const PREVIEW_DESC = 'Made with Tally, the simplest way to create forms.'
 
 export type ChannelView = 'ch-qr' | 'ch-social' | 'ch-embed'
-export type LinkView = 'main' | 'ending' | 'preview' | 'code' | ChannelView
+export type LinkView = 'main' | 'ending' | 'preview' | 'code' | 'track' | ChannelView
 
 /** Inside the share sheet a code opens as a detail view; anywhere else, in its own dialog. */
 /** In the share modal: the calm layout, one sentence and one block per tab. The Share tab page shows more. */
@@ -139,7 +140,7 @@ function PreviewCard({ img, title, desc }: { img: string; title: string; desc: s
 }
 
 export const VIEW_TITLE: Record<Exclude<LinkView, 'main' | 'code'>, string> = {
-  ending: linkCopy.endingRow, preview: linkCopy.previewRow, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed',
+  ending: linkCopy.endingRow, preview: linkCopy.previewRow, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed', track: jobsCopy.track,
 }
 
 /** Back arrow and title of a detail view. In the share modal it sits in the modal header; on the Share tab page, at the top of the view. */
@@ -481,10 +482,14 @@ function AddCodeBlock({ help = true }: { help?: boolean }) {
   )
 }
 
+/** Thumbnail size of a code in a list: the smallest that still scans on a 2x screen (phones, most laptops). */
+const CODE_ROW_THUMB = 56
+
 /* ---------- Panels ---------- */
 
 /** One channel row: the whole row is the tap target. WhatsApp opens, the rest copy and confirm in place. */
-function ChannelRow({ icon, label, href, text, aria }: { icon: ReactNode; label: string; href?: string; text?: string; aria: string }) {
+function ChannelRow({ icon, label, href, text, aria, toast = false }: { icon: ReactNode; label: string; href?: string; text?: string; aria: string; toast?: boolean }) {
+  const s = useStore()
   const [copied, setCopied] = useState(false)
   const timer = useRef<number>()
   const copy = async () => {
@@ -492,6 +497,8 @@ function ChannelRow({ icon, label, href, text, aria }: { icon: ReactNode; label:
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setCopied(false), 1600)
     if (text) await copyText(text)
+    // Jobs version: the same Copied, plus a bottom alert.
+    if (toast) s.toast(shareCopy.copiedFor(label))
   }
   useEffect(() => () => window.clearTimeout(timer.current), [])
   const body = <>
@@ -513,13 +520,13 @@ function ChannelRow({ icon, label, href, text, aria }: { icon: ReactNode; label:
 }
 
 /** One borderless row per place, each with its own tagged link. */
-function SocialList() {
+function SocialList({ toast = false }: { toast?: boolean }) {
   const s = useStore()
   return (
     <ul className="ch-list" aria-label="Social">
       {SOCIAL.map((x) => x.open
         ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.openFor(x.label)} href={x.open(s.url(x.ref))} />
-        : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} />)}
+        : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} toast={toast} />)}
       <ChannelRow icon={<Mail aria-hidden />} label="Email" aria={shareCopy.openFor('Email')} href={emailHref(s.url('email'))} />
     </ul>
   )
@@ -535,31 +542,58 @@ function SocialPanel() {
 }
 
 /**
- * Jobs version, under the link and its preview: QR code and Embed as two equal outlined buttons (each opens its own
- * view), then one section to track where responses come from: the social rows, the codes you made, Add another code.
+ * Jobs version, under the link and its preview: QR code and Embed as round buttons with a label, each opening its
+ * own view, then one row that opens the tracking page (social links and the codes you made).
  */
-function JobsMenu({ onEmbed }: { onEmbed: () => void }) {
-  const s = useStore()
+function JobsMenu({ onEmbed, onTrack }: { onEmbed: () => void; onTrack: () => void }) {
   const openCode = useOpenCode()
-  const made = s.placements.filter((p) => p.ref !== MAIN_QR)
+  const circle = (icon: ReactNode, label: string) => <><span className="lane-circle" aria-hidden>{icon}</span><span className="lane-label" aria-hidden>{label}</span></>
   return (
     <div className="stack gap-24">
-      <div className="jobs-buttons">
-        <button type="button" className="btn btn-secondary" data-row="jobs-qr" aria-haspopup="dialog" onClick={() => openCode(MAIN_QR)}><QrCode aria-hidden />{jobsCopy.qr}</button>
-        <button type="button" className="btn btn-secondary" data-row="ch-embed" aria-haspopup="dialog" onClick={onEmbed}><Code2 aria-hidden />{jobsCopy.embed}</button>
-      </div>
-      <section className="stack gap-8" aria-labelledby="jobs-track">
-        <div className="xs muted small-label" id="jobs-track">{jobsCopy.track}</div>
-        <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
-        <SocialList />
-        {made.length > 0 && (
-          <div className="stack gap-8 code-cards is-small">
-            {made.map((p) => <CodeCard key={p.ref} p={p} />)}
-          </div>
-        )}
-        <AddCodeBlock help={false} />
-      </section>
+      <ul className="lane" aria-label={jobsCopy.laneLabel}>
+        <li><button type="button" className="lane-btn" data-row="jobs-qr" aria-haspopup="dialog" aria-label={jobsCopy.qrAria} onClick={() => openCode(MAIN_QR)}>{circle(<QrCode />, jobsCopy.qr)}</button></li>
+        <li><button type="button" className="lane-btn" data-row="ch-embed" aria-haspopup="dialog" aria-label={jobsCopy.embedAria} onClick={onEmbed}>{circle(<Code2 />, jobsCopy.embed)}</button></li>
+      </ul>
+      <ActionRow icon={<ChartNoAxesColumn />} label={jobsCopy.track} dataRow="track" onClick={onTrack} />
     </div>
+  )
+}
+
+/** Jobs version, the tracking page: one line, a tagged link per place, the codes you made, Add another code. */
+function JobsTracking() {
+  const s = useStore()
+  const made = s.placements.filter((p) => p.ref !== MAIN_QR)
+  return (
+    <div className="stack gap-24 jobs-track">
+      <div className="stack gap-8">
+        <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+        <SocialList toast />
+      </div>
+      <div className="stack gap-8">
+        {made.length > 0 && <ul className="code-rows" aria-label={jobsCopy.codes}>{made.map((p) => <CodeRow key={p.ref} p={p} />)}</ul>}
+        <AddCodeBlock help={false} />
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A code as a list item: small thumbnail and name. The whole row opens the code's page (a stretched button);
+ * Download sits above it, so it downloads without opening anything.
+ */
+export function CodeRow({ p, name }: { p: Source; name?: string }) {
+  const s = useStore()
+  const openCode = useOpenCode()
+  const link = qrUrl(p.ref)
+  const label = name ?? p.label
+  return (
+    <li className="code-row">
+      <span className="code-row-thumb"><QrImage url={link} style={s.settings.style} size={CODE_ROW_THUMB} label={`QR code that opens ${link.replace('https://', '')}`} /></span>
+      <button type="button" className="code-row-open" aria-label={`${label} QR code, open details`} onClick={() => openCode(p.ref)}>
+        <span className="code-row-name">{label}</span>
+      </button>
+      <div className="code-row-dl"><DownloadSplit refId={p.ref} label={p.label} /></div>
+    </li>
   )
 }
 
@@ -623,13 +657,14 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const panels: { key: Slot; node: ReactNode }[] = [
     ...(entry
       ? [
-        { key: 'menu' as Slot, node: jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
+        { key: 'menu' as Slot, node: jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} onTrack={() => nav.go('track')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
         ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> }))),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
     ...(pageModal ? [] : [
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
+      { key: 'track' as Slot, node: <div className="stack gap-12">{head('track')}<JobsTracking /></div> },
       { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
     ]),
   ]
@@ -641,6 +676,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
     : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
     : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
+    : view === 'track' ? <JobsTracking />
     : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} /> : null
   return (
     <CompactCtx.Provider value={inModal}>

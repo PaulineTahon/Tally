@@ -154,6 +154,7 @@ export const shareCopy = {
   copyLink: 'Copy link',
   open: 'Open',
   copyFor: (place: string) => `Copy link for ${place}`,
+  copiedFor: (place: string) => `Link for ${place} copied`,
   openFor: (place: string) => `Share link on ${place}`,
 }
 
@@ -161,6 +162,10 @@ export const shareCopy = {
 export const jobsCopy = {
   qr: 'QR code',
   embed: 'Embed',
+  qrAria: 'Open your QR code',
+  embedAria: 'Embed the form on your website',
+  laneLabel: 'Ways to share',
   track: 'Track where responses come from',
-  trackLine: 'Each link or code gets its own tag, so you can see results in',
+  codes: 'Your other QR codes',
+  trackLine: 'Each link or code gets its own tag. See results in',
 }
