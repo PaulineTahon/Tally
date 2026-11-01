@@ -123,6 +123,8 @@ export type ViewNav = ReturnType<typeof useViewStack>
 
 /** `?variant=entry`: three entry rows instead of the tabs, each opening its own subpage. Tabs stay the default. */
 export const entryVariant = () => /[?&]variant=entry\b/.test(window.location.hash + window.location.search)
+/** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
+export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.hash + window.location.search)
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
@@ -241,14 +243,17 @@ function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void 
           <input id="lt-domain" aria-label="Custom domain" placeholder="forms.yourdomain.com" value={domain} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
         </div>
       </div>
-      <div className="stack gap-8">
-        <label className="field-label" htmlFor="lt-ending">{endingCopy.label}</label>
-        <span className="xs muted">{cleanDomain ? endingCopy.help : endingCopy.needsDomain}</span>
-        <div className="input-group">
-          <span className="prefix">{cleanDomain || 'forms.yourdomain.com'}/</span>
-          <input id="lt-ending" aria-label="Link ending" placeholder="summer-rsvp" disabled={!cleanDomain} value={ending} onChange={(e) => setEnding(slugify(e.target.value))} />
+      {/* The ending lives on your domain, so it only appears once there is one. Focus stays in the domain field. */}
+      <Collapse open={!!cleanDomain} gap={12}>
+        <div className="stack gap-8">
+          <label className="field-label" htmlFor="lt-ending">{endingCopy.label}</label>
+          <span className="xs muted">{endingCopy.help}</span>
+          <div className="input-group">
+            <span className="prefix">{cleanDomain || 'forms.yourdomain.com'}/</span>
+            <input id="lt-ending" aria-label="Link ending" placeholder="summer-rsvp" value={ending} onChange={(e) => setEnding(slugify(e.target.value))} />
+          </div>
         </div>
-      </div>
+      </Collapse>
       <div className="lt-result" aria-live="polite">
         <span className="lt-result-label">{dirty ? endingCopy.newLink : endingCopy.yourLink}</span>
         <span className="lt-result-url">{next}</span>
@@ -695,7 +700,14 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const inModal = !!ctlNav
   const { view } = nav
   const s = useStore()
-  const entry = entryVariant()
+  const tiles = tilesVariant()
+  // Switching version from the prototype bar starts the sheet over on its overview.
+  const version = tiles ? 'tiles' : entryVariant() ? 'entry' : 'tabs'
+  const { reset } = nav
+  const firstVersion = useRef(version)
+  useEffect(() => { if (firstVersion.current !== version) { firstVersion.current = version; reset() } }, [version, reset])
+  // Entry rows and tiles work the same way: an overview, and each way to share as its own subpage.
+  const entry = entryVariant() || tiles
   useViewFocus(view, nav.depth)
   // A download alert belongs to the place it came from: switching tab or view clears it.
   const { dismissGroup } = s
@@ -713,7 +725,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const panels: { key: Slot; node: ReactNode }[] = [
     ...(entry
       ? [
-        { key: 'menu' as Slot, node: <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
+        { key: 'menu' as Slot, node: tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
         ...CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> })),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
@@ -731,6 +743,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
           <div className="stack gap-12" style={{ paddingBottom: entry ? 8 : 16 }}>
             <LinkBar onEdit={() => nav.go('ending')} />
             <div className="stack">
+              {tiles && <div className="xs muted small-label" id="lp-label">Link preview</div>}
               <PreviewStrip draft={saved} />
               <ActionRow icon={<ImageIcon />} label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
             </div>
@@ -744,11 +757,35 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   )
 }
 
+/** The tiles variant: three quiet tiles side by side, icon on top and label below, each opening its own subpage. */
+function ShareTiles({ onOpen }: { onOpen: (c: Channel) => void }) {
+  const tiles: { c: Channel; icon: ReactNode; label: string }[] = [
+    { c: 'qr', icon: <QrCode />, label: 'QR Code' },
+    { c: 'social', icon: <Megaphone />, label: 'Social' },
+    { c: 'embed', icon: <Code2 />, label: 'Embed' },
+  ]
+  return (
+    <div className="stack gap-8">
+      <div className="xs muted small-label" id="share-to-label">Share to</div>
+      <div className="share-tiles" role="list" aria-labelledby="share-to-label">
+        {tiles.map((t) => (
+          <span role="listitem" key={t.c}>
+            <button type="button" className="share-tile" data-row={`ch-${t.c}`} onClick={() => onOpen(t.c)}>
+              <span className="share-tile-ic" aria-hidden>{t.icon}</span>
+              <span className="share-tile-label">{t.label}</span>
+            </button>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /** The entry variant: one row per way to share, each opening its own subpage. */
 function EntryRows({ onOpen }: { onOpen: (c: Channel) => void }) {
   return (
     <div className="stack gap-8">
-      <div className="xs muted" style={{ fontWeight: 600 }}>Share to</div>
+      <div className="xs muted small-label">Share to</div>
       <div className="entry-rows" role="list">
         <span role="listitem"><ActionRow icon={<QrCode />} label="QR Code" help="Download a code to print" dataRow="ch-qr" onClick={() => onOpen('qr')} /></span>
         <span role="listitem"><ActionRow icon={<Megaphone />} label="Social" help="A tagged link for each app" dataRow="ch-social" onClick={() => onOpen('social')} /></span>

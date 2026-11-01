@@ -34,7 +34,6 @@ export const ENDING_GONE_NOTE = "Custom links you've already shared stop working
 export const endingCopy = {
   label: 'Link Ending',
   help: 'Pick your own ending on your domain, like forms.yourdomain.com/summer-rsvp.',
-  needsDomain: 'Add your domain first. Endings live on your own domain.',
   newLink: 'New link',
   yourLink: 'Your link',
   save: 'Save',

@@ -12,14 +12,27 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-function readRoute(): { route: Route; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
+/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles. */
+type Variant = '' | 'entry' | 'tiles'
+const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }]
+function setVariant(v: Variant) {
+  const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
+  const p = new URLSearchParams(q)
+  if (v) p.set('variant', v); else p.delete('variant')
+  const qs = p.toString()
+  window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
+}
+
+function readRoute(): { route: Route; variant: Variant; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
   const route: Route = path === 'share' ? 'share' : path === 'insights' || path === 'results' ? 'insights' : path === 'submissions' ? 'submissions' : 'edit'
   const st = p.get('state')
+  const v = p.get('variant')
   return {
     route,
+    variant: v === 'entry' || v === 'tiles' ? v : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -105,6 +118,15 @@ function Inner() {
           <option value="id">tally.so link</option>
           <option value="custom">Custom ending</option>
         </select>
+        {/* Prototype only: switch between the three share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
+        {(r.route === 'edit' || r.route === 'share') && (
+          <span className="proto-version" role="group" aria-label="Share sheet version">
+            <span className="proto-version-label">Version:</span>
+            {VERSIONS.map((v) => (
+              <button key={v.id} type="button" aria-pressed={r.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</button>
+            ))}
+          </span>
+        )}
         {page && !mobile && g.hidden && <button type="button" className="proto-guide" onClick={g.show}>{guideCopy.restore}</button>}
         {page && mobile && <button type="button" className="proto-guide" aria-expanded={guideOpen} onClick={() => setGuideOpen((v) => !v)}>{guideCopy.mobileToggle(g.left)}</button>}
         {mobile && <button type="button" className="proto-close" aria-label="Hide prototype bar" onClick={() => setNavOpen(false)}>✕</button>}

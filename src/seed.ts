@@ -10,7 +10,7 @@ export interface SeedPlace { ref: string; label: string; kind: 'qr' | 'social' |
 
 export const MAIN_QR = 'qr'
 /** The form's own code is just called QR Code; the QR Code tab titles it Your QR Code. */
-export const MAIN_QR_LABEL = 'QR Code'
+export const MAIN_QR_LABEL = 'Your QR Code'
 
 /** Insights label for a ref it doesn't recognise. */
 export const OTHER_LABEL = 'Other'

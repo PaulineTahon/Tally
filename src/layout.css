@@ -823,3 +823,28 @@ a.list-row { text-decoration: none; color: inherit; }
 .split-out.is-upgrade { flex-direction: column; align-items: stretch; gap: 4px; }
 .split-out.is-upgrade .split-plain { justify-content: center; }
 .logo-row { gap: 12px; }
+/* Small grey labels over a group: Share to, and Link preview in the tiles variant. */
+.small-label { font-weight: 600; }
+#lp-label { margin-bottom: 6px; }
+/* Tiles variant: three quiet tiles, never black. */
+.share-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.share-tiles > span { display: flex; }
+.share-tile { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 72px; padding: 10px 6px; border: 1px solid var(--divider); border-radius: 10px; background: #fff; font: inherit; font-size: 14px; font-weight: 500; color: var(--text); cursor: pointer; transition: background-color 120ms ease, border-color 120ms ease; }
+.share-tile-ic { display: inline-flex; color: var(--grey-2); }
+.share-tile-ic svg { width: 20px; height: 20px; }
+.share-tile-label { white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) { .share-tile:hover { background: var(--hover); border-color: var(--grey-4, #d9d9d6); } .share-tile:hover .share-tile-ic { color: var(--text); } }
+.share-tile:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 757px) { .share-tile { min-height: 64px; } }
+@media (prefers-reduced-motion: reduce) { .share-tile { transition: none; } }
+/* Prototype bar: Version: Tabs | Rows | Tiles. Prototype only, hidden in captures. */
+.proto-version { display: inline-flex; align-items: center; gap: 2px; margin-left: 4px; padding-left: 6px; border-left: 1px solid var(--divider); }
+.proto-version-label { padding: 0 4px; color: var(--grey-2); font-weight: 500; }
+.proto-version button { border: 0; background: none; font: inherit; padding: 5px 8px; border-radius: 6px; color: var(--grey-2); font-weight: 500; cursor: pointer; }
+.proto-version button:hover { background: var(--hover); }
+.proto-version button[aria-pressed='true'] { color: var(--text); background: var(--surface-2); }
+.proto-version button:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+html.is-capture .proto-version { display: none !important; }
+@media (max-width: 757px) { .proto-version { border-left: 0; margin-left: 0; padding-left: 0; } }
+/* The prototype bar stays usable over an open share sheet, so versions can be compared without closing it. */
+.proto-nav { z-index: 55; }

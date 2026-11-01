@@ -31,6 +31,7 @@ export interface QrOptions {
 
 export interface Matrix {
   size: number
+  version: number
   get: (x: number, y: number) => boolean
 }
 
@@ -39,7 +40,7 @@ export function matrix(url: string): Matrix {
   const qr = QRCode.create(url, { errorCorrectionLevel: 'H' })
   const size = qr.modules.size
   const data = qr.modules.data
-  return { size, get: (x, y) => data[y * size + x] === 1 }
+  return { size, version: qr.version, get: (x, y) => data[y * size + x] === 1 }
 }
 
 export const QUIET = 4
@@ -87,29 +88,79 @@ export function logoMarkup(st: QrStyle, x: number, y: number, s: number, layer: 
   return `${open}${quiet}${tile}<g transform="translate(${x + m + p} ${y + m + p + (128 - 124) * k / 2}) scale(${k})"><path d="${TALLY_PATH}" fill="#fff"/></g></g>`
 }
 
-/** Path data for the data modules (finders drawn separately), in module units, offset by the quiet zone. */
-export function modulePath(m: Matrix, withLogo = true, withFinders = false) {
+/**
+ * Rounded style, the default for every code: each dark module is its own round dot, never merged with its
+ * neighbours, and the three corner eyes keep the square finder shape with rounded corners on the outer ring
+ * and the inner square. Pure black on white, quiet zone of QUIET modules, error correction H.
+ */
+export const DOT_R = 0.46
+/** Corner radii of the eyes, in modules: outer ring (outside and inside edge) and the inner square. */
+export const EYE_R = { outer: 2, hole: 1.2, inner: 1 }
+
+const circle = (cx: number, cy: number, r: number) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0z`
+/** A rounded rectangle as path data, clockwise or (for holes) counter-clockwise. */
+export function roundRect(x: number, y: number, w: number, h: number, r: number, ccw = false) {
+  const q = (n: number) => +n.toFixed(4)
+  if (!ccw) return `M${q(x + r)} ${q(y)}h${q(w - 2 * r)}a${r} ${r} 0 0 1 ${r} ${r}v${q(h - 2 * r)}a${r} ${r} 0 0 1 ${-r} ${r}h${q(-(w - 2 * r))}a${r} ${r} 0 0 1 ${-r} ${-r}v${q(-(h - 2 * r))}a${r} ${r} 0 0 1 ${r} ${-r}z`
+  return `M${q(x + r)} ${q(y)}a${r} ${r} 0 0 0 ${-r} ${r}v${q(h - 2 * r)}a${r} ${r} 0 0 0 ${r} ${r}h${q(w - 2 * r)}a${r} ${r} 0 0 0 ${r} ${-r}v${q(-(h - 2 * r))}a${r} ${r} 0 0 0 ${-r} ${-r}z`
+}
+
+/** Path data for the data modules (eyes drawn separately), in module units, offset by the quiet zone. */
+export function modulePath(m: Matrix, withLogo = true) {
   let d = ''
+  const al = alignCentres(m)
   for (let y = 0; y < m.size; y++) {
     for (let x = 0; x < m.size; x++) {
-      if (!m.get(x, y)) continue
-      if (!withFinders && inFinder(m, x, y)) continue
+      if (!m.get(x, y) || inFinder(m, x, y) || inAlign(al, x, y)) continue
       if (withLogo && inLogo(m, x, y)) continue
-      d += `M${x + QUIET} ${y + QUIET}h1v1h-1z`
+      d += circle(x + QUIET + 0.5, y + QUIET + 0.5, DOT_R)
     }
   }
   return d
 }
 
-/** The three corner eyes, in black. */
-export function finderSvg(m: Matrix, unit: number) {
-  const n = m.size
-  return [[0, 0], [n - 7, 0], [0, n - 7]].map(([fx, fy]) => {
-    const x = (fx + QUIET) * unit
-    const y = (fy + QUIET) * unit
-    return `<path d="M${x} ${y}h${7 * unit}v${7 * unit}h${-7 * unit}z M${x + unit} ${y + unit}v${5 * unit}h${5 * unit}v${-5 * unit}z" fill="${QR_INK}" fill-rule="evenodd"/>` +
-      `<rect x="${x + 2 * unit}" y="${y + 2 * unit}" width="${3 * unit}" height="${3 * unit}" fill="${QR_INK}"/>`
+/** Centres of the small alignment patterns, the same positions the QR standard (and the qrcode library) uses. */
+export function alignCentres(m: Matrix): [number, number][] {
+  const v = m.version
+  if (v === 1) return []
+  const count = Math.floor(v / 7) + 2
+  const step = m.size === 145 ? 26 : Math.ceil((m.size - 13) / (2 * count - 2)) * 2
+  const pos = [m.size - 7]
+  for (let i = 1; i < count - 1; i++) pos[i] = pos[i - 1] - step
+  pos.push(6)
+  pos.reverse()
+  const out: [number, number][] = []
+  for (const y of pos) for (const x of pos) {
+    if ((x === 6 && y === 6) || (x === 6 && y === m.size - 7) || (y === 6 && x === m.size - 7)) continue
+    if (inLogo(m, x, y)) continue
+    out.push([x, y])
+  }
+  return out
+}
+const inAlign = (al: [number, number][], x: number, y: number) => al.some(([cx, cy]) => Math.abs(x - cx) <= 2 && Math.abs(y - cy) <= 2)
+
+export const eyeOrigins = (m: Matrix) => [[0, 0], [m.size - 7, 0], [0, m.size - 7]].map(([x, y]) => [x + QUIET, y + QUIET])
+
+/** Corner radii of the small alignment patterns: a rounded 5-module ring around one round dot. */
+export const ALIGN_R = { outer: 1.4, hole: 0.8 }
+
+/**
+ * The three corner eyes as one path in module units: rounded ring (with its hole drawn the other way round)
+ * plus a rounded inner square. The small alignment patterns get the same rounded ring, so scanners still find them.
+ */
+export function eyePath(m: Matrix) {
+  const eyes = eyeOrigins(m).map(([x, y]) =>
+    roundRect(x, y, 7, 7, EYE_R.outer) + roundRect(x + 1, y + 1, 5, 5, EYE_R.hole, true) + roundRect(x + 2, y + 2, 3, 3, EYE_R.inner)).join('')
+  const aligns = alignCentres(m).map(([cx, cy]) => {
+    const x = cx + QUIET - 2, y = cy + QUIET - 2
+    return roundRect(x, y, 5, 5, ALIGN_R.outer) + roundRect(x + 1, y + 1, 3, 3, ALIGN_R.hole, true) + circle(x + 2.5, y + 2.5, DOT_R)
   }).join('')
+  return eyes + aligns
+}
+
+/** The three corner eyes, in black, at `unit` px per module. */
+export function finderSvg(m: Matrix, unit: number) {
+  return `<path transform="scale(${unit})" d="${eyePath(m)}" fill="${QR_INK}"/>`
 }
 
 /** Just the code, no caption. Used on screen and inside the visuals. */
@@ -131,7 +182,7 @@ export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${codeW} ${h}" width="${codeW}" height="${h}">`,
     `<rect width="${codeW}" height="${h}" fill="#ffffff"/>`,
     `<g id="QR code">`,
-    `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${QR_INK}" shape-rendering="crispEdges"/>`,
+    `<path transform="scale(${unit})" d="${modulePath(m, hasLogo(o.style))}" fill="${QR_INK}"/>`,
     finderSvg(m, unit),
     logoMarkup(o.style, logoXY, logoXY, logoS),
     `</g>`,
@@ -173,7 +224,6 @@ async function svgToCanvas(svg: string, scale: number) {
   c.width = img.width * scale
   c.height = img.height * scale
   const ctx = c.getContext('2d')!
-  ctx.imageSmoothingEnabled = false
   ctx.drawImage(img, 0, 0, c.width, c.height)
   return c
 }
@@ -182,7 +232,11 @@ async function svgToCanvas(svg: string, scale: number) {
 export async function pngBlob(o: QrOptions): Promise<Blob> {
   const svg = buildSvg(o)
   const w = Number(/width="(\d+)"/.exec(svg)?.[1] ?? 400)
-  const c = await svgToCanvas(svg, Math.ceil(PNG_MIN_PX / w))
+  const h = Number(/height="(\d+)"/.exec(svg)?.[1] ?? 400)
+  // Rasterise the vector at print size, so the round dots and eyes stay smooth.
+  const k = Math.ceil(PNG_MIN_PX / w)
+  const big = svg.replace(`width="${w}" height="${h}"`, `width="${w * k}" height="${h * k}"`)
+  const c = await svgToCanvas(big, 1)
   return new Promise((res) => c.toBlob((b) => res(b!), 'image/png'))
 }
 
@@ -195,17 +249,26 @@ export async function pdfBlob(o: QrOptions): Promise<Blob> {
   const unit = total / (m.size + QUIET * 2)
   const x0 = (210 - total) / 2
   const y0 = Math.max(20, (297 - total) / 2 - 20)
+  // Same rounded style as the SVG, as vector shapes: round dots, and eyes as rounded squares.
+  const al = alignCentres(m)
   doc.setFillColor(0, 0, 0)
   for (let y = 0; y < m.size; y++)
     for (let x = 0; x < m.size; x++)
-      if (m.get(x, y) && !(hasLogo(o.style) && inLogo(m, x, y)) && !inFinder(m, x, y))
-        doc.rect(x0 + (x + QUIET) * unit, y0 + (y + QUIET) * unit, unit + 0.01, unit + 0.01, 'F')
-  for (const [fx, fy] of [[0, 0], [m.size - 7, 0], [0, m.size - 7]]) {
-    const x = x0 + (fx + QUIET) * unit
-    const y = y0 + (fy + QUIET) * unit
-    doc.rect(x, y, 7 * unit, unit, 'F'); doc.rect(x, y + 6 * unit, 7 * unit, unit, 'F')
-    doc.rect(x, y, unit, 7 * unit, 'F'); doc.rect(x + 6 * unit, y, unit, 7 * unit, 'F')
-    doc.rect(x + 2 * unit, y + 2 * unit, 3 * unit, 3 * unit, 'F')
+      if (m.get(x, y) && !(hasLogo(o.style) && inLogo(m, x, y)) && !inFinder(m, x, y) && !inAlign(al, x, y))
+        doc.circle(x0 + (x + QUIET + 0.5) * unit, y0 + (y + QUIET + 0.5) * unit, DOT_R * unit, 'F')
+  for (const [ex, ey] of eyeOrigins(m)) {
+    const x = x0 + ex * unit
+    const y = y0 + ey * unit
+    doc.setFillColor(0, 0, 0); doc.roundedRect(x, y, 7 * unit, 7 * unit, EYE_R.outer * unit, EYE_R.outer * unit, 'F')
+    doc.setFillColor(255, 255, 255); doc.roundedRect(x + unit, y + unit, 5 * unit, 5 * unit, EYE_R.hole * unit, EYE_R.hole * unit, 'F')
+    doc.setFillColor(0, 0, 0); doc.roundedRect(x + 2 * unit, y + 2 * unit, 3 * unit, 3 * unit, EYE_R.inner * unit, EYE_R.inner * unit, 'F')
+  }
+  for (const [cx, cy] of al) {
+    const x = x0 + (cx + QUIET - 2) * unit
+    const y = y0 + (cy + QUIET - 2) * unit
+    doc.setFillColor(0, 0, 0); doc.roundedRect(x, y, 5 * unit, 5 * unit, ALIGN_R.outer * unit, ALIGN_R.outer * unit, 'F')
+    doc.setFillColor(255, 255, 255); doc.roundedRect(x + unit, y + unit, 3 * unit, 3 * unit, ALIGN_R.hole * unit, ALIGN_R.hole * unit, 'F')
+    doc.setFillColor(0, 0, 0); doc.circle(x + 2.5 * unit, y + 2.5 * unit, DOT_R * unit, 'F')
   }
   if (hasLogo(o.style)) {
     // Logo tile, rendered from the same SVG markup.

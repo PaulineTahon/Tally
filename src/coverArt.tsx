@@ -1,4 +1,4 @@
-import { DEFAULT_STYLE, LOGO_RATIO, QUIET, logoMarkup, matrix, modulePath } from './qr'
+import { DEFAULT_STYLE, LOGO_RATIO, QUIET, eyePath, logoMarkup, matrix, modulePath } from './qr'
 
 /* Shared drawing pieces for the visuals page and the form header in the prototype. */
 
@@ -8,23 +8,17 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 
 export const PINK = '#F81CE5'
 
-/** A real, scannable code drawn as SVG, the same as the product: black, with a white Tally asterisk on a black tile. */
+/** A real, scannable code drawn as SVG, the same as the product: rounded dots and eyes in black, with a white Tally asterisk on a black tile. */
 export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
-  const eyes = [[0, 0], [m.size - 7, 0], [0, m.size - 7]]
   const ls = m.size * LOGO_RATIO
   const lx = (n - ls) / 2
   return (
     <g data-layer="QR code" transform={`translate(${x} ${y}) scale(${size / n})`}>
       <rect width={n} height={n} fill="#fff" />
-      <path d={modulePath(m, true)} fill="#000" shapeRendering="crispEdges" />
-      {eyes.map(([ex, ey]) => (
-        <g key={`${ex}-${ey}`} transform={`translate(${ex + QUIET} ${ey + QUIET})`}>
-          <path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill="#000" fillRule="evenodd" />
-          <rect x={2} y={2} width={3} height={3} fill="#000" />
-        </g>
-      ))}
+      <path data-layer="Dots" d={modulePath(m, true)} fill="#000" />
+      <path data-layer="Corner eyes" d={eyePath(m)} fill="#000" />
       <g dangerouslySetInnerHTML={{ __html: logoMarkup(DEFAULT_STYLE, lx, lx, ls, 'data-layer') }} />
     </g>
   )
