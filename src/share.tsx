@@ -4,8 +4,8 @@ import {
   ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
   ChartNoAxesColumn, MoreHorizontal, Trash2,
 } from 'lucide-react'
-import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useStore } from './store'
-import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
+import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
+import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
 import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
 import { tick } from './guide'
@@ -444,9 +444,6 @@ function AddCodeBlock({ help = true }: { help?: boolean }) {
   )
 }
 
-/** Thumbnail size of a code in a list: the smallest that still scans on a 2x screen (phones, most laptops). */
-const CODE_ROW_THUMB = 56
-
 /* ---------- Panels ---------- */
 
 /** One channel row: the whole row is the tap target. WhatsApp opens, the rest copy and confirm in place. */
@@ -540,13 +537,12 @@ function JobsTracking() {
 }
 
 /**
- * A code as a list item: small thumbnail and name. The whole row opens the code's page (a stretched button);
+ * A code as a list item: QR icon and name. The whole row opens the code's page (a stretched button);
  * Download and, on codes you made, More options sit above it, so they never open the page.
  */
 export function CodeRow({ p, name }: { p: Source; name?: string }) {
   const s = useStore()
   const openCode = useOpenCode()
-  const link = qrUrl(p.ref)
   const label = name ?? p.label
   const more = useRef<HTMLButtonElement>(null)
   const row = useRef<HTMLLIElement>(null)
@@ -567,7 +563,8 @@ export function CodeRow({ p, name }: { p: Source; name?: string }) {
   }
   return (
     <li ref={row} className="code-row" data-ref={p.ref}>
-      <span className="code-row-thumb"><QrImage url={link} style={s.settings.style} size={CODE_ROW_THUMB} label={`QR code that opens ${link.replace('https://', '')}`} /></span>
+      {/* The QR icon, like on the QR Code tab: the scannable code is on the code's page and in downloads. */}
+      <span className="code-row-icon" aria-hidden><QrCode /></span>
       <button type="button" className="code-row-open" aria-label={QR_COPY.openFor(label)} onClick={() => openCode(p.ref)}>
         <span className="code-row-name">{label}</span>
       </button>
