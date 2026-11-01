@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, Check, Copy } from 'lucide-react'
+import { Download, Check, Copy, ChevronDown, Plus, QrCode, Megaphone, Code2 } from 'lucide-react'
 import { CoverArt, PINK, Qr, QrBox, VISUAL_URL, rect, wobble } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
@@ -115,57 +115,73 @@ function Wordmark() {
   return <img className="wordmark" src={`${import.meta.env.BASE_URL}tally-wordmark.png`} alt="tally" />
 }
 
-/** The new QR panel, as it looks in the product. */
-/** The Share tab with the QR Code tab open, as in the prototype. */
+/**
+ * The Share tab as it looks now (Tabs version, Social as rows): the link with Copy and Use custom domain, the link
+ * preview with Customize preview, then the QR Code tab with each code as a row. Your QR Code is open on the right,
+ * on its own page: the real code, Download and the logo.
+ */
 function ShareTabMock({ url }: { url: string }) {
-  const Row = ({ name, n }: { name: string; n: string }) => (
-    <div className="sm-row">
-      <span className="sm-thumb"><QrIcon /></span>
-      <span className="sm-name">{name}</span><span className="sm-n">{n}</span>
-      <span className="sm-icon"><Download aria-hidden /></span><span className="sm-more">···</span>
+  const Row = ({ name, on = false }: { name: string; on?: boolean }) => (
+    <div className={`cm-row ${on ? 'is-on' : ''}`}>
+      <span className="cm-tile"><QrCode aria-hidden /></span>
+      <span className="cm-name">{name}</span>
+      <span className="cm-split"><span><Download aria-hidden />Download PNG</span><span className="cm-caret"><ChevronDown aria-hidden /></span></span>
+      {on ? <span className="cm-more" /> : <span className="cm-more">···</span>}
     </div>
   )
   return (
-    <div className="pg" data-layer="Share tab UI" aria-hidden>
-      <b className="pg-title">Community picnic RSVP</b>
-      <div className="pg-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span><span>Settings</span></div>
-      <div className="pg-link">
-        <span className="pg-input">tally.so/r/KpYalV</span>
-        <span className="pg-copy"><Copy aria-hidden />Copy</span>
+    <div className="cm" data-layer="Share tab UI" aria-hidden>
+      <b className="cm-title">Community picnic RSVP</b>
+      <div className="cm-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span></div>
+      <div className="cm-block">
+        <div className="cm-link"><span className="cm-input">tally.so/r/KpYalV</span><span className="cm-copy"><Copy aria-hidden />Copy</span></div>
+        <span className="cm-text">Use custom domain<span className="cm-pro">Pro</span></span>
       </div>
-      <div className="pg-card" data-layer="Link preview card">
-        <img className="pg-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
-        <span className="pg-card-text"><span className="pg-card-title">Community picnic RSVP</span><span className="pg-card-site">tally.so</span></span>
-      </div>
-      <div className="pg-act" data-layer="Customize row"><span className="pg-act-label">Customize preview<span className="pg-pro">Pro</span></span><span className="pg-chev">›</span></div>
-      <div className="sm-seg"><span className="on">QR Code</span><span>Social</span><span>Embed</span></div>
-      <div className="sm-list">
-        <div className="sm-row is-main">
-          <span className="sm-big" data-layer="Your QR Code"><QrBox size={132} url={url} label="QR code" /></span>
-          <span className="sm-main-text"><span className="sm-name">Your QR Code</span><span className="sm-n">Ready to print</span></span>
-          <span className="sm-dl"><Download aria-hidden />Download SVG</span>
+      <div className="cm-block">
+        <span className="cm-label">Link preview</span>
+        <div className="cm-card" data-layer="Link preview card">
+          <img className="cm-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
+          <span className="cm-card-text"><span className="cm-card-title">Community picnic RSVP</span><span className="cm-card-site">tally.so</span></span>
         </div>
-        <Row name="Poster" n="2 responses" />
-        <Row name="Flyer" n="1 response" />
+        <span className="cm-text">Customize preview<span className="cm-pro">Pro</span></span>
+      </div>
+      <div className="cm-block">
+        <span className="cm-label">More ways to share</span>
+        <div className="cm-seg"><span className="on"><QrCode aria-hidden />QR Code</span><span><Megaphone aria-hidden />Social</span><span><Code2 aria-hidden />Embed</span></div>
+        <span className="cm-desc">Print it or add it to slides. Responses are tagged, see them in <u>Insights</u>.</span>
+        <div className="cm-rows">
+          <Row name="Your QR Code" on />
+          <Row name="Poster" />
+          <Row name="Flyer" />
+        </div>
+        <span className="cm-text">Customize QR code<span className="cm-pro">Pro</span></span>
+        <span className="cm-add"><Plus aria-hidden />Add another code</span>
       </div>
     </div>
   )
 }
 
-const QrIcon = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <rect width="5" height="5" x="3" y="3" rx="1" /><rect width="5" height="5" x="16" y="3" rx="1" /><rect width="5" height="5" x="3" y="16" rx="1" />
-    <path d="M21 16h-3a2 2 0 0 0-2 2v3M21 21v.01M12 7v3a2 2 0 0 1-2 2H7M3 12h.01M12 3h.01M12 16v.01M16 12h1M21 12v.01M12 21v-1" />
-  </svg>
-)
+/** Your QR Code on its own page: the real, scannable code, Download, and your logo. */
+function CodePageMock({ url }: { url: string }) {
+  return (
+    <div className="cp" data-layer="Code page" aria-hidden>
+      <div className="cp-head"><b>Your QR Code</b><span className="cp-x">×</span></div>
+      <div className="cp-code" data-layer="Your QR Code"><QrBox size={176} url={url} label="QR code" /></div>
+      <span className="cp-link">tally.so/r/KpYalV</span>
+      <span className="cp-split"><span><Download aria-hidden />Download PNG</span><span className="cp-caret"><ChevronDown aria-hidden /></span></span>
+      <span className="cp-sep" />
+      <div className="cp-logo"><span><b>Add your logo</b><span className="cm-pro">Pro</span></span><span className="cp-up">Upload</span></div>
+    </div>
+  )
+}
 
 function Changelog() {
   return (
     <div className="art changelog">
       <div className="cl-wm" data-layer="Tally wordmark"><Wordmark /></div>
       <div className="cl-copy" data-layer="Copy">
-        <h1 data-layer="Headline">Your forms, out in the real world</h1>
-        <p data-layer="Subline">Every form now comes with a QR code, ready the moment you publish.</p>
+        <h1 data-layer="Headline">Share your form anywhere</h1>
+        <p data-layer="Subline">QR codes, tagged links and embeds, all in Share. See what brings in responses.</p>
       </div>
       <div className="browser" data-layer="Browser window">
         <div className="browser-bar" data-layer="Browser bar">
@@ -176,21 +192,21 @@ function Changelog() {
           <ShareTabMock url={VISUAL_URL('qr-changelog')} />
         </div>
       </div>
+      <CodePageMock url={VISUAL_URL('qr-changelog')} />
     </div>
   )
 }
 
 /** The changelog post, in one place. */
 const POST = {
-  title: 'Your forms, out in the real world',
-  body: 'Some forms work best in person: on a poster, a flyer, a menu, a slide or a name badge. Every form now comes with a QR code, ready the moment you publish. Open Share and your code is waiting in the QR Code tab.',
+  title: 'Share your form anywhere',
+  body: 'Share now has everything you need to get your form in front of people, and to see what works.',
   bullets: [
-    ['Ready to print.', 'Download SVG, PDF or a high-res PNG. SVG and PDF stay sharp at any size, from a sticker to a banner.'],
-    ['One code per place.', 'Using your form in more than one place? Add a code for each one, for free, and Insights shows which one brings in responses.'],
-    ['Make it yours (Pro).', 'Add your logo in the middle of the code. Codes stay black, so they are easy to scan.'],
-    ['On your phone?', 'Save your code to your photos or share it straight away.'],
+    ['QR codes, ready to print.', 'Every form gets its own QR code. Download it as PNG, SVG or PDF, and add your logo in the middle (Pro).'],
+    ['See where responses come from.', 'Each social link and each QR code gets its own tag. Add a code for every poster or flyer, and Insights shows which one works best.'],
+    ['Embed and custom domain, one click away.', 'Copy your embed code or customize it right from Share, and put your form on your own domain (Pro).'],
   ] as [string, string][],
-  end: 'Happy sharing!',
+  end: 'Open Share on any form to try it. Happy sharing!',
 }
 
 /* ---------- Poster: A-size portrait, 800x1131 exported at 2x ---------- */
@@ -275,13 +291,13 @@ function ChangelogGif() {
   return (
     <section className="v-item">
       <div className="row-between v-head">
-        <div className="stack gap-4"><h2>Changelog GIF</h2><span className="small muted">2400 × 1600, 10 fps, 5.9 s loop</span></div>
+        <div className="stack gap-4"><h2>Changelog GIF</h2><span className="small muted">2400 × 1600, 10 fps, 12.4 s loop</span></div>
         <a className="btn btn-black" href={GIF} download="tally-qr-changelog-2400x1600.gif"><Download aria-hidden />Download GIF</a>
       </div>
       <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
-        <img src={GIF} alt="On the Share tab, the QR Code tab shows your QR code, then it downloads as a PNG" style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src={GIF} alt="On the Share tab, the QR Code tab lists your QR code. Clicking the row opens its page, where the code downloads as a PNG. Then the Embed tab shows Copy code with Customize embed beside it." style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
-      <div className="v-caption small"><p>For the changelog entry, next to the image above. Social posts and link previews keep using the static image.</p></div>
+      <div className="v-caption small"><p>For the changelog entry, next to the image above. It starts on the social links, opens the QR Code tab, opens Your QR Code from its row and downloads it, then shows Embed. Social posts and link previews keep using the static image.</p></div>
     </section>
   )
 }

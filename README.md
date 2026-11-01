@@ -33,7 +33,7 @@ I started with the quick win, then the bigger bet:
 
 The surrounding Tally UI is static on purpose. Only the share feature changes. Every number on the Insights tab is example data.
 
-The visuals page has the changelog image, a poster, social images for LinkedIn and X, and a cover for the demo form. Every code in them really scans and is tagged with where it was seen. Editable, layered sources for the changelog, social and cover images are in `design-sources/`, ready to drop into Figma.
+The visuals page has the changelog image, a poster, social images for LinkedIn and X, and a cover for the demo form. The changelog image and GIF show the current Share tab in the Tabs version, with the social links as rows: the link with Copy and Use custom domain, the link preview, the QR codes as rows, and Your QR Code on its own page with Download and the logo. The GIF goes from the social links to the QR Code tab, opens Your QR Code from its row, downloads it, then shows Embed with Customize embed next to Copy code. I chose Tabs because it's the default; the same art could be redone for Jobs. Every code in them really scans and is tagged with where it was seen. Editable, layered sources for the changelog, social and cover images are in `design-sources/`, ready to drop into Figma.
 
 ## Built with
 
