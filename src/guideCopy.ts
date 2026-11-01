@@ -22,9 +22,9 @@ export const guideCopy = {
     share: {
       title: 'Everything You Share, in One Place',
       items: [
-        { id: 'link-ending', text: 'Tap the pencil on your link to add your own domain and ending.' },
+        { id: 'link-ending', text: 'Use custom domain, under your link, adds your own domain and ending.' },
         { id: 'rename', text: 'Rename a code. Its link stays the same.' },
-        { id: 'dismiss-nudge', text: 'Dismiss the nudge.' },
+        { id: 'dismiss-nudge', text: 'Close the note at the top of this page, the one that says where most responses came from, with its ✕.' },
       ],
     },
     'insights-data': {

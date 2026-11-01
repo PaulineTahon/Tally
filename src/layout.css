@@ -758,7 +758,7 @@ a.list-row { text-decoration: none; color: inherit; }
 .act-rows { margin-top: 4px; }
 @media (max-width: 757px) { .act-row { height: 44px; font-size: 15px; } }
 
-/* Inline text link inside a sentence, like Pro in "Both are part of Pro." Always underlined. */
+/* Inline text link inside a sentence. Always underlined. */
 .inline-link { background: none; border: 0; padding: 0; font: inherit; color: var(--blue-deep, var(--blue)); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; border-radius: 3px; }
 .inline-link:hover { text-decoration-thickness: 2px; }
 .inline-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
@@ -825,7 +825,7 @@ a.list-row { text-decoration: none; color: inherit; }
 .logo-row { gap: 12px; }
 /* Small grey labels over a group: Share to, and Link preview in the tiles variant. */
 .small-label { font-weight: 600; }
-#lp-label { margin-bottom: 6px; }
+#lp-label { margin-bottom: -2px; }
 /* Tiles variant: three quiet tiles, never black. */
 .share-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .share-tiles > span { display: flex; }
@@ -848,3 +848,34 @@ html.is-capture .proto-version { display: none !important; }
 @media (max-width: 757px) { .proto-version { border-left: 0; margin-left: 0; padding-left: 0; } }
 /* The prototype bar stays usable over an open share sheet, so versions can be compared without closing it. */
 .proto-nav { z-index: 55; }
+/* Text actions under a preview (Customize preview, Customize code), styled like Tally's "Use custom domain". */
+.text-action-wrap { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
+.text-action { border: 0; background: none; padding: 4px 0; margin: 0; font: inherit; font-size: 13px; font-weight: 500; line-height: 18px; color: var(--grey-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; border-radius: 4px; }
+@media (hover: hover) and (pointer: fine) { .text-action:hover { color: var(--text); } }
+.text-action:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+/* Phones: 44px tall tap target, from padding. */
+@media (max-width: 757px) { .text-action { padding: 13px 0; margin: -9px 0; } }
+.text-actions { display: flex; }
+/* Codes and Tracked Links: submissions only, always on one line. */
+.placements .count.count-one { display: inline; flex-direction: row; white-space: nowrap; width: auto; }
+/* Add another code: one shared left edge. The + glyph sits on the content edge (Lucide draws it 3px in). */
+.add-code .act-ic { margin-left: -3px; margin-right: -3px; }
+.add-code-help { padding-left: 0; }
+.add-code .chips { gap: 8px; }
+/* Add has the same height as the field next to it. */
+.add-place { align-items: stretch; }
+.add-place .btn { height: auto; min-height: 0; align-self: stretch; }
+/* Preview editor: image thumbnail with Replace and Remove next to it. */
+.lp-img-row { align-items: center; }
+.lp-img-thumb { width: 96px; height: 50px; object-fit: cover; border-radius: 6px; box-shadow: var(--ring); flex: none; }
+/* Black split download (code page, Logo): a thin light divider between Download and the format menu. */
+.split-out .btn-black.split-caret { margin-left: 1px; }
+/* Desktop: the prototype bar floats over the backdrop, so dialogs stop above it instead of under it. Prototype only. */
+@media (min-width: 758px) {
+  .overlay { padding-bottom: 64px; }
+  .overlay .modal { max-height: calc(100vh - 24px - 64px); }
+  .overlay:has(.panel-stack) .modal { max-height: calc(100vh - max(24px, 12vh) - 64px); }
+  html.is-capture .overlay { padding-bottom: 24px; }
+  html.is-capture .overlay .modal { max-height: calc(100vh - 48px); }
+  html.is-capture .overlay:has(.panel-stack) .modal { max-height: calc(100vh - max(24px, 12vh) - 24px); }
+}

@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, Code2, Copy, Image as ImageIcon, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
+  ArrowLeft, ArrowUpRight, Code2, Copy, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, ListX,
 } from 'lucide-react'
-import { canNativeShare, copyText, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { ActionRow, UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, QrImage, Segmented } from './ui'
+import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
+import { ActionRow, Modal, TextAction, UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, QrImage, Segmented } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
-import { DownloadSplit, QR_ALERT, QR_COPY, LogoView, QrDetail, fileName, qrTitle } from './qrpanel'
+import { DownloadSplit, QR_ALERT, QR_COPY, QrDetail, fileName, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
@@ -30,27 +30,23 @@ export function useNativeShare() {
   }
 }
 
-/** The link and Copy, the one primary action, always on top. The pencil opens Link ending and domain. */
-export function LinkBar({ onEdit }: { onEdit?: () => void }) {
+/** The link and Copy, the one primary action, always on top. Use custom domain sits under it. */
+export function LinkBar() {
   const { display, url } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
-  const edit = onEdit && (
-    <button type="button" className="field-icon-btn" data-row="ending" aria-label={shareCopy.editLinkName} title={shareCopy.editLink} onClick={onEdit}><PencilLine aria-hidden /></button>
-  )
   if (mobile) {
     return (
       <div className="stack gap-8">
         <div className="input-group" style={{ height: 44 }}>
           <span className="prefix">https://</span>
           <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
-          {edit}
         </div>
         <div className="row gap-8">
           <button type="button" className="btn btn-black btn-lg" style={{ flex: 1 }} onClick={() => share(url())}>
             <Share aria-hidden />Share
           </button>
-          <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} className="btn-secondary" big /></span>
+          <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} outline big /></span>
         </div>
       </div>
     )
@@ -59,7 +55,6 @@ export function LinkBar({ onEdit }: { onEdit?: () => void }) {
     <div className="row gap-8">
       <div className="input-group" style={{ flex: 1 }}>
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
-        {edit}
       </div>
       <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} /></span>
     </div>
@@ -100,7 +95,7 @@ export const emailHref = (link: string) => `mailto:?subject=${enc(FORM_TITLE)}&b
 const PREVIEW_DESC = 'Made with Tally, the simplest way to create forms.'
 
 export type ChannelView = 'ch-qr' | 'ch-social' | 'ch-embed'
-export type LinkView = 'main' | 'ending' | 'preview' | 'code' | 'logo' | ChannelView
+export type LinkView = 'main' | 'ending' | 'preview' | 'code' | ChannelView
 
 /** Inside the share sheet a code opens as a detail view; anywhere else, in its own dialog. */
 const OpenCodeCtx = createContext<((ref: string, personalize?: boolean) => void) | null>(null)
@@ -141,7 +136,7 @@ function PreviewCard({ img, title, desc }: { img: string; title: string; desc: s
 }
 
 export const VIEW_TITLE: Record<Exclude<LinkView, 'main' | 'code'>, string> = {
-  ending: linkCopy.endingRow, preview: linkCopy.previewRow, logo: QR_COPY.logoTitle, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed',
+  ending: linkCopy.endingRow, preview: linkCopy.previewRow, 'ch-qr': 'QR Code', 'ch-social': 'Social', 'ch-embed': 'Embed',
 }
 
 /** Back arrow and title of a detail view. In the share modal it sits in the modal header; on the Share tab page, at the top of the view. */
@@ -159,12 +154,20 @@ export function ViewHead({ view, onBack, as = 'h3' }: { view: Exclude<LinkView, 
 
 /** Focus follows the view: its title on the way in, the control that opened it on the way back. */
 const openers: Partial<Record<LinkView, HTMLElement | null>> = {}
-function useViewFocus(view: LinkView, depth: number) {
+const PAGE_MODAL_VIEWS: LinkView[] = ['preview', 'code']
+function useViewFocus(view: LinkView, depth: number, pageModal = false) {
   const prev = useRef<{ view: LinkView; depth: number }>({ view, depth })
+  const trigger = useRef<HTMLElement | null>(null)
   useEffect(() => {
     const from = prev.current
     prev.current = { view, depth }
     if (from.view === view) return
+    if (pageModal && (PAGE_MODAL_VIEWS.includes(view) || PAGE_MODAL_VIEWS.includes(from.view))) {
+      // Opening the page modal from the page: remember the trigger. Closing it: focus goes back there.
+      if (from.view === 'main') trigger.current = document.activeElement as HTMLElement | null
+      if (view === 'main') requestAnimationFrame(() => { const t = trigger.current; const el = t && t !== document.body && t.isConnected ? t : [...document.querySelectorAll<HTMLElement>(from.view === 'preview' ? '[data-row="preview"]' : '.single-preview, [data-row="logo"]')].find((e) => e.offsetParent); el?.focus({ preventScroll: true }) })
+      return
+    }
     const forward = depth > from.depth || (depth === from.depth && view !== 'main')
     if (forward) openers[view] = document.activeElement as HTMLElement | null
     requestAnimationFrame(() => {
@@ -173,7 +176,7 @@ function useViewFocus(view: LinkView, depth: number) {
       if (el && el.isConnected && el.offsetParent) el.focus({ preventScroll: true })
       else ([...document.querySelectorAll<HTMLElement>(`[data-row="${from.view}"]`)].find((e) => e.offsetParent) ?? document.getElementById(`lt-title-${view}`))?.focus({ preventScroll: true })
     })
-  }, [view, depth])
+  }, [view, depth, pageModal])
 }
 
 /** What the link preview shows, shared by the card under the link and its editor. Applies to every link and code. */
@@ -194,17 +197,6 @@ function PreviewStrip({ draft }: { draft: PreviewDraft }) {
   )
 }
 
-/** "Both are part of Pro.", with Pro opening the plans on Free. Upgrading there keeps what you typed. */
-function BothPro() {
-  const s = useStore()
-  const [before, pro, after] = linkCopy.bothPro
-  return (
-    <p className="small muted lt-note">
-      {before}{s.plan === 'pro' ? pro : <button type="button" className="inline-link" aria-haspopup="dialog" onClick={s.upgrade}>{pro}</button>}{after}
-    </p>
-  )
-}
-
 const fill = (line: string, link: string) => line.replace('{link}', link)
 
 /**
@@ -216,25 +208,27 @@ function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void 
   const s = useStore()
   const savedEnding = s.domain && s.slug !== FORM_ID ? s.slug : ''
   const [domain, setDomain] = useState(s.domain)
-  const [ending, setEnding] = useState(savedEnding)
+  // No ending saved yet: start from the form's title as a slug. It stays editable.
+  const startEnding = savedEnding || DEFAULT_ENDING
+  const [ending, setEnding] = useState(startEnding)
   const pro = s.plan === 'pro'
   const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/\/+$/, '')
-  const next = cleanDomain ? `${cleanDomain}/${ending || FORM_ID}` : `tally.so/r/${FORM_ID}`
+  const cleanEnding = slugify(ending)
+  const next = cleanDomain ? `${cleanDomain}/${cleanEnding || FORM_ID}` : `tally.so/r/${FORM_ID}`
   const savedFull = s.shortLink
   const dirty = next !== savedFull
   const hadCustom = !!(s.domain && savedEnding)
-  const cancel = () => { setDomain(s.domain); setEnding(savedEnding) }
+  const cancel = () => { setDomain(s.domain); setEnding(startEnding) }
   const save = () => {
     tick('link-ending')
     if (!pro) { s.upgrade(); return }
     s.setDomain(cleanDomain)
-    s.setSlug(cleanDomain && ending ? ending : FORM_ID)
+    s.setSlug(cleanDomain && cleanEnding ? cleanEnding : FORM_ID)
     s.toast(endingCopy.updated)
   }
   return (
     <div className="stack gap-12">
       {!inModal && <ViewHead view="ending" onBack={onBack} />}
-      <BothPro />
       <div className="stack gap-8">
         <label className="field-label" htmlFor="lt-domain">Custom Domain</label>
         <span className="xs muted">{linkCopy.domainHelp}</span>
@@ -247,10 +241,10 @@ function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void 
       <Collapse open={!!cleanDomain} gap={12}>
         <div className="stack gap-8">
           <label className="field-label" htmlFor="lt-ending">{endingCopy.label}</label>
-          <span className="xs muted">{endingCopy.help}</span>
+          <span className="xs muted">{endingCopy.help.replace('{ending}', DEFAULT_ENDING)}</span>
           <div className="input-group">
             <span className="prefix">{cleanDomain || 'forms.yourdomain.com'}/</span>
-            <input id="lt-ending" aria-label="Link ending" placeholder="summer-rsvp" value={ending} onChange={(e) => setEnding(slugify(e.target.value))} />
+            <input id="lt-ending" aria-label="Link ending" placeholder={DEFAULT_ENDING} value={ending} onChange={(e) => setEnding(slugify(e.target.value, true))} />
           </div>
         </div>
       </Collapse>
@@ -276,17 +270,27 @@ function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void 
 function PreviewView({ inModal, onBack, saved, onSave }: { inModal: boolean; onBack: () => void; saved: PreviewDraft; onSave: (d: PreviewDraft) => void }) {
   const s = useStore()
   const [draft, setDraft] = useState<PreviewDraft>(saved)
+  const imgInput = useRef<HTMLInputElement>(null)
+  const replaceBtn = useRef<HTMLButtonElement>(null)
   const dirty = draft.title !== saved.title || draft.desc !== saved.desc || draft.img !== saved.img
   return (
     <div className="stack gap-12">
       {!inModal && <ViewHead view="preview" onBack={onBack} />}
       <PreviewCard img={previewImg(draft)} title={draft.title || FORM_TITLE} desc={draft.desc} />
       <span className="xs muted">{linkCopy.previewHelp}</span>
-      <div className="row-between">
-        <span className="field-label">Image</span>
-        <label className="btn btn-secondary btn-sm">Replace image
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setDraft({ ...draft, img: URL.createObjectURL(f) }) }} />
-        </label>
+      {/* Image: a thumbnail, Replace, and once your own image is in, Remove (back to the default). Nothing is saved until Save. */}
+      <div className="stack gap-8">
+        <span className="field-label" id="lp-img-label">Image</span>
+        <div className="row gap-12 lp-img-row">
+          <img className="lp-img-thumb" src={previewImg(draft)} alt={draft.img ? 'Your preview image' : 'Default preview image'} />
+          <span className="row gap-16">
+            <button ref={replaceBtn} type="button" className="text-action" aria-label="Replace preview image" onClick={() => imgInput.current?.click()}>Replace</button>
+            {draft.img && <button type="button" className="text-action" aria-label="Remove preview image"
+              onClick={() => { setDraft({ ...draft, img: null }); requestAnimationFrame(() => replaceBtn.current?.focus()) }}>Remove</button>}
+          </span>
+          <input ref={imgInput} type="file" accept="image/*" hidden aria-labelledby="lp-img-label"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) setDraft({ ...draft, img: URL.createObjectURL(f) }); e.target.value = '' }} />
+        </div>
       </div>
       <label className="field-label" htmlFor="lp-title">Title</label>
       <input id="lp-title" className="input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
@@ -376,18 +380,19 @@ function sourceIcon(src: Source) {
 export function PlaceList({ only, pulse = 0 }: { only?: 'qr'; pulse?: number }) {
   const s = useStore()
   // Your QR Code comes first, then every code and link you made. Everything shows, even at 0 visits.
-  const all = only ? s.placements : s.sources
+  const all = only ? s.placements : s.sources.filter((x) => !x.hidden)
   const rows = [...all.filter((p) => p.ref === MAIN_QR), ...all.filter((p) => p.ref !== MAIN_QR)]
   if (!rows.length) return null
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
-      {rows.map((p) => <PlaceRow key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} />)}
+      {rows.map((p) => <PlaceRow key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} counts={!only} />)}
     </ul>
   )
 }
 
 /** Same row for every place: icon, name, responses, one icon action, then everything else under More. */
-function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
+/** `counts`: only the Codes and Tracked Links list on the Share tab shows submissions. The share sheet shows none. */
+function PlaceRow({ p, pulse, counts }: { p: Source; pulse: number; counts: boolean }) {
   const s = useStore()
   const reduced = useReducedMotion()
   const li = useRef<HTMLLIElement>(null)
@@ -412,12 +417,12 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const [copied, setCopied] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [name, setName] = useState(p.label)
-  const [confirming, setConfirming] = useState(false)
   const more = useRef<HTMLButtonElement>(null)
   const qr = p.kind === 'qr'
   const link = qr ? qrUrl(p.ref) : s.url(p.ref)
-  const n = `${rowCopy.visits(p.counts.all[0])}, ${rowCopy.submissions(p.counts.all[1])}`
-  const count = <span className="xs muted count"><span>{rowCopy.visits(p.counts.all[0])}</span><span className="count-sep" aria-hidden>·</span><span>{rowCopy.submissions(p.counts.all[1])}</span></span>
+  // Submissions only, on one line. Visits live in Insights.
+  const n = rowCopy.submissions(p.counts.all[1])
+  const count = counts ? <span className="xs muted count count-one">{n}</span> : null
   const shown = p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label
   // Nothing to tell apart with one code, so Rename only shows once there are two.
   const canRename = qr && s.placements.length > 1
@@ -426,7 +431,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const download1 = async (f: QrFormat) => {
     // Free with a logo in: downloading it is Pro, same as the Download button.
     if (s.plan !== 'pro' && style.logo) { s.upgrade(); return }
-    const o = { url: link, shortLink: QR_CAPTION, style, showLink: settings.showLink }
+    const o = { url: link, shortLink: QR_CAPTION, style, showLink: true }
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()
     if (main) tick('download-main')
@@ -446,11 +451,14 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   }
   const pick = (fn: () => void) => () => { setMenu(false); fn() }
   const main = p.ref === MAIN_QR
+  // Your QR Code and the automatic channel links stay. Codes and links you added can leave the list, with Undo.
+  const removable = !main && (qr || p.kind === 'custom')
   const remove = () => {
-    // Always asks first. Its responses stay in Insights either way.
-    setConfirming(true)
+    s.removeSource(p.ref)
+    s.toast(rowCopy.removed, { top: true, group: 'list', duration: 6000, action: { label: rowCopy.undo, onClick: () => s.restoreSource(p.ref) } })
+    // The row is gone, so focus goes to Undo, which also holds the alert while it has focus.
+    window.setTimeout(() => document.querySelector<HTMLElement>('.toast-wrap.is-top .toast-action')?.focus({ preventScroll: true }), 60)
   }
-  const confirmDelete = () => { s.removeSource(p.ref); s.toast(rowCopy.deleted(p.label)) }
   // Code rows use the same plain QR icon as the QR Code tab; the full code is one click away.
   const icon = qr
     ? <span className="src-icon is-code" aria-hidden><QrCode /></span>
@@ -474,26 +482,11 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
       </li>
     )
   }
-  if (confirming) {
-    return (
-      <li className="is-editing is-confirm" role="alertdialog" aria-labelledby={`del-${p.ref}`} aria-describedby={`del-${p.ref}-d`}>
-        {icon}
-        <div className="stack gap-4 grow">
-          <b id={`del-${p.ref}`} className="small">{rowCopy.deleteTitle(p.label)}</b>
-          <span id={`del-${p.ref}-d`} className="xs muted">{[rowCopy.deleteKept(p.responses), rowCopy.deleteUntag(p.label)].filter(Boolean).join(' ')}</span>
-          <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setConfirming(false)}>{rowCopy.cancel}</button>
-            <button type="button" className="btn btn-danger btn-sm" autoFocus onClick={confirmDelete}>{rowCopy.deleteConfirm}</button>
-          </div>
-        </div>
-      </li>
-    )
-  }
   return (
     <li ref={li} tabIndex={-1} className={[pulsing ? 'is-pulse' : '', qr ? 'is-clickable' : ''].join(' ').trim() || undefined}
       onClick={qr ? (e) => { if (!(e.target as HTMLElement).closest('button, a, [role="menu"]')) openCode() } : undefined}>
       {qr ? (
-        <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${shown}, ${n}. Open code`}
+        <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${shown}${counts ? `, ${n}` : ''}. Open code`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCode() } }}>
           {icon}
           <span className="title grow">{shown}</span>
@@ -526,8 +519,8 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
           {qr && (['png', 'svg', 'pdf'] as QrFormat[]).map((f) => (
             <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
           ))}
-          {qr && !main && <div className="menu-sep" role="separator" />}
-          {qr && !main && <button role="menuitem" className="danger" onClick={pick(remove)}><Trash2 aria-hidden />{rowCopy.delete}</button>}
+          {removable && <div className="menu-sep" role="separator" />}
+          {removable && <button role="menuitem" onClick={pick(remove)}><ListX aria-hidden />{rowCopy.remove}</button>}
         </Menu>
       </span>
     </li>
@@ -539,7 +532,7 @@ export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster 
   const [name, setName] = useState('')
   const field = useRef<HTMLInputElement>(null)
   return (
-    <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
+    <form className="row gap-8 add-place" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
       <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} />
       <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
     </form>
@@ -570,14 +563,14 @@ function SingleCode({ pulse }: { pulse: number }) {
     <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
       <button type="button" className="single-preview" aria-label={`Open ${p.label}`} onClick={() => openCode(p.ref)}>
         <QrImage url={link} style={style} size={160} label={`QR code that opens ${link.replace('https://', '')}`} />
-        {s.settings.showLink && <span className="single-link">{QR_CAPTION}</span>}
+        <span className="single-link">{QR_CAPTION}</span>
       </button>
       <div className="stack gap-8 single-side">
         {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
         <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
         <p className="small muted" style={{ margin: 0 }}>{QR_COPY.readyLine}</p>
-        <div className="act-rows">
-          <ActionRow icon={<SlidersHorizontal />} label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(p.ref, true)} />
+        <div className="text-actions">
+          <TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(p.ref, true)} />
         </div>
         <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
       </div>
@@ -588,6 +581,7 @@ function SingleCode({ pulse }: { pulse: number }) {
 /** One ready-made code first. Extra codes per place are optional, and free. */
 function QrCodePanel({ pulse }: { pulse: number }) {
   const s = useStore()
+  const openCode = useOpenCode()
   const mobile = useIsMobile()
   const [adding, setAdding] = useState(false)
   const add = (label: string) => {
@@ -605,14 +599,17 @@ function QrCodePanel({ pulse }: { pulse: number }) {
           <div className="stack gap-12">
             <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
             <PlaceList only="qr" pulse={pulse} />
+            {/* One logo for the whole form, so one Customize code, however many codes there are. */}
+            <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
           </div>
         )}
       </AutoHeight>
-      <div className="stack gap-4">
+      {/* One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips. */}
+      <div className="stack gap-4 add-code">
         <ActionRow icon={<Plus />} label="Add another code" chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
-        <span className="xs muted act-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
-        <Collapse open={adding} id="add-code" gap={8}>
-          <div className="stack gap-8">
+        <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
+        <Collapse open={adding} id="add-code" gap={4}>
+          <div className="stack gap-8" style={{ paddingTop: 8 }}>
             <AddPlace label="Add another code" placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
             {missing.length > 0 && (
               <div className="chips">
@@ -708,7 +705,11 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   useEffect(() => { if (firstVersion.current !== version) { firstVersion.current = version; reset() } }, [version, reset])
   // Entry rows and tiles work the same way: an overview, and each way to share as its own subpage.
   const entry = entryVariant() || tiles
-  useViewFocus(view, nav.depth)
+  // Desktop Share tab page: Customize preview, a code's page and Logo open in a centred modal instead of inline.
+  const mobile = useIsMobile()
+  const pageModal = !inModal && !mobile
+  const inPageModal = pageModal && (view === 'preview' || view === 'code')
+  useViewFocus(view, nav.depth, pageModal)
   // A download alert belongs to the place it came from: switching tab or view clears it.
   const { dismissGroup } = s
   useEffect(() => { dismissGroup(QR_ALERT.group) }, [channel, view, dismissGroup])
@@ -719,7 +720,8 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const prevView = useRef(view)
   useEffect(() => { if (prevView.current !== view && view === 'main') setRound((n) => n + 1); prevView.current = view }, [view])
   // Customize code under a code in the tab goes straight to Logo; the code itself opens its own page.
-  const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); nav.go(logo ? 'logo' : 'code') }, [s, nav])
+  const [logoFocus, setLogoFocus] = useState(false)
+  const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); setLogoFocus(logo); nav.go('code') }, [s, nav])
   type Slot = Channel | Exclude<LinkView, 'main'> | 'menu'
   const head = (v: Exclude<LinkView, 'main'>) => (!inModal ? <ViewHead view={v} onBack={nav.back} /> : null)
   const panels: { key: Slot; node: ReactNode }[] = [
@@ -730,28 +732,42 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
     { key: 'ending', node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
-    { key: 'preview', node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
-    { key: 'code', node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}`} refId={s.qrRef} onCustomize={() => nav.go('logo')} /></div> },
-    { key: 'logo', node: <div className="stack gap-12">{head('logo')}<LogoView refId={s.qrRef} /></div> },
+    ...(pageModal ? [] : [
+      { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
+      { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
+    ]),
   ]
-  const active: Slot = view === 'main' ? (entry ? 'menu' : channel) : view
+  const overview: Slot = entry ? 'menu' : channel
+  const active: Slot = view === 'main' || inPageModal ? overview : view
+  // The page modal: the same content as the sheet. Its title and Close sit in the header.
+  const modalTitle = view === 'code' ? qrTitle(s.placements.find((p) => p.ref === s.qrRef)?.label, s.qrRef) : VIEW_TITLE.preview
+  const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
+    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /> : null
   return (
     <OpenCodeCtx.Provider value={openCode}>
       <div>
         {/* A detail view hides the link, the card and the tabs. They ease out and back in. */}
-        <Collapse open={view === 'main'}>
+        <Collapse open={view === 'main' || inPageModal}>
           <div className="stack gap-12" style={{ paddingBottom: entry ? 8 : 16 }}>
-            <LinkBar onEdit={() => nav.go('ending')} />
-            <div className="stack">
-              {tiles && <div className="xs muted small-label" id="lp-label">Link preview</div>}
+            <div className="stack gap-8">
+              <LinkBar />
+              <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
+            </div>
+            <div className="stack gap-8">
+              <div className="xs muted small-label" id="lp-label">Link preview</div>
               <PreviewStrip draft={saved} />
-              <ActionRow icon={<ImageIcon />} label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
+              <TextAction label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
             </div>
             {!entry && <ChannelPicker value={channel} onChange={setChannel} />}
           </div>
         </Collapse>
         <PanelStack<Slot> active={active} label="Share to" panels={panels} plain={entry} />
         {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
+        {pageModal && (
+          <Modal open={inPageModal} onClose={nav.reset} title={modalTitle} width={440} labelledBy="page-detail-title">
+            {modalBody}
+          </Modal>
+        )}
       </div>
     </OpenCodeCtx.Provider>
   )

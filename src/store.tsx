@@ -20,6 +20,8 @@ function mainRefFor(hash: string) {
   return /[?&]demo=changelog\b/.test(hash) ? 'qr-changelog' : MAIN_QR
 }
 export const FORM_TITLE = 'Community picnic RSVP'
+/** The ending a custom domain starts with: the form's title as a slug (Community picnic RSVP gives community-picnic-rsvp). */
+export const DEFAULT_ENDING = slugify(FORM_TITLE)
 export const EASTER_EGG = 'https://tally.so/r/KpYalV?ref=qr'
 
 export interface Source {
@@ -29,6 +31,8 @@ export interface Source {
   responses: number
   /** Visits and responses per range, for Insights. */
   counts: Counts
+  /** Removed from the list. The code and link still work, and its numbers stay in Insights. */
+  hidden?: boolean
 }
 
 export { MAIN_QR, MAIN_QR_LABEL }
@@ -50,7 +54,7 @@ export function datasetForHash(hash: string): Dataset {
 export type Plan = 'free' | 'pro'
 const PLAN_KEY = 'proto-plan'
 /** Prototype bar: `?link=custom` starts with a saved custom ending on your own domain, on Pro. */
-export const CUSTOM_MOCK = { domain: 'forms.acme.com', ending: 'community-picnic' }
+export const CUSTOM_MOCK = { domain: 'forms.acme.com', ending: DEFAULT_ENDING }
 const customMock = () => /[?&]link=custom\b/.test(window.location.hash)
 export const PRICING_URL = 'https://tally.so/pricing'
 
@@ -65,7 +69,7 @@ function loadSettings(): QrSettings {
     const v = JSON.parse(raw)
     // Older saves carried a colour and a mode; only an uploaded logo carries over.
     const logo = v.style?.mode !== 'tally' && typeof v.style?.logo === 'string' ? v.style.logo : null
-    return { style: { ...DEFAULT_STYLE, logo }, format: v.format ?? 'png', showLink: v.showLink ?? true }
+    return { style: { ...DEFAULT_STYLE, logo }, format: v.format ?? 'png', showLink: true }
   } catch { return base }
 }
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
@@ -107,6 +111,7 @@ interface Store {
   addPlacement: (label: string) => Source
   renameSource: (ref: string, label: string) => void
   removeSource: (ref: string) => void
+  restoreSource: (ref: string) => void
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
@@ -119,8 +124,10 @@ interface Store {
 const Ctx = createContext<Store | null>(null)
 export const useStore = () => useContext(Ctx)!
 
-export function slugify(s: string) {
-  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
+/** Lowercase, hyphens, no accents or special characters. While typing, a trailing hyphen is kept so you can type the next word. */
+export function slugify(s: string, typing = false) {
+  const t = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+/, '')
+  return (typing ? t : t.replace(/-+$/, '')).slice(0, 40)
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
@@ -198,7 +205,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addSource = useCallback((label: string) => {
     const ref = slugify(label) || 'link'
     const existing = sources.find((s) => s.ref === ref)
-    if (existing) return existing
+    if (existing) { if (existing.hidden) setSources((all) => all.map((x) => (x.ref === ref ? { ...x, hidden: false } : x))); return existing }
     const s: Source = { ref, label: label.trim() || ref, kind: 'custom', responses: 0, counts: ZERO }
     setSources((all) => [...all, s])
     return s
@@ -209,7 +216,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tick('add-code')
     const name = label.trim()
     const same = sources.find((s) => s.kind === 'qr' && s.label.toLowerCase() === name.toLowerCase())
-    if (same) return same
+    if (same) { if (same.hidden) setSources((all) => all.map((x) => (x.ref === same.ref ? { ...x, hidden: false } : x))); return same }
     const base = `qr-${slugify(name) || 'code'}`
     let ref = base
     for (let i = 2; sources.some((s) => s.ref === ref); i++) ref = `${base}-${i}`
@@ -222,21 +229,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tick('rename')
     setSources((all) => all.map((s) => (s.ref === ref ? { ...s, label: label.trim() || s.label } : s)))
   }, [])
+  /** Remove from list only: it stays in place, hidden, so Undo puts it back where it was. */
   const removeSource = useCallback((ref: string) => {
     if (ref === MAIN_QR) return
-    setSources((all) => all.filter((s) => s.ref !== ref))
+    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, hidden: true } : s)))
+  }, [])
+  const restoreSource = useCallback((ref: string) => {
+    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, hidden: false } : s)))
   }, [])
   /** Your form's own code first, then the others in the order they were made. */
   const placements = useMemo(() => {
-    const qr = sources.filter((s) => s.kind === 'qr')
+    const qr = sources.filter((s) => s.kind === 'qr' && !s.hidden)
     return [...qr.filter((s) => s.ref === MAIN_QR), ...qr.filter((s) => s.ref !== MAIN_QR)]
   }, [sources])
 
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
-    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
+    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, restoreSource, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, restoreSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

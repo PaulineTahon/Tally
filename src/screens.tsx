@@ -83,7 +83,13 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
   const total = s.sources.reduce((t, x) => t + x.responses, 0) + EXAMPLE_UNTAGGED
   const bestOpen = SOCIAL.find((x) => x.ref === best.ref)?.open
   const bestHref = bestOpen ? bestOpen(s.url(best.ref)) : best.ref === 'email' ? emailHref(s.url('email')) : null
-  const [nudgeGone, setNudgeGone] = useState(() => { try { return localStorage.getItem(NUDGE_KEY) === '1' } catch { return false } })
+  // The note stays closed once you close it. #/share?nudge=1 brings it back, to try it again.
+  const [nudgeGone, setNudgeGone] = useState(() => {
+    try {
+      if (/[?&]nudge=1\b/.test(window.location.hash)) { localStorage.removeItem(NUDGE_KEY); return false }
+      return localStorage.getItem(NUDGE_KEY) === '1'
+    } catch { return false }
+  })
   const dismissNudge = () => { setNudgeGone(true); tick('dismiss-nudge'); try { localStorage.setItem(NUDGE_KEY, '1') } catch { /* private mode */ } }
   return (
     <Shell>

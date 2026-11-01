@@ -123,6 +123,21 @@ export function UpgradeButton({ onClick, disabled = false, primary = false }: { 
  * the label (a Pro badge sits next to the label, never on a button of its own), and a trailing chevron.
  * A row that opens a view points right. Add another code has only its + icon.
  */
+/**
+ * A quiet text action under a preview, like Tally's "Use custom domain": grey underlined text, no icon or chevron,
+ * with the Pro badge right after the label. A real button, with a 44px tap target on phones via padding.
+ */
+export function TextAction({ label, pro = false, onClick, dataRow, haspopup }: {
+  label: ReactNode; pro?: boolean; onClick: () => void; dataRow?: string; haspopup?: 'dialog' | 'true'
+}) {
+  return (
+    <span className="text-action-wrap">
+      <button type="button" className="text-action" data-row={dataRow} aria-haspopup={haspopup} onClick={onClick}>{label}</button>
+      {pro && <Pro />}
+    </span>
+  )
+}
+
 export function ActionRow({ icon, label, help, pro = false, chevron = true, onClick, expanded, controls, haspopup, dataRow, ariaLabel }: {
   icon: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; chevron?: boolean; onClick: () => void
   expanded?: boolean; controls?: string; haspopup?: 'dialog' | 'true'; dataRow?: string; ariaLabel?: string
@@ -142,8 +157,10 @@ export function ActionRow({ icon, label, help, pro = false, chevron = true, onCl
 
 
 /** The one primary action. Feedback is instant and in place, no animation in front of it. */
-export function CopyButton({ text, className = '', big = false, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: {
+export function CopyButton({ text, className = '', big = false, outline = false, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: {
   text: string; className?: string; big?: boolean; label?: string; toastText?: string | null
+  /** Outlined instead of black, where another button on screen is the primary (Share on a phone). */
+  outline?: boolean
 }) {
   const { toast } = useStore()
   const [copied, setCopied] = useState(false)
@@ -156,7 +173,7 @@ export function CopyButton({ text, className = '', big = false, label = 'Copy', 
     if (toastText) toast(toastText)
   }
   return (
-    <button type="button" className={`btn btn-black ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={`${label} ${text}`}>
+    <button type="button" className={`btn ${outline ? 'btn-secondary' : 'btn-black'} ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={`${label} ${text}`}>
       <IconSwap on={copied} />
       {/* Same as today's Tally: the icon turns into a check, the label stays. */}
       <span>{label}</span>
@@ -297,11 +314,21 @@ export function Modal({ open, onClose, title, children, footer, width = 440, ico
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (open) ref.current?.focus() }, [open, mounted])
   useToastAnchor(open && mounted, ref, footerRef)
+  // Keep Tab inside the dialog while it is open.
+  const trap = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !ref.current) return
+    const f = [...ref.current.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+      .filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null && !el.closest('[inert]'))
+    if (!f.length) return
+    const first = f[0], last = f[f.length - 1]
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === ref.current)) { e.preventDefault(); last.focus() }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus() }
+  }
   if (!mounted) return null
   const id = labelledBy ?? 'modal-title'
   return (
     <div className="overlay" data-state={leaving ? 'closed' : 'open'} onMouseDown={(e) => { if (e.target === e.currentTarget && !leaving) onClose() }}>
-      <div className={`modal w-${width}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref} style={{ outline: 'none' }}>
+      <div className={`modal w-${width}`} role="dialog" aria-modal="true" aria-labelledby={id} tabIndex={-1} ref={ref} style={{ outline: 'none' }} onKeyDown={trap}>
         <div className="modal-header">
           {icon}
           <h2 id={id}>{title}</h2>

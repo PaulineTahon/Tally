@@ -8,17 +8,13 @@ export const rowCopy = {
   copyLink: 'Copy link',
   openLink: 'Open link',
   rename: 'Rename',
-  delete: 'Delete',
+  remove: 'Remove from list',
   renamed: (place: string) => (place.length > 24 ? 'Code renamed' : `Renamed to ${place}`),
-  deleted: (place: string) => `${place} code deleted`,
-  deleteTitle: (place: string) => `Delete the ${place} code?`,
+  removed: 'Removed. The code still works and its responses stay tagged.',
+  undo: 'Undo',
   /** Visits and submissions, like the Sources panel in Insights. */
   visits: (v: number) => `${v} ${v === 1 ? 'visit' : 'visits'}`,
   submissions: (n: number) => `${n} ${n === 1 ? 'submission' : 'submissions'}`,
-  /** No line at all when the code has no responses yet. */
-  deleteKept: (n: number) => (n === 0 ? null : n === 1 ? 'Its 1 response stays in Insights.' : `Its ${n} responses stay in Insights.`),
-  deleteUntag: (place: string) => `Printed copies still open your form, but new responses won't be tagged ${place}.`,
-  deleteConfirm: 'Delete',
   cancel: 'Cancel',
 }
 
@@ -33,7 +29,7 @@ export const ENDING_GONE_NOTE = "Custom links you've already shared stop working
 
 export const endingCopy = {
   label: 'Link Ending',
-  help: 'Pick your own ending on your domain, like forms.yourdomain.com/summer-rsvp.',
+  help: 'Pick your own ending on your domain, like forms.yourdomain.com/{ending}.',
   newLink: 'New link',
   yourLink: 'Your link',
   save: 'Save',
@@ -49,8 +45,6 @@ export const linkCopy = {
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',
-  /** "Both are part of Pro.", with Pro as a link to the plans. */
-  bothPro: ['Both are part of ', 'Pro', '.'] as const,
 }
 
 /** Embed tab. */
@@ -161,8 +155,9 @@ export const planCopy = {
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
-  editLink: 'Link ending and domain (Pro)',
-  editLinkName: 'Edit link ending and domain',
+  /** Under the link, like Tally today. Once a domain is saved it reads Edit custom domain. */
+  useDomain: 'Use custom domain',
+  editDomain: 'Edit custom domain',
   tagLine: 'We tag each link so you can see where responses come from.',
   copiedInline: 'Copied',
   copyLink: 'Copy link',
