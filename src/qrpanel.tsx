@@ -33,6 +33,10 @@ export const QR_ALERT = { group: 'qr', duration: 4000 }
 
 export const QR_COPY = {
   yourCode: 'Your QR Code',
+  remove: 'Remove',
+  removed: 'Removed. The code still works and its responses stay tagged.',
+  moreFor: (label: string) => `More options for ${label} QR code`,
+  openFor: (label: string) => `${label} QR code, open details`,
   downloadPng: 'Download PNG',
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',
@@ -95,7 +99,7 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
   return (
     <div className="split split-out">
       <button ref={primaryRef} type="button" className={`btn ${upgradePrimary ? 'btn-black' : 'btn-secondary'} btn-sm split-main ${primaryRef ? "single-primary" : ""}`}
-        aria-label={mobile ? QR_COPY.saveOrShare : `Download ${label} as PNG`} onClick={() => (mobile ? share() : get('png'))}>
+        aria-label={mobile ? `Save ${label} image` : `Download ${label} as PNG`} onClick={() => (mobile ? share() : get('png'))}>
         {mobile ? <Share aria-hidden /> : <Download aria-hidden />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
       </button>
       <button ref={caret} type="button" className={`btn ${upgradePrimary ? 'btn-black' : 'btn-secondary'} btn-sm split-caret`} aria-label={QR_COPY.otherFormats}

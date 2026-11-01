@@ -944,3 +944,15 @@ html.is-capture .proto-version { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .code-row { transition: none; } }
 /* Share tab page: the tracking row stays at the link's width. */
 .share-page .act-row[data-row=track] { max-width: 520px; }
+/* More options (Remove) on codes you made: icon only, above the stretched row button like Download. */
+.code-row-more { position: relative; z-index: 1; flex: none; width: 32px; padding: 0; justify-content: center; margin-left: -4px; }
+.code-row-more svg { width: 18px; height: 18px; }
+@media (max-width: 757px) { .code-row-more { width: 40px; height: 44px; } }
+.code-row-more-space { flex: none; width: 28px; }
+@media (max-width: 757px) {
+  .code-row-more-space { width: 36px; }
+  /* On a phone the row keeps the split button, as an icon, so the name has room. */
+  .code-row .split-main { font-size: 0; gap: 0; width: 44px; padding: 0; justify-content: center; }
+  .code-row .split-main svg { width: 18px; height: 18px; }
+}
+@media (min-width: 758px) { .share-page .code-rows { max-width: 536px; } }

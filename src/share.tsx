@@ -2,10 +2,10 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
   ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
-  ChartNoAxesColumn,
+  ChartNoAxesColumn, MoreHorizontal, Trash2,
 } from 'lucide-react'
-import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
-import { ActionRow, AutoHeight, Modal, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
+import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useStore } from './store'
+import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
 import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
 import { tick } from './guide'
@@ -386,62 +386,24 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
 
 /* ---------- The QR Code tab's codes ---------- */
 
-/**
- * One code on the QR Code tab: a small thumbnail (it opens the code's page), the name, and Download.
- * Only your form's own code carries the description, so the tagging is said once.
- */
-function CodeCard({ p, pulse = 0, desc = false }: { p: Source; pulse?: number; desc?: boolean }) {
-  const s = useStore()
-  const reduced = useReducedMotion()
-  const style = s.settings.style
-  const link = qrUrl(p.ref)
-  const [pulsing, setPulsing] = useState(false)
-  const card = useRef<HTMLDivElement>(null)
-  const primary = useRef<HTMLButtonElement>(null)
-  useEffect(() => {
-    if (!pulse || !card.current) return
-    card.current.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
-    primary.current?.focus({ preventScroll: true })
-    setPulsing(false)
-    const r = requestAnimationFrame(() => setPulsing(true))
-    const t = window.setTimeout(() => setPulsing(false), 1000)
-    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
-  }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
-  const openCode = useOpenCode()
-  return (
-    <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
-      <button type="button" className="single-preview" aria-label={`Open ${p.label}`} onClick={() => openCode(p.ref)}>
-        {/* A thumbnail: the big code, with its link line, is on the code's own page. */}
-        <QrImage url={link} style={style} size={96} label={`QR code that opens ${link.replace('https://', '')}`} />
-      </button>
-      <div className="stack gap-12 single-side">
-        {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
-        <span className="stack gap-4">
-          <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
-          {desc && <span className="single-desc">{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</span>}
-        </span>
-        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
-      </div>
-    </div>
-  )
-}
 
 /**
  * Your form's own code as a thumbnail with Download, then each code you added the same way, one Customize QR code
  * under the codes, then Add another code. The tagging is said once, in Your QR Code's description.
  */
-function QrCodePanel({ pulse }: { pulse: number }) {
+function QrCodePanel(_: { pulse: number }) {
   const s = useStore()
   const openCode = useOpenCode()
   const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
   return (
-    <div className="stack gap-12">
+    <div className="stack gap-12 qr-list-scope">
       <div className="stack gap-8">
-        {/* Your QR Code first, then each code you added, stacked, each its own card. New ones show right away. */}
+        <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+        {/* Your QR Code first, then each code you made, as list items. New ones show right away. */}
         <AutoHeight k={String(s.placements.length)} slow>
-          <div className="stack gap-8 code-cards">
-            {codes.map((p) => <CodeCard key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} desc={p.ref === MAIN_QR} />)}
-          </div>
+          <ul className="code-rows" aria-label={QR_COPY.yourCode}>
+            {codes.map((p) => <CodeRow key={p.ref} p={p} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+          </ul>
         </AutoHeight>
         {/* One logo for the whole form, so one Customize QR code under the codes: the same text button as Customize preview. */}
         <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
@@ -564,7 +526,7 @@ function JobsTracking() {
   const s = useStore()
   const made = s.placements.filter((p) => p.ref !== MAIN_QR)
   return (
-    <div className="stack gap-24 jobs-track">
+    <div className="stack gap-24 jobs-track qr-list-scope">
       <div className="stack gap-8">
         <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
         <SocialList toast />
@@ -579,20 +541,47 @@ function JobsTracking() {
 
 /**
  * A code as a list item: small thumbnail and name. The whole row opens the code's page (a stretched button);
- * Download sits above it, so it downloads without opening anything.
+ * Download and, on codes you made, More options sit above it, so they never open the page.
  */
 export function CodeRow({ p, name }: { p: Source; name?: string }) {
   const s = useStore()
   const openCode = useOpenCode()
   const link = qrUrl(p.ref)
   const label = name ?? p.label
+  const more = useRef<HTMLButtonElement>(null)
+  const row = useRef<HTMLLIElement>(null)
+  const [menu, setMenu] = useState(false)
+  const remove = () => {
+    setMenu(false)
+    // Focus moves to the next code, or the one before, or Add another code. The list can re-render, so find it again by ref.
+    const li = row.current
+    const nextRef = ((li?.nextElementSibling ?? li?.previousElementSibling) as HTMLElement | null)?.dataset.ref
+    const scope = li?.closest('.qr-list-scope')
+    s.removePlacement(p.ref)
+    s.toast(QR_COPY.removed, { action: { label: 'Undo', onClick: () => s.restorePlacement(p.ref) } })
+    // After the menu has closed and handed focus back.
+    window.setTimeout(() => {
+      const target = (nextRef && scope?.querySelector<HTMLElement>(`[data-ref="${nextRef}"] .code-row-open`)) || scope?.querySelector<HTMLElement>('.add-code .act-row')
+      target?.focus()
+    }, 60)
+  }
   return (
-    <li className="code-row">
+    <li ref={row} className="code-row" data-ref={p.ref}>
       <span className="code-row-thumb"><QrImage url={link} style={s.settings.style} size={CODE_ROW_THUMB} label={`QR code that opens ${link.replace('https://', '')}`} /></span>
-      <button type="button" className="code-row-open" aria-label={`${label} QR code, open details`} onClick={() => openCode(p.ref)}>
+      <button type="button" className="code-row-open" aria-label={QR_COPY.openFor(label)} onClick={() => openCode(p.ref)}>
         <span className="code-row-name">{label}</span>
       </button>
       <div className="code-row-dl"><DownloadSplit refId={p.ref} label={p.label} /></div>
+      {/* Your QR Code can't be removed: an empty space keeps its Download in line with the others. */}
+      {p.ref === MAIN_QR && <span className="code-row-more-space" aria-hidden />}
+      {p.ref !== MAIN_QR && (
+        <>
+          <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
+          <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={QR_COPY.moreFor(label)} width={180}>
+            <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
+          </PopMenu>
+        </>
+      )}
     </li>
   )
 }
@@ -643,6 +632,9 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   // A download alert belongs to the place it came from: switching tab or view clears it.
   const { dismissGroup } = s
   useEffect(() => { dismissGroup(QR_ALERT.group) }, [channel, view, dismissGroup])
+  // A code removed while its page is open: back to the list it was in.
+  const codeGone = view === 'code' && !s.placements.some((p) => p.ref === s.qrRef)
+  useEffect(() => { if (codeGone) nav.back() }, [codeGone, nav])
   const [saved, setSaved] = useState<PreviewDraft>(PREVIEW_DEFAULT)
   const [embed, setEmbed] = useState<EmbedMode | null>(null)
   // Back never saves and never asks: a view starts over from what is saved the next time you open it.

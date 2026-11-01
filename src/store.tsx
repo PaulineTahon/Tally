@@ -30,6 +30,8 @@ export interface Source {
   responses: number
   /** Visits and responses per range, for Insights. */
   counts: Counts
+  /** Removed from Share: the code keeps working and its responses stay in Insights. */
+  hidden?: boolean
 }
 
 export { MAIN_QR, MAIN_QR_LABEL }
@@ -106,6 +108,8 @@ interface Store {
   setQrOpen: (v: boolean) => void
   placements: Source[]
   addPlacement: (label: string) => Source
+  removePlacement: (ref: string) => void
+  restorePlacement: (ref: string) => void
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
@@ -218,7 +222,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tick('add-code')
     const name = label.trim()
     const same = sources.find((s) => s.kind === 'qr' && s.label.toLowerCase() === name.toLowerCase())
-    if (same) return same
+    if (same) { if (same.hidden) setSources((all) => all.map((x) => (x.ref === same.ref ? { ...x, hidden: false } : x))); return same }
     const base = `qr-${slugify(name) || 'code'}`
     let ref = base
     for (let i = 2; sources.some((s) => s.ref === ref); i++) ref = `${base}-${i}`
@@ -226,17 +230,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSources((all) => [...all, s])
     return s
   }, [sources])
+  /** Remove only takes a code out of Share; it stays in place, hidden, so Undo puts it back where it was. */
+  const removePlacement = useCallback((ref: string) => {
+    if (ref === MAIN_QR) return
+    setSources((all) => all.map((x) => (x.ref === ref ? { ...x, hidden: true } : x)))
+  }, [])
+  const restorePlacement = useCallback((ref: string) => {
+    setSources((all) => all.map((x) => (x.ref === ref ? { ...x, hidden: false } : x)))
+  }, [])
   /** Your form's own code first, then the others in the order they were made. */
   const placements = useMemo(() => {
-    const qr = sources.filter((s) => s.kind === 'qr')
+    const qr = sources.filter((s) => s.kind === 'qr' && !s.hidden)
     return [...qr.filter((s) => s.ref === MAIN_QR), ...qr.filter((s) => s.ref !== MAIN_QR)]
   }, [sources])
 
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
-    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, settings, setSettings])
+    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
