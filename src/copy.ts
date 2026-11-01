@@ -162,10 +162,9 @@ export const shareCopy = {
 export const jobsCopy = {
   qr: 'QR code',
   embed: 'Embed',
-  qrAria: 'Open your QR code',
-  embedAria: 'Embed the form on your website',
-  laneLabel: 'Ways to share',
+  embedLink: 'Embed on your website',
   track: 'Track where responses come from',
+  trackHelp: 'Get a tagged link for each social and a QR code for each place, then compare them in Insights.',
   codes: 'Your other QR codes',
   trackLine: 'Each link or code gets its own tag. See results in',
 }

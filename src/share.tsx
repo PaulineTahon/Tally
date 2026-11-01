@@ -31,7 +31,7 @@ export function useNativeShare() {
 }
 
 /** The link and Copy, the one primary action, always on top. Use custom domain sits under it. */
-export function LinkBar() {
+export function LinkBar({ extra }: { extra?: (big: boolean) => ReactNode } = {}) {
   const { display, url } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
@@ -47,6 +47,7 @@ export function LinkBar() {
             <Share aria-hidden />Share
           </button>
           <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} outline big /></span>
+          {extra?.(true)}
         </div>
       </div>
     )
@@ -57,6 +58,7 @@ export function LinkBar() {
         <input readOnly value={display()} aria-label="Form link" onFocus={(e) => e.currentTarget.select()} />
       </div>
       <span onClickCapture={() => tick('publish-copy')} style={{ display: 'contents' }}><CopyButton text={url()} /></span>
+      {extra?.(false)}
     </div>
   )
 }
@@ -374,11 +376,10 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
       </div>
       {/* A peek at the real snippet for the picked layout. The whole code is on the Customize embed page. */}
       <pre className="code-peek">{embedCode(mode, FORM_ID)}</pre>
-      <div className="stack gap-8">
+      {/* Customize embed sits right of Copy code, on the same line. */}
       <div className="embed-actions">
         <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
-      </div>
-      <div className="text-actions"><TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} /></div>
+        <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
       </div>
     </div>
   )
@@ -391,14 +392,14 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
  * Your form's own code as a thumbnail with Download, then each code you added the same way, one Customize QR code
  * under the codes, then Add another code. The tagging is said once, in Your QR Code's description.
  */
-function QrCodePanel(_: { pulse: number }) {
+function QrCodePanel({ desc = true, help = true }: { pulse: number; desc?: boolean; help?: boolean }) {
   const s = useStore()
   const openCode = useOpenCode()
   const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
   return (
     <div className="stack gap-12 qr-list-scope">
       <div className="stack gap-8">
-        <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+        {desc && <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>}
         {/* Your QR Code first, then each code you made, as list items. New ones show right away. */}
         <AutoHeight k={String(s.placements.length)} slow>
           <ul className="code-rows" aria-label={QR_COPY.yourCode}>
@@ -408,7 +409,7 @@ function QrCodePanel(_: { pulse: number }) {
         {/* One logo for the whole form, so one Customize QR code under the codes: the same text button as Customize preview. */}
         <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
       </div>
-      <AddCodeBlock />
+      <AddCodeBlock help={help} />
     </div>
   )
 }
@@ -501,37 +502,47 @@ function SocialPanel() {
 }
 
 /**
- * Jobs version, under the link and its preview: QR code and Embed as round buttons with a label, each opening its
- * own view, then one row that opens the tracking page (social links and the codes you made).
+ * Jobs version, under the link and its preview: Embed as a text link, then one row that opens the tracking page
+ * (a tagged link for each social and a code for each place). The QR code button sits next to Copy.
  */
 function JobsMenu({ onEmbed, onTrack }: { onEmbed: () => void; onTrack: () => void }) {
-  const openCode = useOpenCode()
-  const circle = (icon: ReactNode, label: string) => <><span className="lane-circle" aria-hidden>{icon}</span><span className="lane-label" aria-hidden>{label}</span></>
   return (
     <div className="stack gap-24">
-      <ul className="lane" aria-label={jobsCopy.laneLabel}>
-        <li><button type="button" className="lane-btn" data-row="jobs-qr" aria-haspopup="dialog" aria-label={jobsCopy.qrAria} onClick={() => openCode(MAIN_QR)}>{circle(<QrCode />, jobsCopy.qr)}</button></li>
-        <li><button type="button" className="lane-btn" data-row="ch-embed" aria-haspopup="dialog" aria-label={jobsCopy.embedAria} onClick={onEmbed}>{circle(<Code2 />, jobsCopy.embed)}</button></li>
-      </ul>
-      <ActionRow icon={<ChartNoAxesColumn />} label={jobsCopy.track} dataRow="track" onClick={onTrack} />
+      <TextAction label={jobsCopy.embedLink} haspopup="dialog" dataRow="ch-embed" onClick={onEmbed} />
+      <div className="jobs-track-row">
+        <ActionRow icon={<ChartNoAxesColumn />} label={jobsCopy.track} help={jobsCopy.trackHelp} dataRow="track" onClick={onTrack} />
+      </div>
     </div>
   )
 }
 
-/** Jobs version, the tracking page: one line, a tagged link per place, the codes you made, Add another code. */
-function JobsTracking() {
-  const s = useStore()
-  const made = s.placements.filter((p) => p.ref !== MAIN_QR)
+/** Jobs version, next to Copy: a square outlined button with the QR icon that opens your form's code page. */
+function JobsQrButton({ big = false }: { big?: boolean }) {
+  const openCode = useOpenCode()
   return (
-    <div className="stack gap-24 jobs-track qr-list-scope">
-      <div className="stack gap-8">
+    <button type="button" className={`btn btn-secondary jobs-qr-btn ${big ? 'is-big' : ''}`} data-row="jobs-qr" aria-label={jobsCopy.qr} title={jobsCopy.qr} aria-haspopup="dialog" onClick={() => openCode(MAIN_QR)}>
+      <QrCode aria-hidden />
+    </button>
+  )
+}
+
+export type TrackTab = 'social' | 'qr'
+
+/** Jobs version, the tracking page: one line, then Social and QR codes as tabs. */
+function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => void }) {
+  return (
+    <div className="stack gap-24 jobs-track">
+      <div className="stack gap-8 share-to">
         <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
-        <SocialList toast />
+        <Segmented<TrackTab>
+          label={jobsCopy.track} value={tab} onChange={onTab}
+          options={[
+            { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
+            { value: 'qr', label: 'QR codes', icon: <QrCode aria-hidden /> },
+          ]}
+        />
       </div>
-      <div className="stack gap-8">
-        {made.length > 0 && <ul className="code-rows" aria-label={jobsCopy.codes}>{made.map((p) => <CodeRow key={p.ref} p={p} />)}</ul>}
-        <AddCodeBlock help={false} />
-      </div>
+      {tab === 'social' ? <SocialList toast /> : <QrCodePanel pulse={0} desc={false} help={false} />}
     </div>
   )
 }
@@ -640,6 +651,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   useEffect(() => { if (prevView.current !== view && view === 'main') setRound((n) => n + 1); prevView.current = view }, [view])
   // Customize QR code under the code in the tab goes straight to the logo section on the code's page; the code itself opens its own page.
   const [logoFocus, setLogoFocus] = useState(false)
+  const [trackTab, setTrackTab] = useState<TrackTab>('social')
   const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); setLogoFocus(logo); nav.go('code') }, [s, nav])
   type Slot = Channel | Exclude<LinkView, 'main'> | 'menu'
   const head = (v: Exclude<LinkView, 'main'>) => (!inModal ? <ViewHead view={v} onBack={nav.back} /> : null)
@@ -653,7 +665,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     ...(pageModal ? [] : [
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
-      { key: 'track' as Slot, node: <div className="stack gap-12">{head('track')}<JobsTracking /></div> },
+      { key: 'track' as Slot, node: <div className="stack gap-12">{head('track')}<JobsTracking tab={trackTab} onTab={setTrackTab} /></div> },
       { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
     ]),
   ]
@@ -665,18 +677,18 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
     : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
     : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
-    : view === 'track' ? <JobsTracking />
+    : view === 'track' ? <JobsTracking tab={trackTab} onTab={setTrackTab} />
     : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} /> : null
   return (
     <CompactCtx.Provider value={inModal}>
     <OpenCodeCtx.Provider value={openCode}>
-      <SmoothHeight k={`${view}-${channel}`}>
+      <SmoothHeight k={`${view}-${channel}-${trackTab}`}>
         {/* A detail view hides the link, the card and the tabs. The whole box changes height once (SmoothHeight). */}
         <Collapse open={view === 'main' || inPageModal} instant>
           {/* One rhythm: label 8 content 8 text action, 24 to the next section label. */}
           <div className="stack gap-24 share-sections" style={{ paddingBottom: entry ? 24 : 16 }}>
             <div className="stack gap-8 link-block">
-              <LinkBar />
+              <LinkBar extra={jobs ? (big) => <JobsQrButton big={big} /> : undefined} />
               <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
             </div>
             <div className="stack gap-8">
@@ -692,7 +704,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
       {pageModal && (
         <Modal open={inPageModal} onClose={nav.reset} title={modalTitle} width={440} labelledBy="page-detail-title">
-          <SmoothHeight k={view}>{modalBody}</SmoothHeight>
+          <SmoothHeight k={`${view}-${trackTab}`}>{modalBody}</SmoothHeight>
         </Modal>
       )}
     </OpenCodeCtx.Provider>

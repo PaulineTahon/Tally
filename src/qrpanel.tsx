@@ -110,13 +110,13 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
 }
 
 /** The code itself, as big as the view allows. A phone can show it full screen. */
-function CodePreview({ refId, printing = 0 }: { refId: string; printing?: number }) {
+function CodePreview({ refId }: { refId: string }) {
   const mobile = useIsMobile()
   const opts = useQrOptions(refId)
   const [full, setFull] = useState(false)
   return (
     <div className="qr-focus">
-      <div className={`qr-print ${printing ? 'is-printing' : ''}`} key={printing}>
+      <div className="qr-print">
         <img className="qr-img" src={svgSrc(buildSvg(opts, { tight: true }))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
       </div>
       {mobile && (
@@ -136,7 +136,6 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
   const s = useStore()
   const { settings, setSettings } = s
   const { style } = settings
-  const [printing, setPrinting] = useState(0)
   const file = useRef<HTMLInputElement>(null)
   const upload = useRef<HTMLButtonElement>(null)
   const head = useRef<HTMLHeadingElement>(null)
@@ -166,9 +165,9 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
     <div className="qr-detail">
       {/* The code, its link and Download read as one group. */}
       <div className="qr-detail-group">
-        <CodePreview refId={refId} printing={printing} />
+        <CodePreview refId={refId} />
         <div className="qr-detail-dl">
-          <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary onDone={() => setPrinting((n) => n + 1)} />
+          <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary />
         </div>
       </div>
       <hr className="divider qr-detail-div" />

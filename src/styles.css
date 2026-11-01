@@ -275,7 +275,7 @@ a { color: inherit; }
   .collapse, .collapse.is-open { transition: opacity 150ms ease; }
   .seg-ind, .auto-h { transition: none; }
   .expand-chev, .disclosure svg, .switch::after { transition: none; }
-  .qr-print.is-printing .qr-img, .qr-print.is-printing::after, .mark-spin { animation: none; }
+  .mark-spin { animation: none; }
 }
 a.btn { text-decoration: none; }
 /* A plain segmented control without the sliding piece keeps its own white tab. */
