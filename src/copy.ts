@@ -3,18 +3,6 @@
 /** Title of the demo form every printed code opens. One place, so a new title is a one-line change. */
 export const EGG_TITLE = 'Scanned your way here'
 
-export const rowCopy = {
-  download: (place: string, format: string) => `Download ${place} as ${format.toUpperCase()}`,
-  copyLink: 'Copy link',
-  openLink: 'Open link',
-  rename: 'Rename',
-  renamed: (place: string) => (place.length > 24 ? 'Code renamed' : `Renamed to ${place}`),
-  /** Visits and submissions, like the Sources panel in Insights. */
-  visits: (v: number) => `${v} ${v === 1 ? 'visit' : 'visits'}`,
-  submissions: (n: number) => `${n} ${n === 1 ? 'submission' : 'submissions'}`,
-  cancel: 'Cancel',
-}
-
 /** Link ending: old endings keep redirecting, and stay reserved for this form. */
 /**
  * Shown under the fields in Link ending and domain, always. Wording to confirm with product.

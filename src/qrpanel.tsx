@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Download, Maximize2, Share, X, Upload } from 'lucide-react'
+import { ChevronDown, Download, Maximize2, Share, X, Upload, Plus } from 'lucide-react'
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE, planCopy } from './copy'
@@ -42,7 +42,8 @@ export const QR_COPY = {
   withoutLogo: 'Download without logo',
   taggedAs: (ref: string) => `Responses from this code are tagged ${ref}. See them in`,
   taggedOne: 'Responses from this code are tagged. See them in',
-  taggedEach: 'Responses from each code are tagged. See them in',
+  addAnother: 'Add another code',
+  addAnotherHelp: 'Give each place its own code, like qr-poster, to see which one brings in responses.',
   customizeCode: 'Customize code',
   logoHelp: 'Replaces the Tally mark on all your QR codes.',
 }
@@ -179,7 +180,10 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
         </div>
       </section>
       <hr className="divider qr-detail-div" />
-      <TagLine refId={refId} />
+      <div className="stack gap-8">
+        <TagLine refId={refId} />
+        <AddCode />
+      </div>
     </div>
   )
 }
@@ -193,6 +197,53 @@ export function TagLine({ refId }: { refId: string }) {
   )
 }
 export const INSIGHTS_QR_HREF = '#/insights?focus=qr'
+
+const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
+
+/** The same add input everywhere: it asks for a place name, never a ref. */
+export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster or Library' }: { label: string; onAdd: (name: string) => void; placeholder?: string }) {
+  const [name, setName] = useState('')
+  const field = useRef<HTMLInputElement>(null)
+  return (
+    <form className="row gap-8 add-place" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
+      <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} />
+      <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
+    </form>
+  )
+}
+
+/**
+ * On a code's page: a text link that makes a code for another place, with its own ref (qr-poster, qr-flyer).
+ * The new code opens right here; its results show in Insights. There is no list of codes in Share.
+ */
+function AddCode() {
+  const s = useStore()
+  const mobile = useIsMobile()
+  const [open, setOpen] = useState(false)
+  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
+  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
+  const add = (label: string) => {
+    const p = s.addPlacement(label)
+    s.setQrRef(p.ref)
+    s.toast(`Code added for ${p.label}`)
+  }
+  return (
+    <div className="stack gap-8 add-code-detail">
+      <button type="button" className="tag-link link-plain" aria-expanded={open} aria-controls="add-code-detail" onClick={() => setOpen((v) => !v)}>{QR_COPY.addAnother}</button>
+      {open && (
+        <div id="add-code-detail" className="stack gap-8">
+          <span className="xs muted">{QR_COPY.addAnotherHelp}</span>
+          <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
+          {missing.length > 0 && (
+            <div className="chips">
+              {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export const qrTitle = (label: string | undefined, ref: string) => (label && ref !== MAIN_QR ? `QR Code for ${label}` : QR_COPY.yourCode)
 

@@ -106,7 +106,6 @@ interface Store {
   setQrOpen: (v: boolean) => void
   placements: Source[]
   addPlacement: (label: string) => Source
-  renameSource: (ref: string, label: string) => void
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
@@ -219,11 +218,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSources((all) => [...all, s])
     return s
   }, [sources])
-  /** Renaming only changes what you see. The ref, and so the link, stays the same. */
-  const renameSource = useCallback((ref: string, label: string) => {
-    tick('rename')
-    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, label: label.trim() || s.label } : s)))
-  }, [])
   /** Your form's own code first, then the others in the order they were made. */
   const placements = useMemo(() => {
     const qr = sources.filter((s) => s.kind === 'qr')
@@ -233,8 +227,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
-    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, settings, setSettings])
+    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

@@ -22,7 +22,7 @@ export const guideCopy = {
       title: 'Everything You Share, in One Place',
       items: [
         { id: 'link-ending', text: 'Use custom domain, under your link, adds your own domain and ending.' },
-        { id: 'rename', text: 'Rename a code. Its link stays the same.' },
+        { id: 'add-code', text: 'Open your QR code and add another code for a poster.' },
       ],
     },
     'insights-data': {

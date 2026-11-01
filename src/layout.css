@@ -902,9 +902,13 @@ html.is-capture .proto-version { display: none !important; }
   -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent); }
 
 /* Under a code: its ref and a way to its results. Insights lights up the QR rows when you arrive from it. */
-/* Tally's own inline link (FormBlocks on tally.so/r/...: a:not(.unstyled)): #0070D7, weight 500, a 1px border instead of an underline, #0066d6 on hover. 4.88:1 on white. */
-.tag-link { color: var(--blue); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
-@media (hover: hover) and (pointer: fine) { .tag-link:hover { color: #0066d6; } }
+/* Inline text link, Tally style: weight 500 and a 1px border in the text colour instead of an underline (FormBlocks on tally.so/r/...: a:not(.unstyled)).
+   Colour #005CBF, Tally's deep blue (dashboard, .hYDzTD span), 6.4:1 on white; #0070D7 on hover. */
+.tag-link { color: var(--blue-deep); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+.link-plain { background: none; border-top: 0; border-left: 0; border-right: 0; padding: 0; margin: 0; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; align-self: center; border-radius: 0; }
+.add-code-detail { align-items: center; text-align: left; }
+.add-code-detail > div { align-self: stretch; }
+@media (hover: hover) and (pointer: fine) { .tag-link:hover { color: var(--blue); } }
 .tag-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
 .single-side .qr-tag-line { text-align: left; }
 .bars li { transition: box-shadow 400ms var(--ease-out), background-color 400ms var(--ease-out); }

@@ -1,13 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, Code2, Copy, MoreHorizontal, Download, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, ChevronRight, Settings2, Palette,
+  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, ChevronRight, Settings2, Palette,
 } from 'lucide-react'
-import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { ActionRow, Modal, Pro, SmoothHeight, TextAction, UpgradeButton, AutoHeight, Collapse, CopyButton, Menu, PanelStack, QrImage, Segmented } from './ui'
-import { download, fileFor, type QrFormat } from './qr'
-import { DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, fileName, qrTitle } from './qrpanel'
-import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
+import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
+import { ActionRow, Modal, Pro, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
+import { DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
+import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
 
@@ -397,138 +396,11 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
 
 /* ---------- The QR Code tab's codes ---------- */
 
-const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
-
-/** The QR Code tab's codes, once there are two or more: Your QR Code first, then the others. Counts live in Insights. */
-export function PlaceList({ pulse = 0 }: { pulse?: number }) {
-  const s = useStore()
-  const rows = s.placements
-  if (!rows.length) return null
-  return (
-    <ul className="placements" aria-label="Your QR codes">
-      {rows.map((p) => <PlaceRow key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} />)}
-    </ul>
-  )
-}
-
-/** One code: icon, name, Download, then everything else under More. */
-function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
-  const s = useStore()
-  const reduced = useReducedMotion()
-  const li = useRef<HTMLLIElement>(null)
-  const hit = useRef<HTMLSpanElement>(null)
-  const [pulsing, setPulsing] = useState(false)
-  // When asked to (pulse > 0): bring the row into view, focus it, pulse once.
-  useEffect(() => {
-    if (!pulse) return
-    const el = li.current
-    if (!el) return
-    el.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
-    ;(hit.current ?? el).focus({ preventScroll: true })
-    setPulsing(false)
-    const r = requestAnimationFrame(() => setPulsing(true))
-    const t = window.setTimeout(() => setPulsing(false), 1000)
-    return () => { cancelAnimationFrame(r); window.clearTimeout(t) }
-  }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
-  const { settings } = s
-  const style = settings.style
-  const [menu, setMenu] = useState(false)
-  const [up, setUp] = useState(false)
-  const [renaming, setRenaming] = useState(false)
-  const [name, setName] = useState(p.label)
-  const more = useRef<HTMLButtonElement>(null)
-  const link = qrUrl(p.ref)
-  const shown = p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label
-  // Nothing to tell apart with one code, so Rename only shows once there are two.
-  const canRename = s.placements.length > 1
-  // Print-size PNG by default; SVG and PDF sit in the menu.
-  const fmt: QrFormat = 'png'
-  const download1 = async (f: QrFormat) => {
-    // Free with a logo in: downloading it is Pro, same as the Download button.
-    if (s.plan !== 'pro' && style.logo) { s.upgrade(); return }
-    const o = { url: link, shortLink: QR_CAPTION, style, showLink: true }
-    download(await fileFor(o, f), fileName(p.ref, f))
-    s.markDownloaded()
-    if (main) tick('download-main')
-    s.toast(QR_COPY.downloadedAs(f), QR_ALERT)
-  }
-  const copy = async () => { await copyText(link); s.toast('Link copied. Go spread the word.') }
-  const openMenu = () => {
-    // Open upward when there isn't room below, so the menu never hides under the sheet edge.
-    const r = more.current?.getBoundingClientRect()
-    const box = more.current?.closest('.modal-body, .sheet-body')?.getBoundingClientRect()
-    const floor = Math.min(window.innerHeight, box?.bottom ?? Infinity)
-    setUp(!!r && r.bottom + (main ? 270 : 320) > floor)
-    setMenu((m) => !m)
-  }
-  const pick = (fn: () => void) => () => { setMenu(false); fn() }
-  const main = p.ref === MAIN_QR
-  // Code rows use the same plain QR icon as the QR Code tab; the full code is one click away.
-  const icon = <span className="src-icon is-code" aria-hidden><QrCode /></span>
-  const open = useOpenCode()
-  const openCode = () => open(p.ref)
-  if (renaming) {
-    const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast(rowCopy.renamed(name.trim())) }
-    return (
-      <li className="is-editing">
-        {icon}
-        <form className="stack gap-4 grow" onSubmit={(e) => { e.preventDefault(); save() }}>
-          <div className="row gap-8">
-            <input className="input input-sm grow" autoFocus aria-label={`New name for ${p.label}`} value={name}
-              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setRenaming(false) } }} />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(p.label); setRenaming(false) }}>Cancel</button>
-            <button type="submit" className="btn btn-secondary btn-sm" disabled={!name.trim()}>Save</button>
-          </div>
-          <span className="xs muted">The link stays the same, so printed codes keep working.</span>
-        </form>
-      </li>
-    )
-  }
-  return (
-    <li ref={li} tabIndex={-1} className={['is-clickable', pulsing ? 'is-pulse' : ''].join(' ').trim()}
-      onClick={(e) => { if (!(e.target as HTMLElement).closest('button, a, [role="menu"]')) openCode() }}>
-      <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${shown}. Open code`}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCode() } }}>
-        {icon}
-        <span className="title grow">{shown}</span>
-      </span>
-      <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={rowCopy.download(shown, fmt)} aria-label={rowCopy.download(shown, fmt)} onClick={() => download1(fmt)}>
-        <Download aria-hidden />
-      </button>
-      <span style={{ position: 'relative', display: 'inline-flex' }}>
-        <button ref={more} type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={`More for ${shown}`} aria-haspopup="menu" aria-expanded={menu} onClick={openMenu}>
-          <MoreHorizontal aria-hidden />
-        </button>
-        <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
-          <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />{rowCopy.copyLink}</button>
-          {canRename && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />{rowCopy.rename}</button>}
-          <div className="menu-sep" role="separator" />
-          {(['png', 'svg', 'pdf'] as QrFormat[]).map((f) => (
-            <button key={f} role="menuitem" onClick={pick(() => download1(f))}><Download aria-hidden />Download {f.toUpperCase()}</button>
-          ))}
-        </Menu>
-      </span>
-    </li>
-  )
-}
-
-/** The same add input everywhere: it asks for a place name, never a ref. */
-export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster or Library' }: { label: string; onAdd: (name: string) => void; placeholder?: string }) {
-  const [name, setName] = useState('')
-  const field = useRef<HTMLInputElement>(null)
-  return (
-    <form className="row gap-8 add-place" onSubmit={(e) => { e.preventDefault(); if (!name.trim()) return; field.current?.focus({ preventScroll: true }); onAdd(name.trim()); setName('') }}>
-      <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} />
-      <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
-    </form>
-  )
-}
-
 /** With only one code, the tab shows the code itself. */
 function SingleCode({ pulse }: { pulse: number }) {
   const s = useStore()
   const reduced = useReducedMotion()
-  const p = s.placements[0]
+  const p = s.placements.find((x) => x.ref === MAIN_QR) ?? s.placements[0]
   const style = s.settings.style
   const link = qrUrl(p.ref)
   const [pulsing, setPulsing] = useState(false)
@@ -560,48 +432,17 @@ function SingleCode({ pulse }: { pulse: number }) {
 }
 
 /**
- * One sentence, one code, one row deeper. In the share modal that's all: your form's own code, Download and
- * Customize code. The Share tab page also lists the other codes and has Add another code.
+ * One sentence, one code, one row deeper: your form's own code, Download and Customize code.
+ * Codes for other places are made on the code's own page, with Add another code.
  */
 function QrCodePanel({ pulse }: { pulse: number }) {
-  const s = useStore()
-  const compact = useContext(CompactCtx)
   const openCode = useOpenCode()
-  const mobile = useIsMobile()
-  const [adding, setAdding] = useState(false)
-  const add = (label: string) => {
-    const p = s.addPlacement(label)
-    s.toast(`Code added for ${p.label}`)
-  }
-  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
-  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
-  const single = compact || s.placements.length <= 1
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>{single ? QR_COPY.taggedOne : QR_COPY.taggedEach} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a></p>
-      {/* One code: the code itself. Two or more on the Share tab page: the list. The box eases between the two. */}
-      <AutoHeight k={single ? 'one' : 'list'} slow>
-        {single ? <SingleCode pulse={pulse} /> : <PlaceList pulse={pulse} />}
-      </AutoHeight>
-      {/* One logo for the whole form, so one Customize code, for 1 code or 20. */}
+      <p className="small muted" style={{ margin: 0 }}>{QR_COPY.taggedOne} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a></p>
+      <SingleCode pulse={pulse} />
+      {/* One logo for the whole form, so one Customize code. */}
       <ActionRow icon={<Palette />} label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} />
-      {!compact && (
-        /* One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips. */
-        <div className="stack gap-4 add-code">
-          <ActionRow icon={<Plus />} label="Add another code" chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
-          <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
-          <Collapse open={adding} id="add-code" gap={4}>
-            <div className="stack gap-8" style={{ paddingTop: 8 }}>
-              <AddPlace label="Add another code" placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
-              {missing.length > 0 && (
-                <div className="chips">
-                  {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
-                </div>
-              )}
-            </div>
-          </Collapse>
-        </div>
-      )}
     </div>
   )
 }
