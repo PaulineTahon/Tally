@@ -98,7 +98,7 @@ export function FormTitle({ tab, onTab }: { tab: Tab; onTab: (t: Tab) => void })
     <div className="form-head">
       <div className="row gap-8" style={{ position: 'relative' }}>
         <h1>{FORM_TITLE}</h1>
-        <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label="Form options" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><Ellipsis aria-hidden /></button>
+        <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label="More actions" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><Ellipsis aria-hidden /></button>
         <Menu open={menu} onClose={() => setMenu(false)} style={{ top: 40, left: 'min(100%, 300px)' }}>
           <button role="menuitem" onClick={() => setMenu(false)}><Pencil aria-hidden />Edit</button>
           <button role="menuitem" onClick={() => setMenu(false)}><Type aria-hidden />Rename</button>

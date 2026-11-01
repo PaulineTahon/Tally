@@ -36,11 +36,13 @@ export const QR_COPY = {
   downloadPng: 'Download PNG',
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',
-  readyLine: 'Ready to print. Add it to a poster, flyer or slide.',
   downloadedAs: (f: QrFormat) => `${f.toUpperCase()} downloaded`,
   imageSaved: 'Image saved',
   logo: 'Add your logo',
   withoutLogo: 'Download without logo',
+  taggedAs: (ref: string) => `Responses from this code are tagged ${ref}. See them in`,
+  taggedOne: 'Responses from this code are tagged. See them in',
+  taggedEach: 'Responses from each code are tagged. See them in',
   customizeCode: 'Customize code',
   logoHelp: 'Replaces the Tally mark on all your QR codes.',
 }
@@ -56,7 +58,7 @@ export function useQrOptions(ref: string): QrOptions {
  */
 export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary = false }: {
   refId: string; label: string; onDone?: () => void; primaryRef?: React.Ref<HTMLButtonElement>
-  /** Where Copy isn't on screen (the code's page, Logo), Download, or Upgrade to download, is the black primary. */
+  /** Where Copy isn't on screen (the code's page), Download, or Upgrade to download, is the black primary. */
   upgradePrimary?: boolean
 }) {
   const s = useStore()
@@ -111,7 +113,7 @@ function CodePreview({ refId, printing = 0 }: { refId: string; printing?: number
   return (
     <div className="qr-focus">
       <div className={`qr-print ${printing ? 'is-printing' : ''}`} key={printing}>
-        <img className="qr-img" src={svgSrc(buildSvg(opts))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
+        <img className="qr-img" src={svgSrc(buildSvg(opts, { tight: true }))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
       </div>
       {mobile && (
         <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
@@ -153,11 +155,15 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
     return () => window.clearTimeout(t)
   }, [focusLogo])
   return (
-    <div className="stack gap-16">
-      <CodePreview refId={refId} printing={printing} />
-      <div className="qr-detail-dl">
-        <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary onDone={() => setPrinting((n) => n + 1)} />
+    <div className="qr-detail">
+      {/* The code, its link and Download read as one group. */}
+      <div className="qr-detail-group">
+        <CodePreview refId={refId} printing={printing} />
+        <div className="qr-detail-dl">
+          <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary onDone={() => setPrinting((n) => n + 1)} />
+        </div>
       </div>
+      <hr className="divider qr-detail-div" />
       {/* One logo for the whole form. Free can try it: it shows right away, and downloading it is Pro. */}
       <section className="qr-logo" aria-labelledby="qr-logo-h">
         <div className="row-between logo-row">
@@ -172,10 +178,21 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
           </div>
         </div>
       </section>
-      <p className="xs muted qr-tag-line">Responses from this code are tagged, so you'll see where they came from.</p>
+      <hr className="divider qr-detail-div" />
+      <TagLine refId={refId} />
     </div>
   )
 }
+
+/** Under every code: the ref its responses carry, and where to see them. Counts live in Insights. */
+export function TagLine({ refId }: { refId: string }) {
+  return (
+    <p className="xs muted qr-tag-line">
+      {QR_COPY.taggedAs(refId)} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>
+    </p>
+  )
+}
+export const INSIGHTS_QR_HREF = '#/insights?focus=qr'
 
 export const qrTitle = (label: string | undefined, ref: string) => (label && ref !== MAIN_QR ? `QR Code for ${label}` : QR_COPY.yourCode)
 

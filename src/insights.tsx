@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail, MessageSquareText } from 'lucide-react'
 import { MonoMark } from './brand'
 import { useIsMobile, useStore, type Source } from './store'
@@ -178,8 +178,18 @@ function SourceGlyph({ row }: { row: SourceRow }) {
 function SourcesPanel({ rows }: { rows: SourceRow[] }) {
   const max = Math.max(1, ...rows.map((r) => r.visits))
   const mobile = useIsMobile()
+  // From "See results in Insights" under a code (?focus=qr): bring Sources into view and light up the QR rows once.
+  const panel = useRef<HTMLElement>(null)
+  const [lit, setLit] = useState(() => /[?&]focus=qr\b/.test(window.location.hash))
+  useEffect(() => {
+    if (!lit) return
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    panel.current?.scrollIntoView({ block: 'center', behavior: reduce ? 'auto' : 'smooth' })
+    const t = window.setTimeout(() => setLit(false), 2400)
+    return () => window.clearTimeout(t)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <section className="panel panel-sources" onPointerEnter={() => tick('compare-sources')} onFocus={() => tick('compare-sources')} onTouchStart={() => tick('compare-sources')}>
+    <section ref={panel} className="panel panel-sources" onPointerEnter={() => tick('compare-sources')} onFocus={() => tick('compare-sources')} onTouchStart={() => tick('compare-sources')}>
       <div className="panel-h">
         <h3>Sources</h3>
         <span className="col-h">Visits</span>
@@ -187,7 +197,7 @@ function SourcesPanel({ rows }: { rows: SourceRow[] }) {
       </div>
       <ul className="bars">
         {rows.map((r) => (
-          <li key={r.name}>
+          <li key={r.name} className={lit && r.qr ? 'is-lit' : undefined}>
             <span className="bar-cell">
               <span className="bar-fill" style={{ width: `${(r.visits / max) * 100}%` }} />
               <span className="bar-text"><SourceGlyph row={r} />{r.name}</span>

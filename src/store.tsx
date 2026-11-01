@@ -30,8 +30,6 @@ export interface Source {
   responses: number
   /** Visits and responses per range, for Insights. */
   counts: Counts
-  /** Removed from the list. The code and link still work, and its numbers stay in Insights. */
-  hidden?: boolean
 }
 
 export { MAIN_QR, MAIN_QR_LABEL }
@@ -109,8 +107,6 @@ interface Store {
   placements: Source[]
   addPlacement: (label: string) => Source
   renameSource: (ref: string, label: string) => void
-  removeSource: (ref: string) => void
-  restoreSource: (ref: string) => void
   settings: QrSettings
   setSettings: (s: QrSettings) => void
   qrRef: string
@@ -204,7 +200,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addSource = useCallback((label: string) => {
     const ref = slugify(label) || 'link'
     const existing = sources.find((s) => s.ref === ref)
-    if (existing) { if (existing.hidden) setSources((all) => all.map((x) => (x.ref === ref ? { ...x, hidden: false } : x))); return existing }
+    if (existing) return existing
     const s: Source = { ref, label: label.trim() || ref, kind: 'custom', responses: 0, counts: ZERO }
     setSources((all) => [...all, s])
     return s
@@ -215,7 +211,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tick('add-code')
     const name = label.trim()
     const same = sources.find((s) => s.kind === 'qr' && s.label.toLowerCase() === name.toLowerCase())
-    if (same) { if (same.hidden) setSources((all) => all.map((x) => (x.ref === same.ref ? { ...x, hidden: false } : x))); return same }
+    if (same) return same
     const base = `qr-${slugify(name) || 'code'}`
     let ref = base
     for (let i = 2; sources.some((s) => s.ref === ref); i++) ref = `${base}-${i}`
@@ -228,25 +224,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     tick('rename')
     setSources((all) => all.map((s) => (s.ref === ref ? { ...s, label: label.trim() || s.label } : s)))
   }, [])
-  /** Remove from list only: it stays in place, hidden, so Undo puts it back where it was. */
-  const removeSource = useCallback((ref: string) => {
-    if (ref === MAIN_QR) return
-    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, hidden: true } : s)))
-  }, [])
-  const restoreSource = useCallback((ref: string) => {
-    setSources((all) => all.map((s) => (s.ref === ref ? { ...s, hidden: false } : s)))
-  }, [])
   /** Your form's own code first, then the others in the order they were made. */
   const placements = useMemo(() => {
-    const qr = sources.filter((s) => s.kind === 'qr' && !s.hidden)
+    const qr = sources.filter((s) => s.kind === 'qr')
     return [...qr.filter((s) => s.ref === MAIN_QR), ...qr.filter((s) => s.ref !== MAIN_QR)]
   }, [sources])
 
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
-    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, restoreSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, restoreSource, settings, setSettings])
+    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

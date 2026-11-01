@@ -249,8 +249,6 @@ a.list-row { text-decoration: none; color: inherit; }
 .qr-focus .qr-print { width: 260px; aspect-ratio: auto; }
 .qr-focus .qr-img { width: 100%; height: auto; image-rendering: auto; }
 .qr-full-btn { position: absolute; top: 0; right: 0; }
-.personalize { padding: 12px; border-radius: 10px; background: var(--surface-2); }
-.personalize .segmented { background: #e4e4e3; }
 @media (max-width: 757px) { .qr-focus .qr-print { width: min(240px, 70vw); } }
 
 /* Embed with real miniatures */
@@ -433,8 +431,8 @@ a.list-row { text-decoration: none; color: inherit; }
 @media (max-width: 480px) {
   .single-code { flex-direction: column; align-items: stretch; gap: 12px; padding: 12px; }
   .single-preview { align-self: center; }
-  .single-preview img, .single-preview svg { width: 128px; height: 128px; }
   .single-dl .btn { flex: 1; }
+  .single-dl .split-caret { flex: none; width: 44px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .placements li.is-clickable:active { transform: none; }
@@ -491,8 +489,8 @@ a.list-row { text-decoration: none; color: inherit; }
 .segmented button:focus-visible { outline-offset: -2px; }
 
 /* Small text on grey surfaces: the lighter greys drop under 4.5:1 there, so use grey-2 and the deeper blue. */
-.more-box .muted, .lp-edit .muted, .personalize .muted, .callout .muted, .nudge .muted, .sample .muted, .link-card .muted { color: var(--grey-2); }
-.more-box .link-btn:not(.quiet), .lp-edit .link-btn:not(.quiet), .personalize .link-btn:not(.quiet), .link-card .link-btn:not(.quiet) { color: var(--blue-deep); }
+.more-box .muted, .lp-edit .muted, .callout .muted, .nudge .muted, .sample .muted, .link-card .muted { color: var(--grey-2); }
+.more-box .link-btn:not(.quiet), .lp-edit .link-btn:not(.quiet), .link-card .link-btn:not(.quiet) { color: var(--blue-deep); }
 
 /* Share to panels share one grid cell, so the box keeps the tallest panel's height and Done never moves. */
 /* Share to panels: only the active one is shown; .auto-h eases the height between them. */
@@ -513,7 +511,7 @@ a.list-row { text-decoration: none; color: inherit; }
   .single-more { margin-top: 4px; }
   .link-btn::before { content: ''; position: absolute; left: 50%; top: 50%; width: max(100% + 8px, 44px); height: max(100%, 44px); transform: translate(-50%, -50%); }
 }
-.more-box .btn-ghost, .lp-edit .btn-ghost, .personalize .btn-ghost { color: var(--grey-2); }
+.more-box .btn-ghost, .lp-edit .btn-ghost { color: var(--grey-2); }
 
 /* The preview card people see when the link is pasted. */
 .lp-card { display: flex; gap: 12px; padding: 10px; border-radius: 10px; background: #fff; box-shadow: var(--ring); align-items: center; min-width: 0; }
@@ -740,7 +738,7 @@ a.list-row { text-decoration: none; color: inherit; }
 }
 
 /*
- * Secondary actions, one pattern: Customize, More formats, Personalize, Add another code.
+ * Secondary actions, one pattern: Customize preview, Customize code, Customize embed, Add another code.
  * A quiet full-width row (no fill, no border), leading icon, label with an optional Pro badge, trailing chevron.
  * It sits 8px into the gutter so the icon lines up with the content edge and the hover fill has room.
  */
@@ -806,26 +804,19 @@ a.list-row { text-decoration: none; color: inherit; }
 .split-out { width: fit-content; max-width: 100%; }
 .qr-detail-dl { display: flex; justify-content: center; }
 @media (max-width: 757px) { .split-out { width: 100%; } .qr-detail-dl { display: block; } }
-/* Personalize on the code's page: a plain white section, hierarchy from its heading. */
-.qr-section { margin-top: 12px; }
-.personalize.is-plain { padding: 0; background: none; border-radius: 0; }
-.personalize.is-plain .field-label { font-weight: 500; }
-.qr-tag-line { margin: 0; padding-top: 16px; border-top: 1px solid var(--divider); text-align: center; }
+.qr-tag-line { margin: 0; text-align: center; }
 .qr-section-title.field-label { font-size: 15px; font-weight: 600; color: var(--text); }
 .split-out .split-solo { border-radius: 8px; }
-.qr-plain-row { min-height: 32px; }
-.qr-plain-row .field-label { font-weight: 500; }
 @media (max-width: 757px) { .split-out .split-solo { width: 100%; justify-content: center; } }
 /* Pencil: 44px wide, and its hit area reaches 44px tall on a 36px field. */
 .field-icon-btn { position: relative; width: 44px; }
 .field-icon-btn::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 44px; transform: translateY(-50%); }
 /* Free with a logo in: Upgrade to download, and Download without logo under it. */
-.split-out.is-upgrade { flex-direction: column; align-items: stretch; gap: 4px; }
+.split-out.is-upgrade { flex-direction: column; align-items: stretch; gap: 8px; }
 .split-out.is-upgrade .split-plain { justify-content: center; }
 .logo-row { gap: 12px; }
 /* Small grey labels over a group: Share to, and Link preview in the tiles variant. */
 .small-label { font-weight: 600; }
-#lp-label { margin-bottom: -2px; }
 /* Tiles variant: three quiet tiles, never black. */
 .share-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .share-tiles > span { display: flex; }
@@ -850,11 +841,11 @@ html.is-capture .proto-version { display: none !important; }
 .proto-nav { z-index: 55; }
 /* Text actions under a preview (Customize preview, Customize code), styled like Tally's "Use custom domain". */
 .text-action-wrap { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; }
-.text-action { border: 0; background: none; padding: 4px 0; margin: 0; font: inherit; font-size: 13px; font-weight: 500; line-height: 18px; color: var(--grey-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; border-radius: 4px; }
+.text-action { border: 0; background: none; padding: 4px 0; margin: -4px 0; font: inherit; font-size: 13px; font-weight: 500; line-height: 18px; color: var(--grey-2); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; cursor: pointer; border-radius: 4px; }
 @media (hover: hover) and (pointer: fine) { .text-action:hover { color: var(--text); } }
 .text-action:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 /* Phones: 44px tall tap target, from padding. */
-@media (max-width: 757px) { .text-action { padding: 13px 0; margin: -9px 0; } }
+@media (max-width: 757px) { .text-action { padding: 13px 0; margin: -13px 0; } }
 .text-actions { display: flex; }
 /* Codes and Tracked Links: submissions only, always on one line. */
 .placements .count.count-one { display: inline; flex-direction: row; white-space: nowrap; width: auto; }
@@ -868,7 +859,7 @@ html.is-capture .proto-version { display: none !important; }
 /* Preview editor: image thumbnail with Replace and Remove next to it. */
 .lp-img-row { align-items: center; }
 .lp-img-thumb { width: 96px; height: 50px; object-fit: cover; border-radius: 6px; box-shadow: var(--ring); flex: none; }
-/* Black split download (code page, Logo): a thin light divider between Download and the format menu. */
+/* Black split download (code page): a thin light divider between Download and the format menu. */
 .split-out .btn-black.split-caret { margin-left: 1px; }
 /* Desktop: the prototype bar floats over the backdrop, so dialogs stop above it instead of under it. Prototype only. */
 @media (min-width: 758px) {
@@ -884,6 +875,8 @@ html.is-capture .proto-version { display: none !important; }
    Equal columns sized to the longest label, so the sliding white tab still lines up. */
 @media (min-width: 758px) {
   .share-page .lp-strip { max-width: 520px; }
+  /* The link, Copy and Use custom domain share the card's width and left edge. */
+  .share-page .link-block { max-width: 520px; }
   .share-page .share-to .segmented { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: fit-content; align-self: flex-start; }
   .share-page .share-to .segmented button { padding: 0 16px; }
 }
@@ -896,3 +889,30 @@ html.is-capture .proto-version { display: none !important; }
 .embed-card[aria-pressed='true'] > span:last-child { color: var(--text); }
 .embed-actions { display: flex; }
 @media (max-width: 757px) { .embed-actions .btn { flex: 1; justify-content: center; height: 44px; } }
+
+/* Code detail rhythm (8/16/24/32): code, link and Download as one group, Download 16px under the link.
+   Then 32 / divider / 24, the logo, and 24 / divider / 24 before the tracking line. */
+.qr-detail { display: flex; flex-direction: column; }
+.qr-detail-group { display: flex; flex-direction: column; gap: 16px; }
+.qr-detail-div { margin: 24px 0; }
+.qr-detail-group + .qr-detail-div { margin-top: 32px; }
+
+/* Embed tab: the first lines of the real snippet, read-only, fading out at the bottom. */
+.code-peek { margin: 0; padding: 10px 12px 0; height: 64px; overflow: hidden; border-radius: 8px; background: var(--surface-2); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; color: var(--grey-1); user-select: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent); }
+
+/* Under a code: its ref and a way to its results. Insights lights up the QR rows when you arrive from it. */
+/* Tally's own inline link (FormBlocks on tally.so/r/...: a:not(.unstyled)): #0070D7, weight 500, a 1px border instead of an underline, #0066d6 on hover. 4.88:1 on white. */
+.tag-link { color: var(--blue); font-weight: 500; text-decoration: none; border-bottom: 1px solid currentColor; }
+@media (hover: hover) and (pointer: fine) { .tag-link:hover { color: #0066d6; } }
+.tag-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 2px; }
+.single-side .qr-tag-line { text-align: left; }
+.bars li { transition: box-shadow 400ms var(--ease-out), background-color 400ms var(--ease-out); }
+.bars li.is-lit { border-radius: 6px; box-shadow: 0 0 0 2px rgba(0,112,215,.35); background-color: rgba(0,112,215,.06); }
+@media (prefers-reduced-motion: reduce) { .bars li { transition: none; } }
+
+/* Share modal: the link preview as one quiet row under the link (thumbnail, Link preview, Customize Pro, chevron). */
+.preview-row-wrap { margin-top: 8px; }
+.preview-row { height: 48px; }
+.preview-row-img { width: 48px; height: 25px; flex: none; object-fit: cover; border-radius: 4px; box-shadow: var(--border) 0 0 0 1px; background: var(--surface-2); }
+.preview-row-act { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--grey-2); }

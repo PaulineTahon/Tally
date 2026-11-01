@@ -169,12 +169,13 @@ export function codeSvg(url: string, style: QrStyle) {
 }
 
 /** The printable artwork: the code and, if wanted, the short link underneath. No Tally branding on any plan. */
-export function buildSvg(o: QrOptions, opts: { caption?: boolean } = {}) {
+/** `tight`: on screen, the caption box ends right under the link, so spacing below it comes from the layout. */
+export function buildSvg(o: QrOptions, opts: { caption?: boolean; tight?: boolean } = {}) {
   const caption = (opts.caption ?? true) && (o.showLink || !!o.label)
   const m = matrix(o.url)
   const unit = 10
   const codeW = (m.size + QUIET * 2) * unit
-  const capH = caption ? (o.showLink ? 84 : 44) + (o.label && o.showLink ? 36 : 0) : 0
+  const capH = caption ? (opts.tight && o.showLink && !o.label ? 36 : (o.showLink ? 84 : 44) + (o.label && o.showLink ? 36 : 0)) : 0
   const h = codeW + capH
   const logoS = m.size * LOGO_RATIO * unit
   const logoXY = (codeW - logoS) / 2

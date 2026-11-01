@@ -8,10 +8,7 @@ export const rowCopy = {
   copyLink: 'Copy link',
   openLink: 'Open link',
   rename: 'Rename',
-  remove: 'Remove from list',
   renamed: (place: string) => (place.length > 24 ? 'Code renamed' : `Renamed to ${place}`),
-  removed: 'Removed. The code still works and its responses stay tagged.',
-  undo: 'Undo',
   /** Visits and submissions, like the Sources panel in Insights. */
   visits: (v: number) => `${v} ${v === 1 ? 'visit' : 'visits'}`,
   submissions: (n: number) => `${n} ${n === 1 ? 'submission' : 'submissions'}`,
@@ -42,6 +39,7 @@ export const linkCopy = {
   endingRow: 'Link ending and domain',
   previewRow: 'Link preview',
   customize: 'Customize preview',
+  customizeShort: 'Customize',
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',
@@ -152,7 +150,6 @@ export const planCopy = {
   upgradeToDownload: 'Upgrade to download',
   domainSaved: 'Custom domain saved.',
   previewSaved: 'Link preview updated.',
-  logoSaved: 'Logo saved for your codes.',
 }
 
 /**
