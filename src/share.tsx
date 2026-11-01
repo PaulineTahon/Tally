@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, ChevronRight,
+  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
 } from 'lucide-react'
-import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
-import { ActionRow, Modal, Pro, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
-import { DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
+import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
+import { ActionRow, AutoHeight, Modal, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
+import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
@@ -198,19 +198,6 @@ function PreviewStrip({ draft }: { draft: PreviewDraft }) {
   )
 }
 
-/** In the share modal: one quiet row under the link, leading to Customize preview. */
-function PreviewRow({ draft, onOpen }: { draft: PreviewDraft; onOpen: () => void }) {
-  return (
-    <button type="button" className="act-row preview-row" data-row="preview" aria-haspopup="dialog" onClick={onOpen}
-      aria-label={`${linkCopy.previewRow}. ${linkCopy.customizeShort}, Pro`}>
-      <img className="preview-row-img" src={previewImg(draft)} alt="" />
-      <span className="act-label grow">{linkCopy.previewRow}</span>
-      <span className="preview-row-act">{linkCopy.customizeShort}<Pro /></span>
-      <ChevronRight className="act-chev" aria-hidden />
-    </button>
-  )
-}
-
 const fill = (line: string, link: string) => line.replace('{link}', link)
 
 /**
@@ -388,7 +375,7 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
       <div className="embed-actions">
         <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
       </div>
-      <ActionRow label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
+      <div className="text-actions"><TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} /></div>
       </div>
     </div>
   )
@@ -396,11 +383,13 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
 
 /* ---------- The QR Code tab's codes ---------- */
 
-/** With only one code, the tab shows the code itself. */
-function SingleCode({ pulse }: { pulse: number }) {
+/**
+ * One code on the QR Code tab: a small thumbnail (it opens the code's page), the name, and Download.
+ * Only your form's own code carries the description, so the tagging is said once.
+ */
+function CodeCard({ p, pulse = 0, desc = false }: { p: Source; pulse?: number; desc?: boolean }) {
   const s = useStore()
   const reduced = useReducedMotion()
-  const p = s.placements.find((x) => x.ref === MAIN_QR) ?? s.placements[0]
   const style = s.settings.style
   const link = qrUrl(p.ref)
   const [pulsing, setPulsing] = useState(false)
@@ -419,12 +408,15 @@ function SingleCode({ pulse }: { pulse: number }) {
   return (
     <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
       <button type="button" className="single-preview" aria-label={`Open ${p.label}`} onClick={() => openCode(p.ref)}>
-        <QrImage url={link} style={style} size={160} label={`QR code that opens ${link.replace('https://', '')}`} />
-        <span className="single-link">{QR_CAPTION}</span>
+        {/* A thumbnail: the big code, with its link line, is on the code's own page. */}
+        <QrImage url={link} style={style} size={96} label={`QR code that opens ${link.replace('https://', '')}`} />
       </button>
-      <div className="stack gap-8 single-side">
+      <div className="stack gap-12 single-side">
         {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
-        <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
+        <span className="stack gap-4">
+          <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
+          {desc && <span className="single-desc">{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</span>}
+        </span>
         <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
       </div>
     </div>
@@ -432,17 +424,48 @@ function SingleCode({ pulse }: { pulse: number }) {
 }
 
 /**
- * One sentence, one code, one row deeper: your form's own code, Download and Customize code.
- * Codes for other places are made on the code's own page, with Add another code.
+ * Your form's own code as a thumbnail with Download, then each code you added the same way, one Customize QR code
+ * under the codes, then Add another code. The tagging is said once, in Your QR Code's description.
  */
 function QrCodePanel({ pulse }: { pulse: number }) {
+  const s = useStore()
   const openCode = useOpenCode()
+  const mobile = useIsMobile()
+  const [adding, setAdding] = useState(false)
+  const add = (label: string) => {
+    const p = s.addPlacement(label)
+    s.toast(`Code added for ${p.label}`)
+  }
+  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
+  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
+  const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>{QR_COPY.taggedOne} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a></p>
-      <SingleCode pulse={pulse} />
-      {/* One logo for the whole form, so one Customize code. */}
-      <ActionRow label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} />
+      <div className="stack gap-8">
+        {/* Your QR Code first, then each code you added, stacked, each its own card. New ones show right away. */}
+        <AutoHeight k={String(s.placements.length)} slow>
+          <div className="stack gap-8 code-cards">
+            {codes.map((p) => <CodeCard key={p.ref} p={p} pulse={p.ref === MAIN_QR ? pulse : 0} desc={p.ref === MAIN_QR} />)}
+          </div>
+        </AutoHeight>
+        {/* One logo for the whole form, so one Customize QR code under the codes: the same text button as Customize preview. */}
+        <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
+      </div>
+      {/* One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips. */}
+      <div className="stack gap-4 add-code">
+        <ActionRow icon={<Plus />} label={QR_COPY.addAnother} chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
+        <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
+        <Collapse open={adding} id="add-code" gap={4}>
+          <div className="stack gap-8" style={{ paddingTop: 8 }}>
+            <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
+            {missing.length > 0 && (
+              <div className="chips">
+                {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
+              </div>
+            )}
+          </div>
+        </Collapse>
+      </div>
     </div>
   )
 }
@@ -544,7 +567,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const [round, setRound] = useState(0)
   const prevView = useRef(view)
   useEffect(() => { if (prevView.current !== view && view === 'main') setRound((n) => n + 1); prevView.current = view }, [view])
-  // Customize code under a code in the tab goes straight to the logo section on the code's page; the code itself opens its own page.
+  // Customize QR code under the code in the tab goes straight to the logo section on the code's page; the code itself opens its own page.
   const [logoFocus, setLogoFocus] = useState(false)
   const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); setLogoFocus(logo); nav.go('code') }, [s, nav])
   type Slot = Channel | Exclude<LinkView, 'main'> | 'menu'
@@ -582,16 +605,12 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
             <div className="stack gap-8 link-block">
               <LinkBar />
               <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
-              {/* Share modal: the preview is one quiet row. The Share tab page keeps the bigger card. */}
-              {inModal && <div className="preview-row-wrap"><PreviewRow draft={saved} onOpen={() => nav.go('preview')} /></div>}
             </div>
-            {!inModal && (
-              <div className="stack gap-8">
-                <div className="xs muted small-label" id="lp-label">Link preview</div>
-                <PreviewStrip draft={saved} />
-                <TextAction label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
-              </div>
-            )}
+            <div className="stack gap-8">
+              <div className="xs muted small-label" id="lp-label">Link preview</div>
+              <PreviewStrip draft={saved} />
+              <TextAction label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
+            </div>
             {!entry && <ChannelPicker value={channel} onChange={setChannel} />}
           </div>
         </Collapse>

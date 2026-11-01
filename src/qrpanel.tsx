@@ -4,7 +4,7 @@ import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slu
 import { tick } from './guide'
 import { EGG_TITLE, planCopy } from './copy'
 import { Dialog, PopMenu, Pro } from './ui'
-import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
+import { buildSvg, isLogoData, logoLoads, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
   { id: 'svg', label: 'SVG', help: 'Sharp at any size. Best for print.' },
@@ -40,12 +40,11 @@ export const QR_COPY = {
   imageSaved: 'Image saved',
   logo: 'Add your logo',
   withoutLogo: 'Download without logo',
-  taggedAs: (ref: string) => `Responses from this code are tagged ${ref}. See them in`,
-  taggedOne: 'Responses from this code are tagged. See them in',
+  singleDesc: 'Print it or add it to slides. Responses are tagged, see them in',
   addAnother: 'Add another code',
-  addAnotherHelp: 'Give each place its own code, like qr-poster, to see which one brings in responses.',
-  customizeCode: 'Customize code',
+  customizeCode: 'Customize QR code',
   logoHelp: 'Replaces the Tally mark on all your QR codes.',
+  logoUnreadable: "That image can't be used. Try a PNG, JPG or SVG.",
 }
 
 export function useQrOptions(ref: string): QrOptions {
@@ -127,7 +126,7 @@ function CodePreview({ refId, printing = 0 }: { refId: string; printing?: number
 /**
  * One code up close, in this order: the code with its link line, Download (the black primary here, since Copy
  * isn't on screen), the logo, and the tracking line. In the share sheet it is a detail view; elsewhere, its own
- * dialog. `focusLogo`: opened from Customize code, so it scrolls to the logo and focuses it.
+ * dialog. `focusLogo`: opened from Customize QR code, so it scrolls to the logo and focuses it.
  */
 export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLogo?: boolean }) {
   const s = useStore()
@@ -142,7 +141,11 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
   const onLogo = (f?: File) => {
     if (!f) return
     const r = new FileReader()
-    r.onload = () => setLogo(String(r.result))
+    r.onload = async () => {
+      const url = String(r.result)
+      if (isLogoData(url) && await logoLoads(url)) setLogo(url)
+      else s.toast(QR_COPY.logoUnreadable)
+    }
     r.readAsDataURL(f)
   }
   useEffect(() => {
@@ -179,26 +182,13 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
           </div>
         </div>
       </section>
-      <hr className="divider qr-detail-div" />
-      <div className="stack gap-8">
-        <TagLine refId={refId} />
-        <AddCode />
-      </div>
     </div>
   )
 }
 
-/** Under every code: the ref its responses carry, and where to see them. Counts live in Insights. */
-export function TagLine({ refId }: { refId: string }) {
-  return (
-    <p className="xs muted qr-tag-line">
-      {QR_COPY.taggedAs(refId)} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>
-    </p>
-  )
-}
 export const INSIGHTS_QR_HREF = '#/insights?focus=qr'
 
-const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
+export const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
 
 /** The same add input everywhere: it asks for a place name, never a ref. */
 export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster or Library' }: { label: string; onAdd: (name: string) => void; placeholder?: string }) {
@@ -209,39 +199,6 @@ export function AddPlace({ label, onAdd, placeholder = 'Place name, like Poster 
       <input ref={field} className="input" style={{ flex: 1 }} aria-label={label} placeholder={placeholder} value={name} onChange={(e) => setName(e.target.value)} />
       <button type="submit" className="btn btn-secondary" disabled={!name.trim()}><Plus aria-hidden />Add</button>
     </form>
-  )
-}
-
-/**
- * On a code's page: a text link that makes a code for another place, with its own ref (qr-poster, qr-flyer).
- * The new code opens right here; its results show in Insights. There is no list of codes in Share.
- */
-function AddCode() {
-  const s = useStore()
-  const mobile = useIsMobile()
-  const [open, setOpen] = useState(false)
-  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
-  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
-  const add = (label: string) => {
-    const p = s.addPlacement(label)
-    s.setQrRef(p.ref)
-    s.toast(`Code added for ${p.label}`)
-  }
-  return (
-    <div className="stack gap-8 add-code-detail">
-      <button type="button" className="tag-link link-plain" aria-expanded={open} aria-controls="add-code-detail" onClick={() => setOpen((v) => !v)}>{QR_COPY.addAnother}</button>
-      {open && (
-        <div id="add-code-detail" className="stack gap-8">
-          <span className="xs muted">{QR_COPY.addAnotherHelp}</span>
-          <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
-          {missing.length > 0 && (
-            <div className="chips">
-              {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
   )
 }
 

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
-import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
+import { DEFAULT_STYLE, isLogoData, logoLoads, type QrFormat, type QrStyle } from './qr'
 import { tick } from './guide'
 import { DIRECT, FRESH, MAIN_QR, MAIN_QR_LABEL, SEED, ZERO, type Counts, type SeedPlace } from './seed'
 
@@ -65,7 +65,7 @@ function loadSettings(): QrSettings {
     if (!raw) return base
     const v = JSON.parse(raw)
     // Older saves carried a colour and a mode; only an uploaded logo carries over.
-    const logo = v.style?.mode !== 'tally' && typeof v.style?.logo === 'string' ? v.style.logo : null
+    const logo = v.style?.mode !== 'tally' && isLogoData(v.style?.logo) ? v.style.logo : null
     return { style: { ...DEFAULT_STYLE, logo }, format: v.format ?? 'png', showLink: true }
   } catch { return base }
 }
@@ -156,6 +156,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSettingsState(v)
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, [])
+  // A saved logo the browser can't draw is dropped, so the white Tally mark shows instead of a broken image.
+  useEffect(() => {
+    const logo = settings.style.logo
+    if (!logo) return
+    let live = true
+    logoLoads(logo).then((ok) => { if (live && !ok) setSettings({ ...settings, style: { ...settings.style, logo: null } }) })
+    return () => { live = false }
+  }, [settings.style.logo]) // eslint-disable-line react-hooks/exhaustive-deps
   const [qrRef, setQrRef] = useState('qr')
   const [qrPersonalize, setQrPersonalize] = useState(false)
   const [domain, setDomain] = useState(() => (customMock() ? CUSTOM_MOCK.domain : ''))

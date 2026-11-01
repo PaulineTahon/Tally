@@ -27,7 +27,6 @@ export const linkCopy = {
   endingRow: 'Link ending and domain',
   previewRow: 'Link preview',
   customize: 'Customize preview',
-  customizeShort: 'Customize',
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',

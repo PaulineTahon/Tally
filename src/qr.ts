@@ -73,12 +73,24 @@ export const TILE_MARGIN = 0.1
  * since most logos are drawn for a light background.
  * `layer` names the group: an id in files, a data attribute when it is inlined into a page.
  */
+/** Only an uploaded image, read as a data URL, can sit in the code. Anything else (an old path, a blob) would show broken. */
+export const isLogoData = (v: unknown): v is string => typeof v === 'string' && /^data:image\/(png|jpe?g|gif|webp|svg\+xml)[;,]/i.test(v)
+/** True when the browser can actually draw the image, so a code never shows a broken image in the middle. */
+export function logoLoads(src: string): Promise<boolean> {
+  return new Promise((res) => {
+    const img = new Image()
+    img.onload = () => res(img.naturalWidth > 0 || /svg/i.test(src.slice(0, 40)))
+    img.onerror = () => res(false)
+    img.src = src
+  })
+}
+
 export function logoMarkup(st: QrStyle, x: number, y: number, s: number, layer: 'id' | 'data-layer' = 'id') {
   const open = `<g ${layer}="QR logo">`
   const quiet = `<rect x="${x}" y="${y}" width="${s}" height="${s}" rx="${s * TILE_RADIUS}" ry="${s * TILE_RADIUS}" fill="#fff"/>`
   if (st.logo) {
     const p = s * 0.14
-    return `${open}${quiet}<image href="${st.logo}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/></g>`
+    return `${open}${quiet}<image href="${st.logo.replace(/&/g, '&amp;').replace(/"/g, '&quot;')}" x="${x + p}" y="${y + p}" width="${s - p * 2}" height="${s - p * 2}" preserveAspectRatio="xMidYMid meet"/></g>`
   }
   const m = s * TILE_MARGIN
   const t = s - m * 2
