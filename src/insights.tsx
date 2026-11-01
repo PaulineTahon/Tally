@@ -42,8 +42,8 @@ function rowsFor(sources: Source[], range: Range, state: InsightsState) {
   return state === 'noqr' ? r.filter((x) => !x.qr) : r
 }
 
-export function Insights({ onTab, onEdit, state, onOpenQr, onShare }: {
-  onTab: (t: Tab) => void; onEdit: () => void; state: InsightsState; onOpenQr: () => void; onShare: () => void
+export function Insights({ onTab, onEdit, state, onShare }: {
+  onTab: (t: Tab) => void; onEdit: () => void; state: InsightsState; onShare: () => void
 }) {
   const [view, setView] = useState<View>(state === 'empty' ? 'answers' : 'visits')
   const [range, setRange] = useState<Range>('all')
@@ -97,7 +97,7 @@ export function Insights({ onTab, onEdit, state, onOpenQr, onShare }: {
                     <Chart values={days.map((d) => d[1])} caption={<><b>{subs}</b> submissions</>} />
                   </div>
                   <div className="panels">
-                    <SourcesPanel rows={rows} showQrEmpty={state !== 'data'} onOpenQr={onOpenQr} />
+                    <SourcesPanel rows={rows} />
                     <Devices mobile={state === 'empty' ? 0 : Math.round(visits * 0.62)} desktop={state === 'empty' ? 8 : visits - Math.round(visits * 0.62)} />
                     <Panel title="Countries" rows={[{ name: 'Belgium', n: visits, flag: true }]} />
                     <Panel title="Cities" rows={state === 'empty' ? [{ name: 'Gent', n: 8, flag: true }] : [{ name: 'Brussels', n: Math.ceil(visits * 0.7), flag: true }, { name: 'Gent', n: Math.floor(visits * 0.3), flag: true }]} />
@@ -175,7 +175,7 @@ function SourceGlyph({ row }: { row: SourceRow }) {
 }
 
 /** Tally's Sources panel, with each ?ref shown by its place name and a Submissions column. */
-function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; showQrEmpty: boolean; onOpenQr: () => void }) {
+function SourcesPanel({ rows }: { rows: SourceRow[] }) {
   const max = Math.max(1, ...rows.map((r) => r.visits))
   const mobile = useIsMobile()
   return (
@@ -197,14 +197,6 @@ function SourcesPanel({ rows, showQrEmpty, onOpenQr }: { rows: SourceRow[]; show
           </li>
         ))}
       </ul>
-      {showQrEmpty && (
-        <div className="empty-state is-small">
-          <QrCode aria-hidden className="empty-icon" />
-          <b>No responses from your QR code yet</b>
-          <span>Print it or put it on a slide. Responses from it show up here.</span>
-          <button type="button" className="btn btn-blue btn-sm" onClick={onOpenQr}>Get QR code</button>
-        </div>
-      )}
     </section>
   )
 }

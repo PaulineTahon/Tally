@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
-import { createPortal } from 'react-dom'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
 import { tick } from './guide'
 import { DIRECT, FRESH, MAIN_QR, MAIN_QR_LABEL, SEED, ZERO, type Counts, type SeedPlace } from './seed'
@@ -75,7 +74,7 @@ function loadSettings(): QrSettings {
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
 
 export interface ToastAction { label: string; onClick: () => void }
-/** `top`: a small alert at the top centre of the open dialog. `group`: a new toast in the same group replaces the old one. */
+/** Every toast and alert shows at the bottom. `group`: a new toast in the same group replaces the old one. `top` is kept for callers and no longer moves it. */
 export interface ToastOptions { action?: ToastAction; duration?: number; top?: boolean; group?: string }
 interface Toast { id: number; text: string; leaving?: boolean; action?: ToastAction; duration: number; top?: boolean; group?: string }
 
@@ -181,8 +180,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setToasts((t) => {
       // Same group: the new one replaces the old one, no stacking.
       if (opts.group) t.filter((x) => x.group === opts.group && !x.leaving).forEach((x) => setTimeout(() => leave(x.id)))
-      const live = t.filter((x) => !x.leaving && !x.top && !opts.top)
-      if (!opts.top && live.length >= 3) setTimeout(() => leave(live[0].id))
+      const live = t.filter((x) => !x.leaving)
+      if (live.length >= 3) setTimeout(() => leave(live[0].id))
       return [...t, { id, text, action: opts.action, duration, top: opts.top, group: opts.group }]
     })
     // In a bottom sheet, keep the field you just used clear of the toast.
@@ -252,11 +251,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={value}>
       {children}
-      <TopAlerts toasts={toasts.filter((t) => t.top)} leave={leave} />
       <div className="toast-wrap" aria-live="polite" role="status">
         <ol className="toast-stack">
-          {toasts.filter((t) => !t.top).map((t) => {
-            const live = toasts.filter((x) => !x.leaving && !x.top)
+          {toasts.map((t) => {
+            const live = toasts.filter((x) => !x.leaving)
             const depth = t.leaving ? 0 : live.length - 1 - live.indexOf(t)
             return <ToastItem key={t.id} t={t} depth={depth} onDone={() => leave(t.id)} />
           })}
@@ -264,28 +262,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       </div>
     </Ctx.Provider>
   )
-}
-
-/**
- * The same toast, as a small alert on top of the open dialog (top centre, over it).
- * Lives inside the topmost dialog so it moves with it; with no dialog open it sits at the top of the page.
- */
-function TopAlerts({ toasts, leave }: { toasts: Toast[]; leave: (id: number) => void }) {
-  if (!toasts.length) return null
-  const all = document.querySelectorAll<HTMLElement>('.modal[role=dialog], .sheet[role=dialog]')
-  const host = all[all.length - 1] ?? null
-  // Never over the header: above the modal's top edge on a computer, just under the sheet header on a phone.
-  const sheet = host?.classList.contains('sheet')
-  const head = sheet ? host?.querySelector<HTMLElement>('.sheet-header') : null
-  const style = head ? { top: head.offsetTop + head.offsetHeight + 8 } : undefined
-  const list = (
-    <div className={`toast-wrap is-top ${host ? (sheet ? 'in-sheet' : 'in-dialog') : ''}`} style={style} aria-live="polite" role="status">
-      <ol className="toast-stack">
-        {toasts.map((t) => <ToastItem key={t.id} t={t} depth={0} onDone={() => leave(t.id)} />)}
-      </ol>
-    </div>
-  )
-  return host ? createPortal(list, host) : list
 }
 
 /** Enters from below via a mounted flag, so it is a transition and can be retargeted mid-way. */

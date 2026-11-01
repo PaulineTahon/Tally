@@ -63,7 +63,6 @@ function Inner() {
   useEffect(() => { if (r.qr) s.setQrOpen(true) }, []) // eslint-disable-line
   const go = useCallback((route: Route, extra = '') => { window.location.hash = `/${route}${extra}`; window.scrollTo(0, 0) }, [])
   const onTab = (t: Tab) => { if (t === 'share' && r.route === 'insights' && r.state === 'empty') tick('go-share'); go(t === 'insights' ? 'insights' : t === 'submissions' ? 'submissions' : 'share') }
-  const openQr = () => { tick('make-code'); s.setQrRef('qr'); s.setQrOpen(true) }
   const toShare = () => { if (r.state === 'empty') tick('go-share'); go('share') }
   const page: GuidePage | null = r.route === 'edit' ? 'publish' : r.route === 'share' ? 'share' : r.route === 'insights' ? `insights-${r.state}` : null
   const g = useGuide(page ?? 'publish')
@@ -76,7 +75,7 @@ function Inner() {
       <UpgradeOverlay />
       {r.route === 'edit' && <Editor key={r.pub} pub={r.pub} published={r.publish} onPublished={(first) => { setSheetFirst(first); setSheet(true) }} />}
       {r.route === 'share' && <ShareTab onTab={onTab} onEdit={() => go('edit')} />}
-      {r.route === 'insights' && <Insights key={r.state} onTab={onTab} onEdit={() => go('edit')} state={r.state} onOpenQr={openQr} onShare={toShare} />}
+      {r.route === 'insights' && <Insights key={r.state} onTab={onTab} onEdit={() => go('edit')} state={r.state} onShare={toShare} />}
       {r.route === 'submissions' && <Submissions onTab={onTab} onEdit={() => go('edit')} onShare={() => go('share')} />}
 
       {/* The QR panel replaces the sheet instead of stacking on it; closing it brings the sheet back. */}
@@ -103,7 +102,7 @@ function Inner() {
         {r.route === 'insights' && (
           <select aria-label="Insights state" value={r.state} onChange={(e) => { tick('switch-states'); go('insights', `?state=${e.target.value}`) }}>
             <option value="data">With QR responses</option>
-            <option value="noqr">No QR responses yet</option>
+            <option value="noqr">No QR codes</option>
             <option value="empty">No submissions</option>
           </select>
         )}

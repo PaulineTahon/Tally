@@ -260,6 +260,7 @@ a { color: inherit; }
 .collapse { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 200ms var(--ease-out), opacity 150ms ease; }
 .collapse.is-open { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows 250ms var(--ease-out), opacity 200ms ease 50ms; }
 .collapse-inner { min-height: 0; overflow: hidden; }
+.collapse.is-instant { transition: none; }
 .collapse.is-settled > .collapse-inner { overflow: visible; }
 
 @media (prefers-reduced-motion: reduce) {

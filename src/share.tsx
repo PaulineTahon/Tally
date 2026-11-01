@@ -4,7 +4,7 @@ import {
   ArrowLeft, ArrowUpRight, Code2, Copy, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, ListX,
 } from 'lucide-react'
 import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { ActionRow, Modal, TextAction, UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, QrImage, Segmented } from './ui'
+import { ActionRow, Modal, SmoothHeight, TextAction, UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, QrImage, Segmented } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { DownloadSplit, QR_ALERT, QR_COPY, QrDetail, fileName, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
@@ -64,9 +64,9 @@ export function LinkBar() {
 export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (c: Channel) => void }) {
   return (
     <div className="stack gap-8 share-to">
-      <div className="xs muted" style={{ fontWeight: 600 }}>Share to</div>
+      <div className="xs muted" style={{ fontWeight: 600 }}>{shareCopy.moreWays}</div>
       <Segmented<Channel>
-        label="Share to" value={value} onChange={onChange}
+        label={shareCopy.moreWays} value={value} onChange={onChange}
         options={[
           { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
@@ -154,7 +154,6 @@ export function ViewHead({ view, onBack, as = 'h3' }: { view: Exclude<LinkView, 
 
 /** Focus follows the view: its title on the way in, the control that opened it on the way back. */
 const openers: Partial<Record<LinkView, HTMLElement | null>> = {}
-const PAGE_MODAL_VIEWS: LinkView[] = ['preview', 'code']
 function useViewFocus(view: LinkView, depth: number, pageModal = false) {
   const prev = useRef<{ view: LinkView; depth: number }>({ view, depth })
   const trigger = useRef<HTMLElement | null>(null)
@@ -162,10 +161,11 @@ function useViewFocus(view: LinkView, depth: number, pageModal = false) {
     const from = prev.current
     prev.current = { view, depth }
     if (from.view === view) return
-    if (pageModal && (PAGE_MODAL_VIEWS.includes(view) || PAGE_MODAL_VIEWS.includes(from.view))) {
-      // Opening the page modal from the page: remember the trigger. Closing it: focus goes back there.
-      if (from.view === 'main') trigger.current = document.activeElement as HTMLElement | null
-      if (view === 'main') requestAnimationFrame(() => { const t = trigger.current; const el = t && t !== document.body && t.isConnected ? t : [...document.querySelectorAll<HTMLElement>(from.view === 'preview' ? '[data-row="preview"]' : '.single-preview, [data-row="logo"]')].find((e) => e.offsetParent); el?.focus({ preventScroll: true }) })
+    if (pageModal && (from.view === 'main' || view === 'main')) {
+      // Opening the page modal from the page: remember the trigger (the modal focuses itself). Closing it: focus goes back there.
+      if (from.view === 'main') { trigger.current = document.activeElement as HTMLElement | null; return }
+      const t = trigger.current
+      requestAnimationFrame(() => { const el = t && t !== document.body && t.isConnected ? t : [...document.querySelectorAll<HTMLElement>(`[data-row="${from.view}"], .single-preview`)].find((e) => e.offsetParent); el?.focus({ preventScroll: true }) })
       return
     }
     const forward = depth > from.depth || (depth === from.depth && view !== 'main')
@@ -174,7 +174,7 @@ function useViewFocus(view: LinkView, depth: number, pageModal = false) {
       if (forward) { document.getElementById(`lt-title-${view}`)?.focus({ preventScroll: true }); return }
       const el = openers[from.view]
       if (el && el.isConnected && el.offsetParent) el.focus({ preventScroll: true })
-      else ([...document.querySelectorAll<HTMLElement>(`[data-row="${from.view}"]`)].find((e) => e.offsetParent) ?? document.getElementById(`lt-title-${view}`))?.focus({ preventScroll: true })
+      else ([...document.querySelectorAll<HTMLElement>(`[data-row="${from.view}"]`)].find((e) => e.offsetParent) ?? document.getElementById(`lt-title-${view}`) ?? (pageModal ? document.querySelector<HTMLElement>('.modal[role=dialog]') : null))?.focus({ preventScroll: true })
     })
   }, [view, depth, pageModal])
 }
@@ -347,20 +347,31 @@ export function EmbedThumb({ mode }: { mode: EmbedMode }) {
   )
 }
 
-/** Three layouts. Picking one opens Tally's Embed page with that layout ready, where you can try it out. */
+/**
+ * Three layouts to pick from (Standard first), Copy code for the one you picked, and Customize embed, which opens
+ * Tally's full Embed page with that layout ready: every option Tally has, and a live preview.
+ * Embedding is free on Tally, so there is no Pro badge here.
+ */
 function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
   const mobile = useIsMobile()
+  const s = useStore()
+  const [mode, setMode] = useState<EmbedMode>('standard')
+  const label = EMBEDS.find((e) => e.id === mode)?.label ?? ''
   return (
     <div className="stack gap-12">
       <p className="small muted" style={{ margin: 0 }}>{embedCopy.intro}{mobile && ` ${embedCopy.desktop}`} <a className="link-btn small inline-link" href={embedCopy.helpUrl} target="_blank" rel="noreferrer">{embedCopy.help}<span className="sr-only"> {embedCopy.newTab}</span></a></p>
-      <div className="embed-cards is-sheet">
+      <div className="embed-cards is-sheet" role="group" aria-label={embedCopy.layout}>
         {EMBEDS.map((e) => (
-          <button type="button" key={e.id} className="embed-card" data-mode={e.id} aria-haspopup="dialog" onClick={() => onPick?.(e.id)}>
+          <button type="button" key={e.id} className="embed-card" data-mode={e.id} aria-pressed={mode === e.id} onClick={() => setMode(e.id)}>
             <EmbedThumb mode={e.id} />
             <span>{e.label}</span>
           </button>
         ))}
       </div>
+      <div className="embed-actions">
+        <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
+      </div>
+      <div className="text-actions"><TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} /></div>
     </div>
   )
 }
@@ -455,9 +466,9 @@ function PlaceRow({ p, pulse, counts }: { p: Source; pulse: number; counts: bool
   const removable = !main && (qr || p.kind === 'custom')
   const remove = () => {
     s.removeSource(p.ref)
-    s.toast(rowCopy.removed, { top: true, group: 'list', duration: 6000, action: { label: rowCopy.undo, onClick: () => s.restoreSource(p.ref) } })
+    s.toast(rowCopy.removed, { group: 'list', duration: 6000, action: { label: rowCopy.undo, onClick: () => s.restoreSource(p.ref) } })
     // The row is gone, so focus goes to Undo, which also holds the alert while it has focus.
-    window.setTimeout(() => document.querySelector<HTMLElement>('.toast-wrap.is-top .toast-action')?.focus({ preventScroll: true }), 60)
+    window.setTimeout(() => document.querySelector<HTMLElement>('.toast-wrap .toast-action')?.focus({ preventScroll: true }), 60)
   }
   // Code rows use the same plain QR icon as the QR Code tab; the full code is one click away.
   const icon = qr
@@ -569,10 +580,7 @@ function SingleCode({ pulse }: { pulse: number }) {
         {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
         <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
         <p className="small muted" style={{ margin: 0 }}>{QR_COPY.readyLine}</p>
-        <div className="text-actions">
-          <TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(p.ref, true)} />
-        </div>
-        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} plain /></div>
+        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
       </div>
     </div>
   )
@@ -599,11 +607,11 @@ function QrCodePanel({ pulse }: { pulse: number }) {
           <div className="stack gap-12">
             <p className="small muted" style={{ margin: 0 }}>Your QR code is ready. Download it and add it to a poster, flyer or slide.</p>
             <PlaceList only="qr" pulse={pulse} />
-            {/* One logo for the whole form, so one Customize code, however many codes there are. */}
-            <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
           </div>
         )}
       </AutoHeight>
+      {/* One logo for the whole form, so one Customize code, in the same place for 1 code or 20: under the card or the list. */}
+      <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(single ? s.placements[0]?.ref ?? MAIN_QR : MAIN_QR, true)} /></div>
       {/* One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips. */}
       <div className="stack gap-4 add-code">
         <ActionRow icon={<Plus />} label="Add another code" chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
@@ -659,7 +667,7 @@ function SocialPanel() {
   return (
     <div className="stack gap-8">
       <p className="small muted" style={{ margin: 0 }}>{shareCopy.tagLine}</p>
-      <ul className="ch-list" aria-label="Share to">
+      <ul className="ch-list" aria-label="Social">
         {SOCIAL.map((x) => x.open
           ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.openFor(x.label)} href={x.open(s.url(x.ref))} />
           : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} />)}
@@ -675,7 +683,7 @@ export function ChannelPanel({ channel, pulse = 0, onEmbed }: { channel: Channel
   return <EmbedPanel onPick={onEmbed} />
 }
 
-/** The last Share to tab you used, kept per browser. QR Code until you pick another. */
+/** The last More ways to share tab you used, kept per browser. QR Code until you pick another. */
 const TAB_KEY = 'share-tab'
 const CHANNELS: Channel[] = ['qr', 'social', 'embed']
 function readChannel(): Channel {
@@ -705,10 +713,11 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   useEffect(() => { if (firstVersion.current !== version) { firstVersion.current = version; reset() } }, [version, reset])
   // Entry rows and tiles work the same way: an overview, and each way to share as its own subpage.
   const entry = entryVariant() || tiles
-  // Desktop Share tab page: Customize preview, a code's page and Logo open in a centred modal instead of inline.
+  // Desktop Share tab page: everything that opens (custom domain, preview, a code's page, and in Rows and Tiles each
+  // way to share) opens in a centred modal instead of inline. A view opened from inside it gets Back in the header.
   const mobile = useIsMobile()
   const pageModal = !inModal && !mobile
-  const inPageModal = pageModal && (view === 'preview' || view === 'code')
+  const inPageModal = pageModal && view !== 'main'
   useViewFocus(view, nav.depth, pageModal)
   // A download alert belongs to the place it came from: switching tab or view clears it.
   const { dismissGroup } = s
@@ -728,26 +737,29 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     ...(entry
       ? [
         { key: 'menu' as Slot, node: tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
-        ...CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> })),
+        ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> }))),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
-    { key: 'ending', node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
     ...(pageModal ? [] : [
+      { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
       { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
     ]),
   ]
   const overview: Slot = entry ? 'menu' : channel
   const active: Slot = view === 'main' || inPageModal ? overview : view
-  // The page modal: the same content as the sheet. Its title and Close sit in the header.
-  const modalTitle = view === 'code' ? qrTitle(s.placements.find((p) => p.ref === s.qrRef)?.label, s.qrRef) : VIEW_TITLE.preview
+  // The page modal: the same content as the sheet. Its title and Close sit in the header, plus Back one level down.
+  const plainTitle = view === 'main' ? '' : view === 'code' ? qrTitle(s.placements.find((p) => p.ref === s.qrRef)?.label, s.qrRef) : VIEW_TITLE[view]
+  const modalTitle = view !== 'main' && nav.depth > 1 ? <ViewHead view={view} onBack={nav.back} as="span" /> : plainTitle
   const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
-    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /> : null
+    : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
+    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
+    : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} /> : null
   return (
     <OpenCodeCtx.Provider value={openCode}>
-      <div>
-        {/* A detail view hides the link, the card and the tabs. They ease out and back in. */}
-        <Collapse open={view === 'main' || inPageModal}>
+      <SmoothHeight k={`${view}-${channel}`}>
+        {/* A detail view hides the link, the card and the tabs. The whole box changes height once (SmoothHeight). */}
+        <Collapse open={view === 'main' || inPageModal} instant>
           <div className="stack gap-12" style={{ paddingBottom: entry ? 8 : 16 }}>
             <div className="stack gap-8">
               <LinkBar />
@@ -761,14 +773,14 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
             {!entry && <ChannelPicker value={channel} onChange={setChannel} />}
           </div>
         </Collapse>
-        <PanelStack<Slot> active={active} label="Share to" panels={panels} plain={entry} />
-        {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
-        {pageModal && (
-          <Modal open={inPageModal} onClose={nav.reset} title={modalTitle} width={440} labelledBy="page-detail-title">
-            {modalBody}
-          </Modal>
-        )}
-      </div>
+        <PanelStack<Slot> active={active} label={shareCopy.moreWays} panels={panels} plain={entry} animate={false} />
+      </SmoothHeight>
+      {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
+      {pageModal && (
+        <Modal open={inPageModal} onClose={nav.reset} title={modalTitle} width={440} labelledBy="page-detail-title">
+          <SmoothHeight k={view}>{modalBody}</SmoothHeight>
+        </Modal>
+      )}
     </OpenCodeCtx.Provider>
   )
 }
@@ -782,7 +794,7 @@ function ShareTiles({ onOpen }: { onOpen: (c: Channel) => void }) {
   ]
   return (
     <div className="stack gap-8">
-      <div className="xs muted small-label" id="share-to-label">Share to</div>
+      <div className="xs muted small-label" id="share-to-label">{shareCopy.moreWays}</div>
       <div className="share-tiles" role="list" aria-labelledby="share-to-label">
         {tiles.map((t) => (
           <span role="listitem" key={t.c}>
@@ -801,8 +813,8 @@ function ShareTiles({ onOpen }: { onOpen: (c: Channel) => void }) {
 function EntryRows({ onOpen }: { onOpen: (c: Channel) => void }) {
   return (
     <div className="stack gap-8">
-      <div className="xs muted small-label">Share to</div>
-      <div className="entry-rows" role="list">
+      <div className="xs muted small-label" id="share-to-label-rows">{shareCopy.moreWays}</div>
+      <div className="entry-rows" role="list" aria-labelledby="share-to-label-rows">
         <span role="listitem"><ActionRow icon={<QrCode />} label="QR Code" help="Download a code to print" dataRow="ch-qr" onClick={() => onOpen('qr')} /></span>
         <span role="listitem"><ActionRow icon={<Megaphone />} label="Social" help="A tagged link for each app" dataRow="ch-social" onClick={() => onOpen('social')} /></span>
         <span role="listitem"><ActionRow icon={<Code2 />} label="Embed" help="Put the form on your website" dataRow="ch-embed" onClick={() => onOpen('embed')} /></span>

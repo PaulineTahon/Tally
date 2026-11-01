@@ -65,13 +65,64 @@ export function AutoHeight({ k, children, slow = false }: { k: string; children:
   )
 }
 
+/**
+ * One height change in one direction: when `k` changes (a tab, a subpage), the box goes from the height it had to
+ * the height of the new content in a single ease-out, instead of children growing and shrinking on their own.
+ * The new height is measured before paint, so nothing flashes. A late change (an image decoding) retargets the
+ * same animation. Under reduced motion it snaps. Curve and duration follow Emil Kowalski's animate skill:
+ * --ease-out, cubic-bezier(0.23, 1, 0.32, 1), 240ms for a modal-size change.
+ */
+export function SmoothHeight({ k, children }: { k: string; children: ReactNode }) {
+  const outer = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
+  const settled = useRef(0)
+  const anim = useRef<{ a: Animation; to: number; end: number } | null>(null)
+  const run = (from: number, to: number, ms: number) => {
+    const o = outer.current
+    if (!o) return
+    anim.current?.a.cancel()
+    anim.current = null
+    if (Math.abs(to - from) < 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { o.style.overflow = ''; return }
+    o.style.overflow = 'hidden'
+    const a = o.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: ms, easing: 'cubic-bezier(0.23, 1, 0.32, 1)' })
+    const me = { a, to, end: performance.now() + ms }
+    anim.current = me
+    a.onfinish = () => { if (anim.current === me) { anim.current = null; o.style.overflow = '' } }
+  }
+  useEffect(() => {
+    const el = inner.current
+    if (!el) return
+    settled.current = el.offsetHeight
+    const ro = new ResizeObserver(() => {
+      const h = el.offsetHeight
+      const cur = anim.current
+      // Still moving and the target changed: carry on from where it is, in the time that was left.
+      if (cur && Math.abs(cur.to - h) >= 1) run(outer.current!.getBoundingClientRect().height, h, Math.max(120, cur.end - performance.now()))
+      settled.current = h
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+  const first = useRef(true)
+  useLayoutEffect(() => {
+    if (first.current) { first.current = false; return }
+    const el = inner.current, o = outer.current
+    if (!el || !o) return
+    const from = anim.current ? o.getBoundingClientRect().height : settled.current
+    const to = el.offsetHeight
+    settled.current = to
+    run(from, to, 240)
+  }, [k]) // eslint-disable-line react-hooks/exhaustive-deps
+  return <div ref={outer} className="smooth-h"><div ref={inner}>{children}</div></div>
+}
+
 /** Tally's Pro pill. Only ever on labels, never inside a button. */
 export function Pro() {
   return <span className="badge" title="Available on Tally Pro">Pro</span>
 }
 
 /** Tab panels that all stay mounted (so nothing you typed is lost). Only the active one shows, and the box eases to its height on a switch. */
-export function PanelStack<K extends string>({ active, panels, label, plain = false }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string; plain?: boolean }) {
+export function PanelStack<K extends string>({ active, panels, label, plain = false, animate = true }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string; plain?: boolean; animate?: boolean }) {
   const inner = useRef<HTMLDivElement>(null)
   const last = useRef(0)
   const first = useRef(true)
@@ -84,7 +135,7 @@ export function PanelStack<K extends string>({ active, panels, label, plain = fa
     if (!el) return
     const from = last.current
     const to = el.offsetHeight
-    if (to === from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { last.current = to; return }
+    if (!animate || to === from || window.matchMedia('(prefers-reduced-motion: reduce)').matches) { last.current = to; return }
     setH(from)
     const r = requestAnimationFrame(() => requestAnimationFrame(() => setH(to)))
     const t = window.setTimeout(() => setH(null), 320)
@@ -157,8 +208,8 @@ export function ActionRow({ icon, label, help, pro = false, chevron = true, onCl
 
 
 /** The one primary action. Feedback is instant and in place, no animation in front of it. */
-export function CopyButton({ text, className = '', big = false, outline = false, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: {
-  text: string; className?: string; big?: boolean; label?: string; toastText?: string | null
+export function CopyButton({ text, className = '', big = false, outline = false, label = 'Copy', toastText = 'Link copied. Go spread the word.', ariaLabel }: {
+  text: string; className?: string; big?: boolean; label?: string; toastText?: string | null; ariaLabel?: string
   /** Outlined instead of black, where another button on screen is the primary (Share on a phone). */
   outline?: boolean
 }) {
@@ -173,7 +224,7 @@ export function CopyButton({ text, className = '', big = false, outline = false,
     if (toastText) toast(toastText)
   }
   return (
-    <button type="button" className={`btn ${outline ? 'btn-secondary' : 'btn-black'} ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={`${label} ${text}`}>
+    <button type="button" className={`btn ${outline ? 'btn-secondary' : 'btn-black'} ${big ? 'btn-lg' : ''} ${copied ? 'is-copied' : ''} ${className}`} onClick={onClick} aria-label={ariaLabel ?? `${label} ${text}`}>
       <IconSwap on={copied} />
       {/* Same as today's Tally: the icon turns into a check, the label stays. */}
       <span>{label}</span>
@@ -205,12 +256,13 @@ export function IconSwap({ on, icon }: { on: boolean; icon?: 'copy' | 'download'
 }
 
 /** Height and opacity reveal for content that opens in place. Hidden content is inert. */
-export function Collapse({ open, id, gap = 0, children }: { open: boolean; id?: string; gap?: number; children: ReactNode }) {
+/** `instant`: no transition of its own, for when a parent (SmoothHeight) animates the whole box in one go. */
+export function Collapse({ open, id, gap = 0, instant = false, children }: { open: boolean; id?: string; gap?: number; instant?: boolean; children: ReactNode }) {
   const [settled, setSettled] = useState(open)
   useEffect(() => { if (!open) setSettled(false) }, [open])
   const inert = open ? {} : { inert: '' }
   return (
-    <div className={`collapse ${open ? 'is-open' : ''} ${open && settled ? 'is-settled' : ''}`} id={id} aria-hidden={!open}
+    <div className={`collapse ${open ? 'is-open' : ''} ${open && (settled || instant) ? 'is-settled' : ''} ${instant ? 'is-instant' : ''}`} id={id} aria-hidden={!open}
       onTransitionEnd={(e) => { if (e.target === e.currentTarget && e.propertyName === 'grid-template-rows' && open) setSettled(true) }}
       style={gap ? { marginTop: -gap } : undefined} {...(inert as object)}>
       {/* The parent's flex gap moves inside, so a closed panel takes no space at all. */}

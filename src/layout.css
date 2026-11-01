@@ -257,7 +257,7 @@ a.list-row { text-decoration: none; color: inherit; }
 .embed-cards.is-sheet { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .embed-cards.is-sheet .embed-thumb { height: auto; aspect-ratio: 232 / 210; }
 .embed-cards.is-sheet .embed-card { font-size: 13px; gap: 8px; }
-.embed-card[aria-checked='true'] .embed-thumb { box-shadow: var(--blue) 0 0 0 2px; border-color: transparent; }
+.embed-card[aria-checked='true'] .embed-thumb, .embed-card[aria-pressed='true'] .embed-thumb { box-shadow: var(--blue) 0 0 0 2px; border-color: transparent; }
 .embed-thumb { display: flex; flex-direction: column; gap: 4px; padding: 20px 12px 0; }
 .embed-thumb > i { position: static; display: block; height: 4px; border-radius: 2px; background: #e4e4e4; width: 80%; flex: none; }
 .embed-thumb > i.et-h { height: 7px; width: 55%; background: #cfcfcf; margin-bottom: 2px; }
@@ -879,7 +879,20 @@ html.is-capture .proto-version { display: none !important; }
   html.is-capture .overlay .modal { max-height: calc(100vh - 48px); }
   html.is-capture .overlay:has(.panel-stack) .modal { max-height: calc(100vh - max(24px, 12vh) - 24px); }
 }
-/* QR Code tab: one plain outlined Download, content-width on a computer, full width on a phone, More formats under it. */
-.dl-plain { align-items: flex-start; }
-.dl-plain-main { align-self: flex-start; }
-@media (max-width: 757px) { .dl-plain { align-items: stretch; } .dl-plain-main { align-self: stretch; width: 100%; justify-content: center; } .dl-plain .dl-more { align-self: flex-start; margin-top: 8px; } }
+
+/* Desktop Share tab page: the preview card at the width of a real link unfurl, and tabs that hug their labels.
+   Equal columns sized to the longest label, so the sliding white tab still lines up. */
+@media (min-width: 758px) {
+  .share-page .lp-strip { max-width: 520px; }
+  .share-page .share-to .segmented { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; width: fit-content; align-self: flex-start; }
+  .share-page .share-to .segmented button { padding: 0 16px; }
+}
+
+/* Social rows get the same box as the code rows: one ring, 10px radius, a divider between rows. */
+.ch-list { margin: 0; border-radius: 10px; box-shadow: var(--ring); overflow: hidden; }
+.ch-list > li + li { border-top: 1px solid var(--divider); }
+.ch-list .ch-row { border-radius: 0; padding: 8px 10px; }
+.ch-list .ch-row:focus-visible { outline-offset: -2px; }
+.embed-card[aria-pressed='true'] > span:last-child { color: var(--text); }
+.embed-actions { display: flex; }
+@media (max-width: 757px) { .embed-actions .btn { flex: 1; justify-content: center; height: 44px; } }

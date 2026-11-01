@@ -54,6 +54,11 @@ export const embedCopy = {
   help: 'How embedding works',
   helpUrl: 'https://tally.so/help/embed-your-form',
   newTab: '(opens in a new tab)',
+  layout: 'Embed layout',
+  copyCode: 'Copy code',
+  copyCodeFor: (layout: string) => `Copy the ${layout} embed code`,
+  copied: (layout: string) => `${layout} embed code copied`,
+  customize: 'Customize embed',
 }
 
 /** Tally's upgrade screen, word for word. Euro prices as Tally shows them in Belgium. */
@@ -155,6 +160,8 @@ export const planCopy = {
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
+  /** The title over QR Code, Social and Embed. */
+  moreWays: 'More ways to share',
   /** Under the link, like Tally today. Once a domain is saved it reads Edit custom domain. */
   useDomain: 'Use custom domain',
   editDomain: 'Edit custom domain',

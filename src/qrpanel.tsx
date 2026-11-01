@@ -29,22 +29,20 @@ export async function saveOrShare(opts: QrOptions, ref: string): Promise<'shared
 }
 
 /** QR actions confirm with a small alert on top of the dialog, not in the button. A new one replaces the old one. */
-export const QR_ALERT = { top: true, group: 'qr', duration: 4000 }
+export const QR_ALERT = { group: 'qr', duration: 4000 }
 
 export const QR_COPY = {
   yourCode: 'Your QR Code',
   downloadPng: 'Download PNG',
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',
-  moreFormats: 'More formats',
   readyLine: 'Ready to print. Add it to a poster, flyer or slide.',
   downloadedAs: (f: QrFormat) => `${f.toUpperCase()} downloaded`,
   imageSaved: 'Image saved',
   logo: 'Add your logo',
   withoutLogo: 'Download without logo',
   customizeCode: 'Customize code',
-  logoScope: 'Applies to all your QR codes.',
-  logoHelp: "Put your logo in the middle instead of the Tally mark. Codes stay black so they're easy to scan.",
+  logoHelp: 'Replaces the Tally mark on all your QR codes.',
 }
 
 export function useQrOptions(ref: string): QrOptions {
@@ -56,12 +54,10 @@ export function useQrOptions(ref: string): QrOptions {
  * Download as one split button, the same in the QR Code tab and in the QR detail: PNG (or Save image on a phone)
  * on the main part, SVG and PDF in a menu that renders above the sheet, never clipped by it.
  */
-export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary = false, plain: plainButton = false }: {
+export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary = false }: {
   refId: string; label: string; onDone?: () => void; primaryRef?: React.Ref<HTMLButtonElement>
   /** Where Copy isn't on screen (the code's page, Logo), Download, or Upgrade to download, is the black primary. */
   upgradePrimary?: boolean
-  /** QR Code tab: one plain Download button, with More formats as a text link under it instead of a chevron. */
-  plain?: boolean
 }) {
   const s = useStore()
   const mobile = useIsMobile()
@@ -94,22 +90,6 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
       <span><b style={{ fontWeight: 600 }}>Download {f.label}</b><br /><span className="muted xs">{f.help}</span></span>
     </button>
   ))
-  if (plainButton) {
-    return (
-      <div className="dl-plain stack gap-4">
-        <button ref={primaryRef} type="button" className={`btn btn-secondary btn-sm dl-plain-main ${primaryRef ? 'single-primary' : ''}`}
-          aria-label={mobile ? QR_COPY.saveOrShare : `Download ${label} as PNG`} onClick={() => (mobile ? share() : get('png'))}>
-          {mobile ? <Share aria-hidden /> : <Download aria-hidden />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
-        </button>
-        <span className="text-action-wrap dl-more">
-          <button ref={caret} type="button" className="text-action" aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>
-            {QR_COPY.moreFormats}: {others.map((f) => f.label).join(', ')}
-          </button>
-        </span>
-        <PopMenu open={menu} anchor={caret} onClose={() => setMenu(false)} label={QR_COPY.otherFormats} width={280}>{menuItems}</PopMenu>
-      </div>
-    )
-  }
   return (
     <div className="split split-out">
       <button ref={primaryRef} type="button" className={`btn ${upgradePrimary ? 'btn-black' : 'btn-secondary'} btn-sm split-main ${primaryRef ? "single-primary" : ""}`}
@@ -183,7 +163,7 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
         <div className="row-between logo-row">
           <span className="stack gap-4">
             <h3 ref={head} id="qr-logo-h" className="qr-section-title field-label" tabIndex={-1} data-row="logo-section">{QR_COPY.logo} <Pro /></h3>
-            <span className="xs muted">{QR_COPY.logoScope} {QR_COPY.logoHelp}</span>
+            <span className="xs muted">{QR_COPY.logoHelp}</span>
           </span>
           <div className="row gap-8">
             {style.logo && <button type="button" className="btn btn-ghost btn-sm" aria-label="Remove logo" onClick={() => { setLogo(null); requestAnimationFrame(() => upload.current?.focus()) }}>Remove</button>}

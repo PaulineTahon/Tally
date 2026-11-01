@@ -24,7 +24,6 @@ export const guideCopy = {
       items: [
         { id: 'link-ending', text: 'Use custom domain, under your link, adds your own domain and ending.' },
         { id: 'rename', text: 'Rename a code. Its link stays the same.' },
-        { id: 'dismiss-nudge', text: 'Close the note at the top of this page, the one that says where most responses came from, with its ✕.' },
       ],
     },
     'insights-data': {
@@ -35,8 +34,8 @@ export const guideCopy = {
       ],
     },
     'insights-noqr': {
-      title: 'No QR Responses Yet',
-      items: [{ id: 'make-code', text: 'Make a code from here.' }],
+      title: 'See What Worked',
+      items: [{ id: 'switch-states', text: 'Switch states in the prototype bar.' }],
     },
     'insights-empty': {
       title: 'No Responses Yet',
