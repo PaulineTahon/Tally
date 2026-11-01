@@ -26,7 +26,8 @@ function sourceRows(sources: Source[], range: Range): SourceRow[] {
     visits: x.counts[k][0], subs: x.counts[k][1], qr: x.kind === 'qr',
   }))
   rows.push({ name: 'Direct / None', visits: DIRECT[k][0], subs: DIRECT[k][1] })
-  return rows.filter((r) => r.visits > 0).sort((a, b) => b.visits - a.visits)
+  // QR codes stay listed at 0 visits, so a new code never seems to go missing.
+  return rows.filter((r) => r.visits > 0 || r.qr).sort((a, b) => b.visits - a.visits)
 }
 const DAYS: Record<Range, number[][]> = {
   all: [[2, 0], [5, 1], [8, 3], [6, 2], [4, 1], [3, 0], [2, 1], [4, 1], [3, 0], [5, 2], [2, 0], [1, 0], [2, 1], [2, 0]],

@@ -370,9 +370,9 @@ function sourceIcon(src: Source) {
 /** Every code and tracked link, by place name. Refs only live in the URLs and file names. */
 export function PlaceList({ only, pulse = 0 }: { only?: 'qr'; pulse?: number }) {
   const s = useStore()
-  // The form's own code lives in the QR Code tab only, so it shows up once.
-  // Copied message is an Insights source, not a place you made, so it isn't listed.
-  const rows = only ? s.placements : s.sources.filter((p) => p.ref !== MAIN_QR)
+  // Your QR Code comes first, then every code and link you made. Everything shows, even at 0 visits.
+  const all = only ? s.placements : s.sources
+  const rows = [...all.filter((p) => p.ref === MAIN_QR), ...all.filter((p) => p.ref !== MAIN_QR)]
   if (!rows.length) return null
   return (
     <ul className="placements" aria-label={only ? 'Your QR codes' : 'Your codes and tracked links'}>
@@ -411,7 +411,11 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const more = useRef<HTMLButtonElement>(null)
   const qr = p.kind === 'qr'
   const link = qr ? qrUrl(p.ref) : s.url(p.ref)
-  const n = `${p.responses} ${p.responses === 1 ? 'response' : 'responses'}`
+  const n = `${rowCopy.visits(p.counts.all[0])}, ${rowCopy.submissions(p.counts.all[1])}`
+  const count = <span className="xs muted count"><span>{rowCopy.visits(p.counts.all[0])}</span><span className="count-sep" aria-hidden>·</span><span>{rowCopy.submissions(p.counts.all[1])}</span></span>
+  const shown = p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label
+  // Nothing to tell apart with one code, so Rename only shows once there are two.
+  const canRename = qr && s.placements.length > 1
   // Print-size PNG by default; SVG and PDF sit in the menu.
   const fmt: QrFormat = 'png'
   const download1 = async (f: QrFormat) => {
@@ -482,19 +486,19 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     <li ref={li} tabIndex={-1} className={[pulsing ? 'is-pulse' : '', qr ? 'is-clickable' : ''].join(' ').trim() || undefined}
       onClick={qr ? (e) => { if (!(e.target as HTMLElement).closest('button, a, [role="menu"]')) openCode() } : undefined}>
       {qr ? (
-        <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${p.label}, ${n}. Open code`}
+        <span ref={hit} className="row-hit" role="button" tabIndex={0} aria-label={`${shown}, ${n}. Open code`}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCode() } }}>
           {icon}
-          <span className="title grow">{p.label}</span>
-          <span className="xs muted count">{n}</span>
+          <span className="title grow">{shown}</span>
+          {count}
         </span>
       ) : <>
         {icon}
         <span className="title grow">{p.label}</span>
-        <span className="xs muted count">{n}</span>
+        {count}
       </>}
       {qr ? (
-        <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={rowCopy.download(p.label, fmt)} aria-label={rowCopy.download(p.label, fmt)} onClick={() => download1(fmt)}>
+        <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={rowCopy.download(shown, fmt)} aria-label={rowCopy.download(shown, fmt)} onClick={() => download1(fmt)}>
           <Download aria-hidden />
         </button>
       ) : (
@@ -504,12 +508,12 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
         </button>
       )}
       <span style={{ position: 'relative', display: 'inline-flex' }}>
-        <button ref={more} type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={`More for ${p.label}`} aria-haspopup="menu" aria-expanded={menu} onClick={openMenu}>
+        <button ref={more} type="button" className="btn btn-ghost btn-sm icon-btn" aria-label={`More for ${shown}`} aria-haspopup="menu" aria-expanded={menu} onClick={openMenu}>
           <MoreHorizontal aria-hidden />
         </button>
         <Menu open={menu} onClose={() => setMenu(false)} style={up ? { bottom: 34, right: 0, minWidth: 200 } : { top: 34, right: 0, minWidth: 200 }}>
           <button role="menuitem" onClick={pick(copy)}><Copy aria-hidden />{rowCopy.copyLink}</button>
-          {qr && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />{rowCopy.rename}</button>}
+          {canRename && <button role="menuitem" onClick={pick(() => { setName(p.label); setRenaming(true) })}><PencilLine aria-hidden />{rowCopy.rename}</button>}
           {!qr && <a role="menuitem" className="menu-link" href={link} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}><ArrowUpRight aria-hidden />{rowCopy.openLink}</a>}
           {qr && <div className="menu-sep" role="separator" />}
           {qr && (['png', 'svg', 'pdf'] as QrFormat[]).map((f) => (

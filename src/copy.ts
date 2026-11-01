@@ -12,6 +12,9 @@ export const rowCopy = {
   renamed: (place: string) => (place.length > 24 ? 'Code renamed' : `Renamed to ${place}`),
   deleted: (place: string) => `${place} code deleted`,
   deleteTitle: (place: string) => `Delete the ${place} code?`,
+  /** Visits and submissions, like the Sources panel in Insights. */
+  visits: (v: number) => `${v} ${v === 1 ? 'visit' : 'visits'}`,
+  submissions: (n: number) => `${n} ${n === 1 ? 'submission' : 'submissions'}`,
   /** No line at all when the code has no responses yet. */
   deleteKept: (n: number) => (n === 0 ? null : n === 1 ? 'Its 1 response stays in Insights.' : `Its ${n} responses stay in Insights.`),
   deleteUntag: (place: string) => `Printed copies still open your form, but new responses won't be tagged ${place}.`,

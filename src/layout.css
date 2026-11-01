@@ -795,3 +795,9 @@ a.list-row { text-decoration: none; color: inherit; }
 @media (max-width: 757px) { .split-out .split-caret { width: 44px; } }
 .qr-section-title { margin: 0; font-size: 14px; }
 .qr-section-title svg { width: 16px; height: 16px; color: var(--grey-2); margin-right: 4px; }
+/* Visits and submissions: one line when there is room, two short lines in the sheet and on phones. */
+.placements .count { width: auto; display: inline-flex; gap: 0; }
+.modal .placements .count, .sheet .placements .count { flex-direction: column; align-items: flex-end; line-height: 1.35; }
+.modal .placements .count-sep, .sheet .placements .count-sep { display: none; }
+@media (max-width: 757px) { .placements .count { width: auto; flex-direction: column; align-items: flex-end; line-height: 1.35; } .placements .count-sep { display: none; } }
+.placements .count-sep { padding: 0 5px; }
