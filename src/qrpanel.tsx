@@ -28,6 +28,9 @@ export async function saveOrShare(opts: QrOptions, ref: string): Promise<'shared
   return 'downloaded'
 }
 
+/** QR actions confirm with a small alert on top of the dialog, not in the button. A new one replaces the old one. */
+export const QR_ALERT = { top: true, group: 'qr', duration: 4000 }
+
 export const QR_COPY = {
   yourCode: 'Your QR Code',
   downloadPng: 'Download PNG',
@@ -35,7 +38,8 @@ export const QR_COPY = {
   otherFormats: 'Other formats',
   moreFormats: 'More formats',
   readyLine: 'Ready to print. Add it to a poster, flyer or slide.',
-  downloaded: 'QR code downloaded. Time to print!',
+  downloadedAs: (f: QrFormat) => `${f.toUpperCase()} downloaded`,
+  imageSaved: 'Image saved',
   showLink: 'Show link under code',
   logo: 'Add your logo',
   logoHelp: "Put your logo in the middle instead of the Tally mark. Codes stay black so they're easy to scan.",
@@ -77,7 +81,7 @@ export function QrPanel() {
     setPrinting((n) => n + 1)
     download(await fileFor(opts, f), fileName(ref, f))
     s.markDownloaded()
-    s.toast('QR code downloaded. Time to print!')
+    s.toast(QR_COPY.downloadedAs(f), QR_ALERT)
   }
 
   const shareFile = async () => {
@@ -85,7 +89,7 @@ export function QrPanel() {
     s.markDownloaded()
     if (ref === MAIN_QR) tick('download-main')
     const r = await saveOrShare(opts, ref)
-    if (r === 'downloaded') s.toast(QR_COPY.downloaded)
+    if (r !== 'closed') s.toast(QR_COPY.imageSaved, QR_ALERT)
   }
 
   const onLogo = (f?: File) => {

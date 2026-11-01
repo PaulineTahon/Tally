@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Check } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { DEFAULT_STYLE, type QrFormat, type QrStyle } from './qr'
 import { tick } from './guide'
-import { planCopy } from './copy'
 import { DIRECT, FRESH, MAIN_QR, MAIN_QR_LABEL, SEED, ZERO, type Counts, type SeedPlace } from './seed'
 
 export const FORM_ID = 'KpYalV'
@@ -66,8 +66,9 @@ function loadSettings(): QrSettings {
 export const EXAMPLE_UNTAGGED = DIRECT.all[1]
 
 export interface ToastAction { label: string; onClick: () => void }
-export interface ToastOptions { action?: ToastAction; duration?: number }
-interface Toast { id: number; text: string; leaving?: boolean; action?: ToastAction; duration: number }
+/** `top`: a small alert at the top centre of the open dialog. `group`: a new toast in the same group replaces the old one. */
+export interface ToastOptions { action?: ToastAction; duration?: number; top?: boolean; group?: string }
+interface Toast { id: number; text: string; leaving?: boolean; action?: ToastAction; duration: number; top?: boolean; group?: string }
 
 interface Store {
   slug: string
@@ -77,8 +78,10 @@ interface Store {
   removeEnding: (e: string) => void
   plan: Plan
   setPlan: (p: Plan) => void
-  /** The one upgrade path: a toast that points to the plans. */
+  /** The one upgrade path: Tally's plans pop-up. A pretend upgrade switches the prototype to Pro. */
   upgrade: () => void
+  upgradeOpen: boolean
+  closeUpgrade: () => void
   setDataset: (d: Dataset) => void
   /** Pro: your own domain, shown in the short link. */
   domain: string
@@ -159,9 +162,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const id = nextId.current++
     const duration = opts.duration ?? (opts.action ? 6000 : 2600)
     setToasts((t) => {
-      const live = t.filter((x) => !x.leaving)
-      if (live.length >= 3) setTimeout(() => leave(live[0].id))
-      return [...t, { id, text, action: opts.action, duration }]
+      // Same group: the new one replaces the old one, no stacking.
+      if (opts.group) t.filter((x) => x.group === opts.group && !x.leaving).forEach((x) => setTimeout(() => leave(x.id)))
+      const live = t.filter((x) => !x.leaving && !x.top && !opts.top)
+      if (!opts.top && live.length >= 3) setTimeout(() => leave(live[0].id))
+      return [...t, { id, text, action: opts.action, duration, top: opts.top, group: opts.group }]
     })
     // In a bottom sheet, keep the field you just used clear of the toast.
     requestAnimationFrame(() => {
@@ -170,9 +175,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     })
   }, [leave])
 
-  const upgrade = useCallback(() => {
-    toast(planCopy.upgradeToast, { action: { label: planCopy.seePlans, onClick: () => { window.open(PRICING_URL, '_blank', 'noopener') } } })
-  }, [toast])
+  const [upgradeOpen, setUpgradeOpen] = useState(false)
+  const upgrade = useCallback(() => setUpgradeOpen(true), [])
+  const closeUpgrade = useCallback(() => setUpgradeOpen(false), [])
 
   const shortLink = domain ? `${domain}/${slug}` : `tally.so/r/${slug}`
   const url = useCallback((ref?: string) => `https://tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
@@ -216,18 +221,19 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [sources])
 
   const value = useMemo<Store>(() => ({
-    slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, setDataset, domain, setDomain, shortLink, url, display,
+    slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
     sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
       {children}
+      <TopAlerts toasts={toasts.filter((t) => t.top)} leave={leave} />
       <div className="toast-wrap" aria-live="polite" role="status">
         <ol className="toast-stack">
-          {toasts.map((t) => {
-            const live = toasts.filter((x) => !x.leaving)
+          {toasts.filter((t) => !t.top).map((t) => {
+            const live = toasts.filter((x) => !x.leaving && !x.top)
             const depth = t.leaving ? 0 : live.length - 1 - live.indexOf(t)
             return <ToastItem key={t.id} t={t} depth={depth} onDone={() => leave(t.id)} />
           })}
@@ -235,6 +241,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       </div>
     </Ctx.Provider>
   )
+}
+
+/**
+ * The same toast, as a small alert on top of the open dialog (top centre, over it).
+ * Lives inside the topmost dialog so it moves with it; with no dialog open it sits at the top of the page.
+ */
+function TopAlerts({ toasts, leave }: { toasts: Toast[]; leave: (id: number) => void }) {
+  if (!toasts.length) return null
+  const all = document.querySelectorAll<HTMLElement>('.modal[role=dialog], .sheet[role=dialog]')
+  const host = all[all.length - 1] ?? null
+  const list = (
+    <div className={`toast-wrap is-top ${host ? 'in-dialog' : ''}`} aria-live="polite" role="status">
+      <ol className="toast-stack">
+        {toasts.map((t) => <ToastItem key={t.id} t={t} depth={0} onDone={() => leave(t.id)} />)}
+      </ol>
+    </div>
+  )
+  return host ? createPortal(list, host) : list
 }
 
 /** Enters from below via a mounted flag, so it is a transition and can be retargeted mid-way. */

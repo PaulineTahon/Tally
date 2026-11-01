@@ -5,6 +5,7 @@ import { planCopy, publishCopy } from './copy'
 import { Insights, Submissions, type InsightsState } from './insights'
 import { PublishedSheet } from './modals'
 import { QrPanel } from './qrpanel'
+import { UpgradeOverlay } from './upgrade'
 import type { Tab } from './chrome'
 import { GuideCard, tick, useGuide } from './guide'
 import { guideCopy, type GuidePage } from './guideCopy'
@@ -59,6 +60,7 @@ function Inner() {
 
   return (
     <>
+      <UpgradeOverlay />
       {r.route === 'edit' && <Editor key={r.pub} pub={r.pub} published={r.publish} onPublished={(first) => { setSheetFirst(first); setSheet(true) }} />}
       {r.route === 'share' && <ShareTab onTab={onTab} onEdit={() => go('edit')} />}
       {r.route === 'insights' && <Insights key={r.state} onTab={onTab} onEdit={() => go('edit')} state={r.state} onOpenQr={openQr} onShare={toShare} />}

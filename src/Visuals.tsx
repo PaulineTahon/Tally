@@ -133,7 +133,12 @@ function ShareTabMock({ url }: { url: string }) {
         <span className="pg-input">tally.so/r/KpYalV</span>
         <span className="pg-copy"><Copy aria-hidden />Copy</span>
       </div>
-      <div className="sm-seg"><span>Link</span><span className="on">QR Code</span><span>Social</span><span>Embed</span></div>
+      <div className="pg-card" data-layer="Link preview card">
+        <img className="pg-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
+        <span className="pg-card-text"><span className="pg-card-title">Community picnic RSVP</span><span className="pg-card-site">tally.so</span></span>
+        <span className="pg-card-act">Customize<span className="pg-pro">Pro</span></span>
+      </div>
+      <div className="sm-seg"><span className="on">QR Code</span><span>Social</span><span>Embed</span></div>
       <div className="sm-list">
         <div className="sm-row is-main">
           <span className="sm-big" data-layer="Your QR Code"><QrBox size={132} url={url} label="QR code" /></span>

@@ -279,3 +279,11 @@ a { color: inherit; }
 a.btn { text-decoration: none; }
 /* A plain segmented control without the sliding piece keeps its own white tab. */
 .segmented:not(:has(.seg-ind)) button[aria-selected='true'] { background: #fff; box-shadow: rgba(0,0,0,.08) 0 1px 2px, var(--border) 0 0 0 1px; }
+/* QR alerts: the same toast, at the top centre of the dialog, over it. */
+.toast-wrap.is-top { top: calc(12px + var(--safe-t, 0px)); bottom: auto; z-index: 90; }
+.toast-wrap.is-top.in-dialog { position: absolute; top: 12px; }
+.toast-wrap.is-top .toast-item { top: 0; bottom: auto; transform-origin: top center; }
+.toast-wrap.is-top .toast-item[data-mounted='false'], .toast-wrap.is-top .toast-item[data-leaving='true'] { transform: translateY(-8px); opacity: 0; }
+.modal[role=dialog], .sheet[role=dialog] { position: relative; }
+.sheet[role=dialog] { position: fixed; }
+@media (prefers-reduced-motion: reduce) { .toast-wrap.is-top .toast-item, .toast-wrap.is-top .toast-item[data-mounted='false'], .toast-wrap.is-top .toast-item[data-leaving='true'] { transform: none !important; } }

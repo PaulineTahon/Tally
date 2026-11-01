@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, ChevronRight, Code2, Image as ImageIcon, Copy, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Link2, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
+  ArrowLeft, ArrowUpRight, Code2, Copy, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
-import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, Pro, QrImage, Segmented, SmallCopy } from './ui'
+import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, Pro, QrImage, Segmented } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
-import { QR_COPY, fileName, saveOrShare } from './qrpanel'
+import { QR_ALERT, QR_COPY, fileName, saveOrShare } from './qrpanel'
 import { embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
+import { EmbedPage } from './embedpage'
 
-export type Channel = 'link' | 'qr' | 'social' | 'embed'
+export type Channel = 'qr' | 'social' | 'embed'
 
 export function useNativeShare() {
   const { toast } = useStore()
@@ -29,13 +30,13 @@ export function useNativeShare() {
   }
 }
 
-/** The link and Copy, the one primary action, always on top. The pencil opens the link options in the Link tab. */
+/** The link and Copy, the one primary action, always on top. The pencil opens Link ending and domain. */
 export function LinkBar({ onEdit }: { onEdit?: () => void }) {
   const { display, url } = useStore()
   const mobile = useIsMobile()
   const share = useNativeShare()
   const edit = onEdit && (
-    <button type="button" className="field-icon-btn" aria-label={shareCopy.editLink} title={shareCopy.editLink} onClick={onEdit}><PencilLine aria-hidden /></button>
+    <button type="button" className="field-icon-btn" data-row="ending" aria-label={shareCopy.editLink} title={shareCopy.editLink} onClick={onEdit}><PencilLine aria-hidden /></button>
   )
   if (mobile) {
     return (
@@ -72,7 +73,6 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
       <Segmented<Channel>
         label="Share to" value={value} onChange={onChange}
         options={[
-          { value: 'link', label: 'Link', icon: <Link2 aria-hidden /> },
           { value: 'qr', label: 'QR Code', icon: <QrCode aria-hidden /> },
           { value: 'social', label: 'Social', icon: <Megaphone aria-hidden /> },
           { value: 'embed', label: 'Embed', icon: <Code2 aria-hidden /> },
@@ -127,7 +127,7 @@ function LinkEnding() {
       <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
         {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEnding(s.slug)}>{endingCopy.cancel}</button>}
         {pro
-          ? <button type="button" className="btn btn-secondary btn-sm" disabled={!dirty || !value} onClick={save}>{dirty ? endingCopy.change : endingCopy.save}</button>
+          ? <button type="button" className="btn btn-secondary btn-sm save-btn" disabled={!dirty || !value} onClick={save}>{dirty ? endingCopy.change : endingCopy.save}</button>
           : <UpgradeButton disabled={!dirty || !value} onClick={save} />}
       </div>
       {(also.length > 0 || s.slug !== FORM_ID) && (
@@ -164,7 +164,6 @@ function LinkEnding() {
 }
 
 export type LinkView = 'main' | 'ending' | 'preview'
-const LINK_VIEWS: LinkView[] = ['main', 'ending', 'preview']
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
@@ -180,67 +179,63 @@ function PreviewCard({ img, title, desc }: { img: string; title: string; desc: s
   )
 }
 
-/** Back arrow and title at the top of a view inside the Link tab. The title takes focus on the way in. */
-function ViewHead({ title, onBack, headRef }: { title: string; onBack: () => void; headRef: React.RefObject<HTMLHeadingElement> }) {
+export const VIEW_TITLE: Record<Exclude<LinkView, 'main'>, string> = { ending: linkCopy.endingRow, preview: linkCopy.previewRow }
+
+/** Back arrow and title of a detail view. In the share modal it sits in the modal header; on the Share tab page, at the top of the tab. */
+export function ViewHead({ view, onBack, as = 'h3' }: { view: Exclude<LinkView, 'main'>; onBack: () => void; as?: 'h3' | 'span' }) {
+  const T = as
   return (
-    <div className="lt-head">
+    <span className="lt-head">
       <button type="button" className="lt-back" aria-label={linkCopy.back} title={linkCopy.back} onClick={onBack}><ArrowLeft aria-hidden /></button>
-      <h3 ref={headRef} tabIndex={-1}>{title}</h3>
+      <T id={`lt-title-${view}`} className="lt-title-text" tabIndex={-1}>{VIEW_TITLE[view]}</T>
+    </span>
+  )
+}
+
+/** Focus follows the view: its title on the way in, the row you came from on the way back. */
+function useViewFocus(view: LinkView) {
+  const prev = useRef<LinkView>(view)
+  useEffect(() => {
+    const from = prev.current
+    prev.current = view
+    if (from === view) return
+    requestAnimationFrame(() => {
+      if (view !== 'main') document.getElementById(`lt-title-${view}`)?.focus({ preventScroll: true })
+      else document.querySelector<HTMLElement>(`[role=dialog] [data-row="${from}"], [data-row="${from}"]`)?.focus({ preventScroll: true })
+    })
+  }, [view])
+}
+
+/** What the link preview shows, shared by the card under the link and its editor. Applies to every link and code. */
+interface PreviewDraft { title: string; desc: string; img: string | null }
+const PREVIEW_DEFAULT: PreviewDraft = { title: FORM_TITLE, desc: PREVIEW_DESC, img: null }
+const previewImg = (d: PreviewDraft) => d.img || `${import.meta.env.BASE_URL}link-preview.jpg`
+
+/** The compact preview card right under the link, with Customize in context. */
+function PreviewStrip({ draft, onCustomize }: { draft: PreviewDraft; onCustomize: () => void }) {
+  return (
+    <div className="lp-strip" role="group" aria-label={linkCopy.previewRow} aria-description={linkCopy.previewHelp}>
+      <img className="lp-strip-img" src={previewImg(draft)} alt="" />
+      <span className="lp-strip-text">
+        <span className="lp-strip-title">{draft.title || FORM_TITLE}</span>
+        <span className="lp-strip-site">tally.so</span>
+      </span>
+      <span className="lp-strip-act">
+        <button type="button" className="link-btn small" data-row="preview" aria-haspopup="true" onClick={onCustomize}>{linkCopy.customize}</button>
+        <Pro />
+      </span>
     </div>
   )
 }
 
-/**
- * Link tab: the preview card, then two quiet rows that each open a view inside the tab.
- * Every view stays mounted, so going Back keeps what you typed as a draft. Back never saves.
- */
-function LinkPanel({ view, setView }: { view: LinkView; setView: (v: LinkView) => void }) {
+/** Detail view: link ending and custom domain. Both are Pro; one quiet line says so. */
+function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void }) {
   const s = useStore()
   const [domain, setDomain] = useState('')
-  const [lpTitle, setLpTitle] = useState(FORM_TITLE)
-  const [lpDesc, setLpDesc] = useState(PREVIEW_DESC)
-  const [lpImg, setLpImg] = useState<string | null>(null)
-  const defaultImg = `${import.meta.env.BASE_URL}link-preview.jpg`
-  const resetPreview = () => { setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
-  const previewDirty = lpTitle !== FORM_TITLE || lpDesc !== PREVIEW_DESC || lpImg !== null
-  const card = <PreviewCard img={lpImg || defaultImg} title={lpTitle || FORM_TITLE} desc={lpDesc} />
-  // Focus: the view title on the way in, the row you came from on the way back.
-  const heads = { ending: useRef<HTMLHeadingElement>(null), preview: useRef<HTMLHeadingElement>(null) }
-  const rows = { ending: useRef<HTMLButtonElement>(null), preview: useRef<HTMLButtonElement>(null) }
-  const prev = useRef<LinkView>(view)
-  const [enterKey, setEnterKey] = useState(0)
-  useEffect(() => {
-    const from = prev.current
-    prev.current = view
-    if (view !== 'main') heads[view].current?.focus({ preventScroll: true })
-    else if (from !== 'main') rows[from].current?.focus({ preventScroll: true })
-  }, [view, enterKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  const open = (v: LinkView) => { setView(v); setEnterKey((k) => k + 1) }
-  const back = () => setView('main')
-  const main = (
+  return (
     <div className="stack gap-12">
-      <div className="stack gap-8">
-        {card}
-        <span className="xs muted">{linkCopy.previewHelp}</span>
-      </div>
-      <div className="lt-rows">
-        <button ref={rows.ending} type="button" className="lt-row" onClick={() => open('ending')}>
-          <Globe aria-hidden className="lt-ico" />
-          <span className="lt-title">{linkCopy.endingRow} <Pro /></span>
-          <ChevronRight aria-hidden className="lt-chev" />
-        </button>
-        <button ref={rows.preview} type="button" className="lt-row" onClick={() => open('preview')}>
-          <ImageIcon aria-hidden className="lt-ico" />
-          <span className="lt-title">{linkCopy.previewRow}</span>
-          <span className="lt-meta">{linkCopy.customize} <Pro /></span>
-          <ChevronRight aria-hidden className="lt-chev" />
-        </button>
-      </div>
-    </div>
-  )
-  const ending = (
-    <div className="stack gap-12">
-      <ViewHead title={linkCopy.endingRow} onBack={back} headRef={heads.ending} />
+      {!inModal && <ViewHead view="ending" onBack={onBack} />}
+      <p className="small muted lt-note">{linkCopy.bothPro}</p>
       <LinkEnding />
       <hr className="divider" />
       <div className="stack gap-8">
@@ -252,46 +247,51 @@ function LinkPanel({ view, setView }: { view: LinkView; setView: (v: LinkView) =
         </div>
         <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
           {s.plan === 'pro'
-            ? <button type="button" className="btn btn-secondary btn-sm" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
+            ? <button type="button" className="btn btn-secondary btn-sm save-btn" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
             : <UpgradeButton disabled={!domain} onClick={s.upgrade} />}
         </div>
       </div>
     </div>
   )
-  const preview = (
+}
+
+/** Detail view: the link preview editor, with the card updating as you type. */
+function PreviewView({ inModal, onBack, draft, setDraft }: { inModal: boolean; onBack: () => void; draft: PreviewDraft; setDraft: (d: PreviewDraft) => void }) {
+  const s = useStore()
+  const dirty = draft.title !== PREVIEW_DEFAULT.title || draft.desc !== PREVIEW_DEFAULT.desc || draft.img !== null
+  return (
     <div className="stack gap-12">
-      <ViewHead title={linkCopy.previewRow} onBack={back} headRef={heads.preview} />
-      {card}
+      {!inModal && <ViewHead view="preview" onBack={onBack} />}
+      <PreviewCard img={previewImg(draft)} title={draft.title || FORM_TITLE} desc={draft.desc} />
+      <span className="xs muted">{linkCopy.previewHelp}</span>
       <div className="row-between">
         <span className="field-label">Image</span>
         <label className="btn btn-secondary btn-sm">Replace image
-          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setDraft({ ...draft, img: URL.createObjectURL(f) }) }} />
         </label>
       </div>
       <label className="field-label" htmlFor="lp-title">Title</label>
-      <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+      <input id="lp-title" className="input" value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
       <label className="field-label" htmlFor="lp-desc">Description</label>
-      <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+      <input id="lp-desc" className="input" value={draft.desc} onChange={(e) => setDraft({ ...draft, desc: e.target.value })} />
       <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-        {previewDirty && <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>{endingCopy.cancel}</button>}
+        {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(PREVIEW_DEFAULT)}>{endingCopy.cancel}</button>}
         {s.plan === 'pro'
-          ? <button type="button" className="btn btn-secondary btn-sm" disabled={!previewDirty} onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
-          : <UpgradeButton disabled={!previewDirty} onClick={s.upgrade} />}
+          ? <button type="button" className="btn btn-secondary btn-sm save-btn" disabled={!dirty} onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
+          : <UpgradeButton disabled={!dirty} onClick={s.upgrade} />}
       </div>
     </div>
   )
-  const nodes: Record<LinkView, ReactNode> = { main, ending, preview }
-  return <PanelStack active={view} plain panels={LINK_VIEWS.map((v) => ({ key: v, node: nodes[v] }))} />
 }
 
 /* ---------- Embed ---------- */
 
-type EmbedMode = 'standard' | 'popup' | 'fullpage'
-const EMBEDS: { id: EmbedMode; label: string }[] = [
+export type EmbedMode = 'standard' | 'popup' | 'fullpage'
+export const EMBEDS: { id: EmbedMode; label: string }[] = [
   { id: 'standard', label: 'Standard' }, { id: 'popup', label: 'Popup' }, { id: 'fullpage', label: 'Full page' },
 ]
 
-function embedCode(mode: EmbedMode, slug: string) {
+export function embedCode(mode: EmbedMode, slug: string) {
   if (mode === 'popup') return `<button data-tally-open="${slug}" data-tally-emoji-text="👋" data-tally-emoji-animation="wave">RSVP</button>\n<script async src="https://tally.so/widgets/embed.js"></script>`
   if (mode === 'fullpage') return `<iframe data-tally-src="https://tally.so/r/${slug}?transparentBackground=1" width="100%" height="100%" frameborder="0" marginheight="0" marginwidth="0" title="${FORM_TITLE}" style="position:absolute;inset:0;border:0"></iframe>\n<script async src="https://tally.so/widgets/embed.js"></script>`
   return `<iframe data-tally-src="https://tally.so/embed/${slug}?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1" loading="lazy" width="100%" height="320" frameborder="0" marginheight="0" marginwidth="0" title="${FORM_TITLE}"></iframe>\n<script async src="https://tally.so/widgets/embed.js"></script>`
@@ -325,27 +325,20 @@ export function EmbedThumb({ mode }: { mode: EmbedMode }) {
   )
 }
 
-function EmbedPanel() {
-  const s = useStore()
+/** Three layouts. Picking one opens Tally's Embed page with that layout ready, where you can try it out. */
+function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
   const mobile = useIsMobile()
-  const [mode, setMode] = useState<EmbedMode | null>(null)
   return (
     <div className="stack gap-12">
       <p className="small muted" style={{ margin: 0 }}>{embedCopy.intro}{mobile && ` ${embedCopy.desktop}`} <a className="link-btn small inline-link" href={embedCopy.helpUrl} target="_blank" rel="noreferrer">{embedCopy.help}<span className="sr-only"> {embedCopy.newTab}</span></a></p>
-      <div className="embed-cards is-sheet" role="radiogroup" aria-label="Embed type">
+      <div className="embed-cards is-sheet">
         {EMBEDS.map((e) => (
-          <button type="button" key={e.id} className="embed-card" role="radio" aria-checked={mode === e.id} onClick={() => setMode(e.id)}>
+          <button type="button" key={e.id} className="embed-card" data-mode={e.id} aria-haspopup="dialog" onClick={() => onPick?.(e.id)}>
             <EmbedThumb mode={e.id} />
             <span>{e.label}</span>
           </button>
         ))}
       </div>
-      {mode && (
-        <div className="stack gap-8">
-          <pre className="code-box">{embedCode(mode, s.slug)}</pre>
-          <div><SmallCopy text={embedCode(mode, s.slug)} label="Copy code" toastText="Embed code copied." /></div>
-        </div>
-      )}
     </div>
   )
 }
@@ -382,7 +375,6 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   const li = useRef<HTMLLIElement>(null)
   const hit = useRef<HTMLSpanElement>(null)
   const [pulsing, setPulsing] = useState(false)
-  const [downloaded, setDownloaded] = useState(false)
   // When asked to (pulse > 0): bring the row into view, focus it, pulse once.
   useEffect(() => {
     if (!pulse) return
@@ -414,8 +406,7 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()
     if (main) tick('download-main')
-    setDownloaded(true); window.setTimeout(() => setDownloaded(false), 2000)
-    s.toast('QR code downloaded. Time to print!')
+    s.toast(QR_COPY.downloadedAs(f), QR_ALERT)
   }
   const copy = async () => {
     setCopied(true); setTimeout(() => setCopied(false), 2000)
@@ -489,9 +480,8 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
         <span className="xs muted count">{n}</span>
       </>}
       {qr ? (
-        <button type="button" className={`btn btn-secondary btn-sm icon-btn ${downloaded ? 'is-copied' : ''}`} data-tip={rowCopy.download(p.label, fmt)} aria-label={rowCopy.download(p.label, fmt)} onClick={() => download1(fmt)}>
-          <IconSwap on={downloaded} icon="download" />
-          <span className="sr-only" aria-live="polite">{downloaded ? 'Downloaded' : ''}</span>
+        <button type="button" className="btn btn-secondary btn-sm icon-btn" data-tip={rowCopy.download(p.label, fmt)} aria-label={rowCopy.download(p.label, fmt)} onClick={() => download1(fmt)}>
+          <Download aria-hidden />
         </button>
       ) : (
         <button type="button" className={`btn btn-secondary btn-sm icon-btn ${copied ? 'is-copied' : ''}`} data-tip={rowCopy.copyLink} aria-label={`${rowCopy.copyLink}: ${p.label}`} onClick={copy}>
@@ -540,7 +530,6 @@ function SingleCode({ pulse }: { pulse: number }) {
   const link = qrUrl(p.ref)
   const [formats, setFormats] = useState(false)
   const [pulsing, setPulsing] = useState(false)
-  const [done, setDone] = useState<QrFormat | null>(null)
   const card = useRef<HTMLDivElement>(null)
   const primary = useRef<HTMLButtonElement>(null)
   useEffect(() => {
@@ -554,14 +543,14 @@ function SingleCode({ pulse }: { pulse: number }) {
   }, [pulse]) // eslint-disable-line react-hooks/exhaustive-deps
   const mobile = useIsMobile()
   const opts = { url: link, shortLink: s.shortLink, style, showLink: s.settings.showLink }
-  const flash = (f: QrFormat) => { s.markDownloaded(); tick('download-main'); setDone(f); window.setTimeout(() => setDone(null), 2000) }
+  const flash = () => { s.markDownloaded(); tick('download-main') }
   const get = async (f: QrFormat) => {
     download(await fileFor(opts, f), fileName(p.ref, f))
-    flash(f)
-    s.toast(QR_COPY.downloaded)
+    flash()
+    s.toast(QR_COPY.downloadedAs(f), QR_ALERT)
   }
   // Phones: the system share sheet with the PNG, which covers Save to Photos.
-  const share = async () => { flash('png'); if ((await saveOrShare(opts, p.ref)) === 'downloaded') s.toast(QR_COPY.downloaded) }
+  const share = async () => { flash(); if ((await saveOrShare(opts, p.ref)) !== 'closed') s.toast(QR_COPY.imageSaved, QR_ALERT) }
   return (
     <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
       <button type="button" className="single-preview" aria-label={`Open ${p.label} full size`} onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>
@@ -573,9 +562,9 @@ function SingleCode({ pulse }: { pulse: number }) {
         <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
         <p className="small muted" style={{ margin: 0 }}>{QR_COPY.readyLine}</p>
         <div className="row gap-8 single-dl">
-          <button ref={primary} type="button" className={`btn btn-secondary btn-sm single-primary ${done === 'png' ? 'is-copied' : ''}`}
+          <button ref={primary} type="button" className="btn btn-secondary btn-sm single-primary"
             aria-label={mobile ? QR_COPY.saveOrShare : rowCopy.download(p.label, 'png')} onClick={() => (mobile ? share() : get('png'))}>
-            {mobile ? <Download aria-hidden /> : <IconSwap on={done === 'png'} icon="download" />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
+            <Download aria-hidden />{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
           </button>
         </div>
         <div className="row gap-16 single-more">
@@ -587,7 +576,7 @@ function SingleCode({ pulse }: { pulse: number }) {
         <Collapse open={formats} id="qr-formats" gap={8}>
           <div className="row gap-8">
             {(['svg', 'pdf'] as QrFormat[]).map((f) => (
-              <button key={f} type="button" className={`btn btn-secondary btn-sm ${done === f ? 'is-copied' : ''}`} aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>
+              <button key={f} type="button" className="btn btn-secondary btn-sm" aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>
                 <Download aria-hidden />{f.toUpperCase()}
               </button>
             ))}
@@ -689,33 +678,56 @@ function SocialPanel() {
   )
 }
 
-export function ChannelPanel({ channel, pulse = 0, view = 'main', setView = () => {} }: { channel: Channel; pulse?: number; view?: LinkView; setView?: (v: LinkView) => void }) {
-  if (channel === 'link') return <LinkPanel view={view} setView={setView} />
+export function ChannelPanel({ channel, pulse = 0, onEmbed }: { channel: Channel; pulse?: number; onEmbed?: (m: EmbedMode) => void }) {
   if (channel === 'qr') return <QrCodePanel pulse={pulse} />
   if (channel === 'social') return <SocialPanel />
-  return <EmbedPanel />
+  return <EmbedPanel onPick={onEmbed} />
 }
 
-/** The last Share To tab you used, kept per browser. Link until you pick another. */
+/** The last Share To tab you used, kept per browser. QR Code until you pick another. */
 const TAB_KEY = 'share-tab'
-const CHANNELS: Channel[] = ['link', 'qr', 'social', 'embed']
+const CHANNELS: Channel[] = ['qr', 'social', 'embed']
 function readChannel(): Channel {
-  try { const v = localStorage.getItem(TAB_KEY) as Channel | null; return v && CHANNELS.includes(v) ? v : 'link' } catch { return 'link' }
+  try { const v = localStorage.getItem(TAB_KEY) as Channel | null; return v && CHANNELS.includes(v) ? v : 'qr' } catch { return 'qr' }
 }
 function saveChannel(c: Channel) { try { localStorage.setItem(TAB_KEY, c) } catch { /* private mode */ } }
 
 /** `first`: the sheet right after a form's first publish, which always opens on Link. */
-export function ShareBlock({ first = false }: { first?: boolean }) {
-  const [channel, setChannelState] = useState<Channel>(() => { if (first) { saveChannel('link'); return 'link' } return readChannel() })
+/**
+ * `first`: the sheet right after a form's first publish, which always opens on QR Code.
+ * The link, its preview card and the tabs sit on top. The pencil and Customize drill into a detail view that
+ * takes over: in the share modal, Back and the title move into the modal header (`view`/`setView` from the modal);
+ * on the Share tab page they sit at the top of the view. Back returns to the tab you came from.
+ */
+export function ShareBlock({ first = false, view: ctlView, setView: ctlSetView }: { first?: boolean; view?: LinkView; setView?: (v: LinkView) => void }) {
+  const [channel, setChannelState] = useState<Channel>(() => { if (first) { saveChannel('qr'); return 'qr' } return readChannel() })
   const setChannel = (c: Channel) => { saveChannel(c); setChannelState(c) }
-  const [view, setView] = useState<LinkView>('main')
-  // The pencil on the link: Link tab, straight into Link ending and domain.
-  const editLink = () => { setChannel('link'); setView('ending') }
+  const [ownView, setOwnView] = useState<LinkView>('main')
+  const inModal = !!ctlSetView
+  const view = ctlView ?? ownView
+  const setView = ctlSetView ?? setOwnView
+  useViewFocus(view)
+  const [draft, setDraft] = useState<PreviewDraft>(PREVIEW_DEFAULT)
+  const [embed, setEmbed] = useState<EmbedMode | null>(null)
+  const back = () => setView('main')
+  type Slot = Channel | Exclude<LinkView, 'main'>
+  const panels: { key: Slot; node: ReactNode }[] = [
+    ...CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> })),
+    { key: 'ending', node: <EndingView inModal={inModal} onBack={back} /> },
+    { key: 'preview', node: <PreviewView inModal={inModal} onBack={back} draft={draft} setDraft={setDraft} /> },
+  ]
   return (
-    <div className="stack gap-16">
-      <LinkBar onEdit={editLink} />
-      <ChannelPicker value={channel} onChange={setChannel} />
-      <PanelStack active={channel} label="Share to" panels={CHANNELS.map((c) => ({ key: c, node: <ChannelPanel channel={c} view={view} setView={setView} /> }))} />
+    <div>
+      {/* A detail view hides the link, the card and the tabs. They ease out and back in. */}
+      <Collapse open={view === 'main'}>
+        <div className="stack gap-12" style={{ paddingBottom: 16 }}>
+          <LinkBar onEdit={() => setView('ending')} />
+          <PreviewStrip draft={draft} onCustomize={() => setView('preview')} />
+          <ChannelPicker value={channel} onChange={setChannel} />
+        </div>
+      </Collapse>
+      <PanelStack<Slot> active={view === 'main' ? channel : view} label="Share to" panels={panels} />
+      {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
     </div>
   )
 }

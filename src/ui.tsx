@@ -113,7 +113,7 @@ export function PanelStack<K extends string>({ active, panels, label, plain = fa
 
 /** On the free plan, the primary action of a Pro setting. Nothing is saved. */
 export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
-  return <button type="button" className="btn btn-secondary btn-sm upgrade-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
+  return <button type="button" className="btn btn-secondary btn-sm upgrade-btn save-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
 }
 
 

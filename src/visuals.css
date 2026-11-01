@@ -95,3 +95,10 @@ body { background: #fafafa; }
 .sm-dl { height: 36px; padding: 0 14px; border-radius: 8px; background: #fff; color: #37352f; box-shadow: rgba(0,0,0,.12) 0 1px 2px, #dfdfdf 0 0 0 1px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
 .sm-dl svg { width: 15px; height: 15px; }
 .changelog .pg { right: 110px; gap: 14px; }
+.pg-card { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 10px 0 8px; border-radius: 8px; box-shadow: #dfdfdf 0 0 0 1px; margin-top: 8px; }
+.pg-card-img { width: 66px; height: 36px; object-fit: cover; border-radius: 4px; box-shadow: #e8e8e7 0 0 0 1px; }
+.pg-card-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.pg-card-title { font-size: 13px; font-weight: 600; color: #37352f; }
+.pg-card-site { font-size: 11px; color: #6b6a66; }
+.pg-card-act { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #0070d7; }
+.pg-pro { font-size: 10px; font-weight: 500; color: #b8109f; background: #fde8fa; border-radius: 999px; padding: 1px 6px; }

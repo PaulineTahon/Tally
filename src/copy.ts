@@ -36,7 +36,7 @@ export const endingCopy = {
   removed: (ending: string) => `${ending} removed`,
 }
 
-/** Link tab. Pro is shown with a badge on each label, never on a button. */
+/** Link options, opened in context: the pencil on the link and Customize on the preview card. Pro is shown with a badge on a label, never on a button. */
 export const linkCopy = {
   endingRow: 'Link ending and domain',
   previewRow: 'Link preview',
@@ -44,6 +44,7 @@ export const linkCopy = {
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',
+  bothPro: 'Both are part of Pro.',
 }
 
 /** Embed tab. */
@@ -53,6 +54,77 @@ export const embedCopy = {
   help: 'How embedding works',
   helpUrl: 'https://tally.so/help/embed-your-form',
   newTab: '(opens in a new tab)',
+}
+
+/** Tally's upgrade screen, word for word. Euro prices as Tally shows them in Belgium. */
+export const upgradeCopy = {
+  back: 'Back',
+  close: 'Close',
+  sub: 'Upgrade to access advanced features designed for growing teams and creators.',
+  monthly: 'Pay monthly',
+  yearly: 'Pay yearly',
+  off: '2 months off',
+  perMonth: 'per month',
+  upgradePro: 'Upgrade to Pro',
+  upgradeBusiness: 'Upgrade to Business',
+  pro: { month: { price: 25, pay: 'Pay €25 Every Month' }, year: { price: 20, pay: 'Pay €250 Every Year' } },
+  business: { month: { price: 79, pay: 'Pay €79 Every Month' }, year: { price: 65, pay: 'Pay €790 Every Year' } },
+  proFeats: [
+    ['Remove Tally branding.', 'Hide all branding and make your forms truly your own.'],
+    ['Custom domains.', 'Host forms on your custom (sub)domain to create branded links.'],
+    ['Collaboration.', 'Invite unlimited team members to shared workspaces.'],
+    ['Partial submissions.', 'Capture unfinished form responses before respondents submit your form.'],
+    ['Advanced customization.', 'Customize your forms with built-in design options.'],
+    ['Custom CSS.', 'Inject custom CSS to fully control your form design.'],
+  ] as [string, string][],
+  bizFeats: [
+    ['Everything in Pro.', 'Plus the following features tailored for organizations with advanced needs.'],
+    ['Control data retention.', 'Automatically delete form submissions after a set period to comply with privacy frameworks.'],
+    ['Verify emails.', "Confirm respondents' email addresses to capture high-quality leads and increase conversions."],
+  ] as [string, string][],
+}
+
+/** Tally's Embed page, with Tally's own labels. */
+export const embedPageCopy = {
+  title: 'Embed',
+  close: 'Close',
+  type: 'Embed type',
+  getCode: 'Get the code',
+  backToPreview: 'Back to preview',
+  copyEmbedLink: 'Copy embed link',
+  embedLinkCopied: 'Embed link copied.',
+  options: 'Options',
+  help: 'Help',
+  height: 'Height',
+  dynamicHeight: 'Dynamic height',
+  hideTitle: 'Hide form title',
+  alignLeft: 'Align content to the left',
+  transparent: 'Transparent background',
+  open: 'Open',
+  openOptions: ['On button click', 'On page load', 'After elapsed time', 'On exit intent', 'On scroll'],
+  position: 'Position',
+  positionOptions: ['Bottom right corner', 'Center'],
+  width: 'Width',
+  overlay: 'Dark overlay',
+  emoji: 'Emoji',
+  animation: 'Emoji animation',
+  animations: ['Wave', 'Tada', 'Heart beat', 'Spin', 'Flash', 'Bounce', 'Rubber band', 'Head shake'],
+  hideOnSubmit: 'Hide on submit',
+  track: 'Track form events',
+  customDomain: 'Custom domain',
+  branding: 'Tally branding',
+  preview: 'Preview',
+  codeTitle: 'Embed code',
+  codeHelp: 'Paste this HTML code snippet on the page where you want the embed to appear.',
+  copyCode: 'Copy code',
+  codeCopied: 'Embed code copied.',
+  closePopup: 'Close popup',
+  openPopup: 'Open popup',
+  yourName: 'Your name',
+  submit: 'Submit',
+  thanks: 'Thanks for completing this form!',
+  thanksSub: 'This is only a preview. Nothing was sent.',
+  madeWith: 'Made with Tally',
 }
 
 /** Republishing: the full sheet only when it helps. */
@@ -71,8 +143,6 @@ export const planCopy = {
   free: 'Free',
   pro: 'Pro',
   upgradeToSave: 'Upgrade to Save',
-  upgradeToast: 'Saving this is part of Pro.',
-  seePlans: 'See plans',
   domainSaved: 'Custom domain saved.',
   previewSaved: 'Link preview updated.',
   logoSaved: 'Logo saved for your codes.',
