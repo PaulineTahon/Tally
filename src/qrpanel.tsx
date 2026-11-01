@@ -33,6 +33,8 @@ export const QR_COPY = {
   downloadPng: 'Download PNG',
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',
+  moreFormats: 'More formats',
+  readyLine: 'Ready to print. Add it to a poster, flyer or slide.',
   downloaded: 'QR code downloaded. Time to print!',
   showLink: 'Show link under code',
   logo: 'Add your logo',

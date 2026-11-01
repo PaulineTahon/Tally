@@ -70,7 +70,7 @@ export function Pro() {
 }
 
 /** Tab panels that all stay mounted (so nothing you typed is lost). Only the active one shows, and the box eases to its height on a switch. */
-export function PanelStack<K extends string>({ active, panels, label }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string }) {
+export function PanelStack<K extends string>({ active, panels, label, plain = false }: { active: K; panels: { key: K; node: ReactNode }[]; label?: string; plain?: boolean }) {
   const inner = useRef<HTMLDivElement>(null)
   const last = useRef(0)
   const first = useRef(true)
@@ -102,7 +102,7 @@ export function PanelStack<K extends string>({ active, panels, label }: { active
       onTransitionEnd={(e) => { if (e.target === e.currentTarget) setH(null) }}>
       <div ref={inner}>
         {panels.map((p) => (
-          <div key={p.key} role="tabpanel" aria-label={label} hidden={p.key !== active} className={`panel-cell ${p.key === active ? 'is-active' : ''}`}>
+          <div key={p.key} role={plain ? undefined : 'tabpanel'} aria-label={plain ? undefined : label} hidden={p.key !== active} className={`panel-cell ${p.key === active ? 'is-active' : ''}`}>
             {p.node}
           </div>
         ))}

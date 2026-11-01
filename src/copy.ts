@@ -38,12 +38,21 @@ export const endingCopy = {
 
 /** Link tab. Pro is shown with a badge on each label, never on a button. */
 export const linkCopy = {
-  yourLink: 'Your Link',
-  edit: 'Edit',
-  done: 'Done',
+  endingRow: 'Link ending and domain',
+  previewRow: 'Link preview',
   customize: 'Customize',
+  back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
-  previewHelp: 'Choose what people see when you paste the link in a chat or a post.',
+  previewHelp: 'This is what people see when you paste the link in a chat or a post.',
+}
+
+/** Embed tab. */
+export const embedCopy = {
+  intro: 'Pick how the form shows up on your site.',
+  desktop: 'Works best on desktop.',
+  help: 'How embedding works',
+  helpUrl: 'https://tally.so/help/embed-your-form',
+  newTab: '(opens in a new tab)',
 }
 
 /** Republishing: the full sheet only when it helps. */

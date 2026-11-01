@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowUpRight, Code2, Copy, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Link2, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
+  ArrowLeft, ArrowUpRight, ChevronRight, Code2, Image as ImageIcon, Copy, SlidersHorizontal, MoreHorizontal, Download, Globe, Check, Link2, Mail, Megaphone, Plus, QrCode, Share, PencilLine, Trash2,
 } from 'lucide-react'
 import { canNativeShare, copyText, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore, type Source } from './store'
 import { UpgradeButton, AutoHeight, Collapse, CopyButton, IconSwap, Menu, PanelStack, Pro, QrImage, Segmented, SmallCopy } from './ui'
 import { download, fileFor, type QrFormat } from './qr'
 import { QR_COPY, fileName, saveOrShare } from './qrpanel'
-import { endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
+import { embedCopy, endingCopy, linkCopy, planCopy, rowCopy, shareCopy } from './copy'
 import { tick } from './guide'
 
 export type Channel = 'link' | 'qr' | 'social' | 'embed'
@@ -107,12 +107,12 @@ function LinkEnding() {
   const value = ending || s.slug
   const dirty = value !== s.slug
   const pro = s.plan === 'pro'
-  // On Free you can try any ending, but saving it is Pro.
+  // On Free you can try any ending, but saving it is Pro. What you typed stays put.
   const save = () => { tick('link-ending'); if (!pro) { s.upgrade(); return } s.setSlug(value); s.toast(endingCopy.updated) }
   const also = [...s.oldEndings].reverse()
   return (
     <div className="stack gap-8">
-      <span className="field-label row gap-4">{endingCopy.label} <Pro /></span>
+      <span className="field-label">{endingCopy.label}</span>
       <span className="xs muted">{endingCopy.help}</span>
       <div className="input-group">
         <span className="prefix">tally.so/r/</span>
@@ -163,86 +163,125 @@ function LinkEnding() {
   )
 }
 
-/** Link tab: the preview people see first, then the link itself with its options behind Edit. */
-function LinkPanel({ editing, setEditing }: { editing: boolean; setEditing: (v: boolean) => void }) {
+export type LinkView = 'main' | 'ending' | 'preview'
+const LINK_VIEWS: LinkView[] = ['main', 'ending', 'preview']
+
+/** How the link shows up when it's pasted in a chat or a post. */
+function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
+  return (
+    <div className="lp-card" role="img" aria-label={`Link preview: ${title}. ${desc}`}>
+      <img className="lp-card-img" src={img} alt="" />
+      <span className="lp-card-text" aria-hidden>
+        <span className="lp-card-site">tally.so</span>
+        <span className="lp-card-title">{title}</span>
+        <span className="lp-card-desc">{desc}</span>
+      </span>
+    </div>
+  )
+}
+
+/** Back arrow and title at the top of a view inside the Link tab. The title takes focus on the way in. */
+function ViewHead({ title, onBack, headRef }: { title: string; onBack: () => void; headRef: React.RefObject<HTMLHeadingElement> }) {
+  return (
+    <div className="lt-head">
+      <button type="button" className="lt-back" aria-label={linkCopy.back} title={linkCopy.back} onClick={onBack}><ArrowLeft aria-hidden /></button>
+      <h3 ref={headRef} tabIndex={-1}>{title}</h3>
+    </div>
+  )
+}
+
+/**
+ * Link tab: the preview card, then two quiet rows that each open a view inside the tab.
+ * Every view stays mounted, so going Back keeps what you typed as a draft. Back never saves.
+ */
+function LinkPanel({ view, setView }: { view: LinkView; setView: (v: LinkView) => void }) {
   const s = useStore()
   const [domain, setDomain] = useState('')
-  const [customize, setCustomize] = useState(false)
   const [lpTitle, setLpTitle] = useState(FORM_TITLE)
   const [lpDesc, setLpDesc] = useState(PREVIEW_DESC)
   const [lpImg, setLpImg] = useState<string | null>(null)
   const defaultImg = `${import.meta.env.BASE_URL}link-preview.jpg`
   const resetPreview = () => { setLpTitle(FORM_TITLE); setLpDesc(PREVIEW_DESC); setLpImg(null) }
   const previewDirty = lpTitle !== FORM_TITLE || lpDesc !== PREVIEW_DESC || lpImg !== null
-  return (
-    <div className="stack gap-16">
+  const card = <PreviewCard img={lpImg || defaultImg} title={lpTitle || FORM_TITLE} desc={lpDesc} />
+  // Focus: the view title on the way in, the row you came from on the way back.
+  const heads = { ending: useRef<HTMLHeadingElement>(null), preview: useRef<HTMLHeadingElement>(null) }
+  const rows = { ending: useRef<HTMLButtonElement>(null), preview: useRef<HTMLButtonElement>(null) }
+  const prev = useRef<LinkView>(view)
+  const [enterKey, setEnterKey] = useState(0)
+  useEffect(() => {
+    const from = prev.current
+    prev.current = view
+    if (view !== 'main') heads[view].current?.focus({ preventScroll: true })
+    else if (from !== 'main') rows[from].current?.focus({ preventScroll: true })
+  }, [view, enterKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const open = (v: LinkView) => { setView(v); setEnterKey((k) => k + 1) }
+  const back = () => setView('main')
+  const main = (
+    <div className="stack gap-12">
       <div className="stack gap-8">
-        <div className="row-between">
-          <span className="field-label row gap-4">Link Preview <Pro /></span>
-          <button type="button" className="link-btn small" aria-expanded={customize} aria-controls="lp-edit" onClick={() => setCustomize((v) => !v)}>
-            {customize ? linkCopy.done : linkCopy.customize}
-          </button>
-        </div>
+        {card}
         <span className="xs muted">{linkCopy.previewHelp}</span>
-        <div className="lp-card" aria-label="Link preview">
-          <img className="lp-card-img" src={lpImg || defaultImg} alt="" />
-          <span className="lp-card-text">
-            <span className="lp-card-site">tally.so</span>
-            <span className="lp-card-title">{lpTitle || FORM_TITLE}</span>
-            <span className="lp-card-desc">{lpDesc}</span>
-          </span>
-        </div>
-        <Collapse open={customize} id="lp-edit" gap={8}>
-          <div className="stack gap-8 more-box">
-            <div className="row-between">
-              <span className="field-label">Image</span>
-              <label className="btn btn-secondary btn-sm">Replace image
-                <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
-              </label>
-            </div>
-            <label className="field-label" htmlFor="lp-title">Title</label>
-            <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
-            <label className="field-label" htmlFor="lp-desc">Description</label>
-            <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
-            <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-              {previewDirty && <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>Cancel</button>}
-              {s.plan === 'pro'
-                ? <button type="button" className="btn btn-secondary btn-sm" disabled={!previewDirty} onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
-                : <UpgradeButton disabled={!previewDirty} onClick={s.upgrade} />}
-            </div>
-          </div>
-        </Collapse>
       </div>
-      <div className="stack gap-8">
-        <div className="row-between">
-          <span className="field-label">{linkCopy.yourLink}</span>
-          <button type="button" className="link-btn small row gap-4" aria-expanded={editing} aria-controls="link-options" onClick={() => setEditing(!editing)}>
-            {editing ? linkCopy.done : <><PencilLine aria-hidden className="link-ico" />{linkCopy.edit}</>}
-          </button>
-        </div>
-        <span className="small mono-ish link-shown">{s.display()}</span>
-        <Collapse open={editing} id="link-options" gap={8}>
-          <div className="stack gap-12 more-box">
-            <LinkEnding />
-            <hr className="divider" />
-            <div className="stack gap-8">
-              <span className="field-label row gap-4">Custom Domain <Pro /></span>
-              <span className="xs muted">{linkCopy.domainHelp}</span>
-              <div className="input-group">
-                <span className="prefix">https://</span>
-                <input aria-label="Custom domain" placeholder="forms.yourdomain.com" value={domain} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
-              </div>
-              <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-                {s.plan === 'pro'
-                  ? <button type="button" className="btn btn-secondary btn-sm" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
-                  : <UpgradeButton disabled={!domain} onClick={s.upgrade} />}
-              </div>
-            </div>
-          </div>
-        </Collapse>
+      <div className="lt-rows">
+        <button ref={rows.ending} type="button" className="lt-row" onClick={() => open('ending')}>
+          <Globe aria-hidden className="lt-ico" />
+          <span className="lt-title">{linkCopy.endingRow} <Pro /></span>
+          <ChevronRight aria-hidden className="lt-chev" />
+        </button>
+        <button ref={rows.preview} type="button" className="lt-row" onClick={() => open('preview')}>
+          <ImageIcon aria-hidden className="lt-ico" />
+          <span className="lt-title">{linkCopy.previewRow}</span>
+          <span className="lt-meta">{linkCopy.customize} <Pro /></span>
+          <ChevronRight aria-hidden className="lt-chev" />
+        </button>
       </div>
     </div>
   )
+  const ending = (
+    <div className="stack gap-12">
+      <ViewHead title={linkCopy.endingRow} onBack={back} headRef={heads.ending} />
+      <LinkEnding />
+      <hr className="divider" />
+      <div className="stack gap-8">
+        <span className="field-label">Custom Domain</span>
+        <span className="xs muted">{linkCopy.domainHelp}</span>
+        <div className="input-group">
+          <span className="prefix">https://</span>
+          <input aria-label="Custom domain" placeholder="forms.yourdomain.com" value={domain} onChange={(e) => setDomain(e.target.value.trim().toLowerCase())} />
+        </div>
+        <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+          {s.plan === 'pro'
+            ? <button type="button" className="btn btn-secondary btn-sm" disabled={!domain} onClick={() => { s.setDomain(domain); s.toast(planCopy.domainSaved) }}>Save</button>
+            : <UpgradeButton disabled={!domain} onClick={s.upgrade} />}
+        </div>
+      </div>
+    </div>
+  )
+  const preview = (
+    <div className="stack gap-12">
+      <ViewHead title={linkCopy.previewRow} onBack={back} headRef={heads.preview} />
+      {card}
+      <div className="row-between">
+        <span className="field-label">Image</span>
+        <label className="btn btn-secondary btn-sm">Replace image
+          <input type="file" accept="image/*" hidden onChange={(e) => { const f = e.target.files?.[0]; if (f) setLpImg(URL.createObjectURL(f)) }} />
+        </label>
+      </div>
+      <label className="field-label" htmlFor="lp-title">Title</label>
+      <input id="lp-title" className="input" value={lpTitle} onChange={(e) => setLpTitle(e.target.value)} />
+      <label className="field-label" htmlFor="lp-desc">Description</label>
+      <input id="lp-desc" className="input" value={lpDesc} onChange={(e) => setLpDesc(e.target.value)} />
+      <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
+        {previewDirty && <button type="button" className="btn btn-ghost btn-sm" onClick={resetPreview}>{endingCopy.cancel}</button>}
+        {s.plan === 'pro'
+          ? <button type="button" className="btn btn-secondary btn-sm" disabled={!previewDirty} onClick={() => s.toast(planCopy.previewSaved)}>Save</button>
+          : <UpgradeButton disabled={!previewDirty} onClick={s.upgrade} />}
+      </div>
+    </div>
+  )
+  const nodes: Record<LinkView, ReactNode> = { main, ending, preview }
+  return <PanelStack active={view} plain panels={LINK_VIEWS.map((v) => ({ key: v, node: nodes[v] }))} />
 }
 
 /* ---------- Embed ---------- */
@@ -292,7 +331,7 @@ function EmbedPanel() {
   const [mode, setMode] = useState<EmbedMode | null>(null)
   return (
     <div className="stack gap-12">
-      <p className="small muted" style={{ margin: 0 }}>Put the form on your own website. Pick how it shows up, then copy the code.{mobile && ' Works best on desktop.'}</p>
+      <p className="small muted" style={{ margin: 0 }}>{embedCopy.intro}{mobile && ` ${embedCopy.desktop}`} <a className="link-btn small inline-link" href={embedCopy.helpUrl} target="_blank" rel="noreferrer">{embedCopy.help}<span className="sr-only"> {embedCopy.newTab}</span></a></p>
       <div className="embed-cards is-sheet" role="radiogroup" aria-label="Embed type">
         {EMBEDS.map((e) => (
           <button type="button" key={e.id} className="embed-card" role="radio" aria-checked={mode === e.id} onClick={() => setMode(e.id)}>
@@ -499,8 +538,7 @@ function SingleCode({ pulse }: { pulse: number }) {
   const p = s.placements[0]
   const style = s.settings.style
   const link = qrUrl(p.ref)
-  const [renaming, setRenaming] = useState(false)
-  const [name, setName] = useState(p.label)
+  const [formats, setFormats] = useState(false)
   const [pulsing, setPulsing] = useState(false)
   const [done, setDone] = useState<QrFormat | null>(null)
   const card = useRef<HTMLDivElement>(null)
@@ -524,7 +562,6 @@ function SingleCode({ pulse }: { pulse: number }) {
   }
   // Phones: the system share sheet with the PNG, which covers Save to Photos.
   const share = async () => { flash('png'); if ((await saveOrShare(opts, p.ref)) === 'downloaded') s.toast(QR_COPY.downloaded) }
-  const save = () => { s.renameSource(p.ref, name); setRenaming(false); s.toast(rowCopy.renamed(name.trim())) }
   return (
     <div ref={card} className={`single-code ${pulsing ? 'is-pulse' : ''}`}>
       <button type="button" className="single-preview" aria-label={`Open ${p.label} full size`} onClick={() => { s.setQrRef(p.ref); s.setQrOpen(true) }}>
@@ -532,34 +569,30 @@ function SingleCode({ pulse }: { pulse: number }) {
         {s.settings.showLink && <span className="single-link">{s.shortLink}</span>}
       </button>
       <div className="stack gap-8 single-side">
-        {renaming ? (
-          <form className="row gap-8" onSubmit={(e) => { e.preventDefault(); save() }}>
-            <input className="input input-sm grow" autoFocus aria-label={`New name for ${p.label}`} value={name}
-              onChange={(e) => setName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); setRenaming(false) } }} />
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setName(p.label); setRenaming(false) }}>{rowCopy.cancel}</button>
-            <button type="submit" className="btn btn-secondary btn-sm" disabled={!name.trim()}>Save</button>
-          </form>
-        ) : (
-          <div className="row gap-8">
-            <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
-            <button type="button" className="link-btn xs" onClick={() => { setName(p.label); setRenaming(true) }}>{rowCopy.rename}</button>
-          </div>
-        )}
-        <p className="small muted" style={{ margin: 0 }}>Ready to print. Add it to a poster, flyer or slide.</p>
+        {/* One code: nothing to tell apart, so no Rename. It comes back on every code once there are two. */}
+        <b className="single-name">{p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : p.label}</b>
+        <p className="small muted" style={{ margin: 0 }}>{QR_COPY.readyLine}</p>
         <div className="row gap-8 single-dl">
           <button ref={primary} type="button" className={`btn btn-secondary btn-sm single-primary ${done === 'png' ? 'is-copied' : ''}`}
             aria-label={mobile ? QR_COPY.saveOrShare : rowCopy.download(p.label, 'png')} onClick={() => (mobile ? share() : get('png'))}>
             {mobile ? <Download aria-hidden /> : <IconSwap on={done === 'png'} icon="download" />}{mobile ? QR_COPY.saveOrShare : QR_COPY.downloadPng}
           </button>
-          {(['svg', 'pdf'] as QrFormat[]).map((f) => (
-            <button key={f} type="button" className="btn btn-secondary btn-sm" aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>{f.toUpperCase()}</button>
-          ))}
         </div>
-        <div className="single-more">
+        <div className="row gap-16 single-more">
+          <button type="button" className="link-btn small" aria-expanded={formats} aria-controls="qr-formats" onClick={() => setFormats((v) => !v)}>{QR_COPY.moreFormats}</button>
           <button type="button" className="link-btn small" onClick={() => { s.setQrRef(p.ref); s.setQrPersonalize(true); s.setQrOpen(true) }}>
             <SlidersHorizontal aria-hidden />Personalize
           </button>
         </div>
+        <Collapse open={formats} id="qr-formats" gap={8}>
+          <div className="row gap-8">
+            {(['svg', 'pdf'] as QrFormat[]).map((f) => (
+              <button key={f} type="button" className={`btn btn-secondary btn-sm ${done === f ? 'is-copied' : ''}`} aria-label={rowCopy.download(p.label, f)} onClick={() => get(f)}>
+                <Download aria-hidden />{f.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </Collapse>
       </div>
     </div>
   )
@@ -656,8 +689,8 @@ function SocialPanel() {
   )
 }
 
-export function ChannelPanel({ channel, pulse = 0, editing = false, setEditing = () => {} }: { channel: Channel; pulse?: number; editing?: boolean; setEditing?: (v: boolean) => void }) {
-  if (channel === 'link') return <LinkPanel editing={editing} setEditing={setEditing} />
+export function ChannelPanel({ channel, pulse = 0, view = 'main', setView = () => {} }: { channel: Channel; pulse?: number; view?: LinkView; setView?: (v: LinkView) => void }) {
+  if (channel === 'link') return <LinkPanel view={view} setView={setView} />
   if (channel === 'qr') return <QrCodePanel pulse={pulse} />
   if (channel === 'social') return <SocialPanel />
   return <EmbedPanel />
@@ -675,13 +708,14 @@ function saveChannel(c: Channel) { try { localStorage.setItem(TAB_KEY, c) } catc
 export function ShareBlock({ first = false }: { first?: boolean }) {
   const [channel, setChannelState] = useState<Channel>(() => { if (first) { saveChannel('link'); return 'link' } return readChannel() })
   const setChannel = (c: Channel) => { saveChannel(c); setChannelState(c) }
-  const [editing, setEditing] = useState(false)
-  const editLink = () => { setChannel('link'); setEditing(true) }
+  const [view, setView] = useState<LinkView>('main')
+  // The pencil on the link: Link tab, straight into Link ending and domain.
+  const editLink = () => { setChannel('link'); setView('ending') }
   return (
     <div className="stack gap-16">
       <LinkBar onEdit={editLink} />
       <ChannelPicker value={channel} onChange={setChannel} />
-      <PanelStack active={channel} label="Share to" panels={CHANNELS.map((c) => ({ key: c, node: <ChannelPanel channel={c} editing={editing} setEditing={setEditing} /> }))} />
+      <PanelStack active={channel} label="Share to" panels={CHANNELS.map((c) => ({ key: c, node: <ChannelPanel channel={c} view={view} setView={setView} /> }))} />
     </div>
   )
 }
