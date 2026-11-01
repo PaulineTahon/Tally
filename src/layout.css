@@ -793,3 +793,5 @@ a.list-row { text-decoration: none; color: inherit; }
 .split-out .split-caret[aria-expanded='true'] svg { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .split-out .split-caret svg { transition: none; } }
 @media (max-width: 757px) { .split-out .split-caret { width: 44px; } }
+.qr-section-title { margin: 0; font-size: 14px; }
+.qr-section-title svg { width: 16px; height: 16px; color: var(--grey-2); margin-right: 4px; }

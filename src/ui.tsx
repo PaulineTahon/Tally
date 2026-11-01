@@ -121,10 +121,10 @@ export function UpgradeButton({ onClick, disabled = false, primary = false }: { 
 /**
  * One pattern for every secondary action in the sheet: a quiet full-width row with a leading icon,
  * the label (a Pro badge sits next to the label, never on a button of its own), and a trailing chevron.
- * A row that opens a view points right; a row that opens in place points down and turns when open.
+ * A row that opens a view points right. Add another code has only its + icon.
  */
-export function ActionRow({ icon, label, help, pro = false, onClick, expanded, controls, haspopup, dataRow, ariaLabel }: {
-  icon: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; onClick: () => void
+export function ActionRow({ icon, label, help, pro = false, chevron = true, onClick, expanded, controls, haspopup, dataRow, ariaLabel }: {
+  icon: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; chevron?: boolean; onClick: () => void
   expanded?: boolean; controls?: string; haspopup?: 'dialog' | 'true'; dataRow?: string; ariaLabel?: string
 }) {
   const inPlace = expanded !== undefined
@@ -135,7 +135,7 @@ export function ActionRow({ icon, label, help, pro = false, onClick, expanded, c
       {help
         ? <span className="act-text"><span className="act-label">{label}{pro && <Pro />}</span><span className="act-help-line">{help}</span></span>
         : <span className="act-label">{label}{pro && <Pro />}</span>}
-      {inPlace ? <ChevronDown className="act-chev" aria-hidden /> : <ChevronRight className="act-chev" aria-hidden />}
+      {chevron && (inPlace ? <ChevronDown className="act-chev" aria-hidden /> : <ChevronRight className="act-chev" aria-hidden />)}
     </button>
   )
 }

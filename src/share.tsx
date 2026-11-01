@@ -598,7 +598,7 @@ function QrCodePanel({ pulse }: { pulse: number }) {
         )}
       </AutoHeight>
       <div className="stack gap-4">
-        <ActionRow icon={<Plus />} label="Add another code" expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
+        <ActionRow icon={<Plus />} label="Add another code" chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
         <span className="xs muted act-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
         <Collapse open={adding} id="add-code" gap={8}>
           <div className="stack gap-8">

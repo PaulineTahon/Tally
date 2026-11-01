@@ -3,7 +3,7 @@ import { ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload }
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE } from './copy'
-import { ActionRow, Collapse, Dialog, PopMenu, Switch, UpgradeButton } from './ui'
+import { Dialog, PopMenu, Pro, Switch, UpgradeButton } from './ui'
 import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -93,7 +93,9 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
   const mobile = useIsMobile()
   const { settings, setSettings } = s
   const { style } = settings
-  const [personalize, setPersonalize] = useState(startPersonalize)
+  // Opened from a Personalize row: bring the options into view (focus still goes to the title).
+  const section = useRef<HTMLElement>(null)
+  useEffect(() => { if (startPersonalize) requestAnimationFrame(() => section.current?.scrollIntoView({ block: 'nearest' })) }, [startPersonalize])
   const [printing, setPrinting] = useState(0)
   const [full, setFull] = useState(false)
   const file = useRef<HTMLInputElement>(null)
@@ -124,11 +126,11 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
       </div>
       <div className="stack gap-8">
         <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} onDone={() => setPrinting((n) => n + 1)} />
-        <div className="act-rows">
-          <ActionRow icon={<SlidersHorizontal />} label="Personalize" pro expanded={personalize} controls="qr-personalize" onClick={() => setPersonalize((v) => !v)} />
-        </div>
-        <Collapse open={personalize} gap={8}>
-          <div className="personalize stack gap-12" id="qr-personalize">
+      </div>
+      {/* Personalize has one behaviour: on the code's own page its options are simply shown. */}
+      <section ref={section} className="stack gap-8" aria-labelledby="qr-personalize-title">
+        <h3 id="qr-personalize-title" className="field-label row gap-4 qr-section-title"><SlidersHorizontal aria-hidden />Personalize <Pro /></h3>
+        <div className="personalize stack gap-12" id="qr-personalize">
             <div className="row-between">
               <label className="field-label" htmlFor="qr-show-link">{QR_COPY.showLink}</label>
               <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
@@ -148,8 +150,7 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
               </div>
             )}
           </div>
-        </Collapse>
-      </div>
+      </section>
       <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Responses from this code are tagged, so you'll see where they came from.</p>
       {full && <FullQr url={opts.url} style={opts.style} onClose={() => setFull(false)} />}
     </div>
