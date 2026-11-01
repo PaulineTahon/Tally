@@ -190,14 +190,14 @@ export function TextAction({ label, pro = false, onClick, dataRow, haspopup }: {
 }
 
 export function ActionRow({ icon, label, help, pro = false, chevron = true, onClick, expanded, controls, haspopup, dataRow, ariaLabel }: {
-  icon: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; chevron?: boolean; onClick: () => void
+  icon?: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; chevron?: boolean; onClick: () => void
   expanded?: boolean; controls?: string; haspopup?: 'dialog' | 'true'; dataRow?: string; ariaLabel?: string
 }) {
   const inPlace = expanded !== undefined
   return (
-    <button type="button" className={`act-row ${expanded ? 'is-open' : ''} ${help ? 'has-help' : ''}`} onClick={onClick} data-row={dataRow} aria-label={ariaLabel}
+    <button type="button" className={`act-row ${expanded ? 'is-open' : ''} ${help ? 'has-help' : ''} ${icon ? '' : 'no-icon'}`} onClick={onClick} data-row={dataRow} aria-label={ariaLabel}
       aria-expanded={expanded} aria-controls={controls} aria-haspopup={haspopup}>
-      <span className="act-ic" aria-hidden>{icon}</span>
+      {icon && <span className="act-ic" aria-hidden>{icon}</span>}
       {help
         ? <span className="act-text"><span className="act-label">{label}{pro && <Pro />}</span><span className="act-help-line">{help}</span></span>
         : <span className="act-label">{label}{pro && <Pro />}</span>}

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, ChevronRight, Settings2, Palette,
+  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, ChevronRight,
 } from 'lucide-react'
 import { canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, QR_CAPTION, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
 import { ActionRow, Modal, Pro, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
@@ -388,7 +388,7 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
       <div className="embed-actions">
         <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
       </div>
-      <ActionRow icon={<Settings2 />} label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
+      <ActionRow label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
       </div>
     </div>
   )
@@ -442,7 +442,7 @@ function QrCodePanel({ pulse }: { pulse: number }) {
       <p className="small muted" style={{ margin: 0 }}>{QR_COPY.taggedOne} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a></p>
       <SingleCode pulse={pulse} />
       {/* One logo for the whole form, so one Customize code. */}
-      <ActionRow icon={<Palette />} label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} />
+      <ActionRow label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} />
     </div>
   )
 }

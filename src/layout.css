@@ -881,11 +881,6 @@ html.is-capture .proto-version { display: none !important; }
   .share-page .share-to .segmented button { padding: 0 16px; }
 }
 
-/* Social rows get the same box as the code rows: one ring, 10px radius, a divider between rows. */
-.ch-list { margin: 0; border-radius: 10px; box-shadow: var(--ring); overflow: hidden; }
-.ch-list > li + li { border-top: 1px solid var(--divider); }
-.ch-list .ch-row { border-radius: 0; padding: 8px 10px; }
-.ch-list .ch-row:focus-visible { outline-offset: -2px; }
 .embed-card[aria-pressed='true'] > span:last-child { color: var(--text); }
 .embed-actions { display: flex; }
 @media (max-width: 757px) { .embed-actions .btn { flex: 1; justify-content: center; height: 44px; } }
@@ -920,3 +915,6 @@ html.is-capture .proto-version { display: none !important; }
 .preview-row { height: 48px; }
 .preview-row-img { width: 48px; height: 25px; flex: none; object-fit: cover; border-radius: 4px; box-shadow: var(--border) 0 0 0 1px; background: var(--surface-2); }
 .preview-row-act { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--grey-2); }
+
+/* Customize rows have no icon: the label starts at the same left edge as the Link preview row, same height and type size. */
+.act-row.no-icon { height: 48px; }
