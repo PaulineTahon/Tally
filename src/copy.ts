@@ -20,20 +20,23 @@ export const rowCopy = {
 }
 
 /** Link ending: old endings keep redirecting, and stay reserved for this form. */
+/**
+ * Shown under the fields in Link ending and domain, always. Wording to confirm with product.
+ * `{link}` is the form ID link, which stays live whatever ending or domain you add.
+ */
+export const OLD_LINK_NOTE = "Your old link {link} keeps working, and so do QR codes you've already printed."
+/** Only when you change a custom ending you had already saved. `{link}` is that old address. */
+export const ENDING_GONE_NOTE = 'The old ending {link} stops working.'
+
 export const endingCopy = {
   label: 'Link Ending',
-  help: 'Pick your own ending, like tally.so/r/summer-rsvp.',
-  changeNote: 'Old links and printed codes keep working.',
-  change: 'Change link',
+  help: 'Pick your own ending on your domain, like forms.yourdomain.com/summer-rsvp.',
+  needsDomain: 'Add your domain first. Endings live on your own domain.',
+  newLink: 'New link',
+  yourLink: 'Your link',
   save: 'Save',
   cancel: 'Cancel',
   updated: 'Link updated.',
-  alsoWorks: 'Also works',
-  alsoWorksHelp: 'Reserved for this form. They open it too.',
-  formId: 'Form ID, always works',
-  remove: 'Remove',
-  removeConfirm: (ending: string) => `Remove ${ending}? Links and codes that use it will stop working.`,
-  removed: (ending: string) => `${ending} removed`,
 }
 
 /** Link options, opened in context: the pencil on the link and Customize on the preview card. Pro is shown with a badge on a label, never on a button. */
@@ -41,10 +44,12 @@ export const linkCopy = {
   endingRow: 'Link ending and domain',
   previewRow: 'Link preview',
   customize: 'Customize',
+  customizeAria: 'Customize link preview',
   back: 'Back',
   domainHelp: 'Use your own domain, like forms.yourdomain.com.',
   previewHelp: 'This is what people see when you paste the link in a chat or a post.',
-  bothPro: 'Both are part of Pro.',
+  /** "Both are part of Pro.", with Pro as a link to the plans. */
+  bothPro: ['Both are part of ', 'Pro', '.'] as const,
 }
 
 /** Embed tab. */
@@ -153,7 +158,7 @@ export const planCopy = {
  * Functions take the form title so this file never depends on the store.
  */
 export const shareCopy = {
-  editLink: 'Edit link',
+  editLink: 'Link ending and domain (Pro)',
   tagLine: 'We tag each link so you can see where responses come from.',
   copiedInline: 'Copied',
   copyLink: 'Copy link',

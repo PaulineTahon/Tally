@@ -11,6 +11,8 @@ export const FORM_ID = 'KpYalV'
  * Every QR code opens the form by its ID, tagged with its ref. The ID never changes, so printed
  * codes keep working whatever the link ending or domain is.
  */
+/** The line printed under a code: always the form ID link, so print never depends on a custom ending. */
+export const QR_CAPTION = `tally.so/r/${FORM_ID}`
 export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref === MAIN_QR ? mainRefFor(window.location.hash) : ref}`
 
 /** Recording the changelog GIF (codes=main&demo=changelog): your form's own code carries the changelog ref, like every other visual. */
@@ -47,6 +49,9 @@ export function datasetForHash(hash: string): Dataset {
 /** The prototype can play the free plan or Pro. Free lets you try the link ending and a logo, but not save them. */
 export type Plan = 'free' | 'pro'
 const PLAN_KEY = 'proto-plan'
+/** Prototype bar: `?link=custom` starts with a saved custom ending on your own domain, on Pro. */
+export const CUSTOM_MOCK = { domain: 'forms.acme.com', ending: 'community-picnic' }
+const customMock = () => /[?&]link=custom\b/.test(window.location.hash)
 export const PRICING_URL = 'https://tally.so/pricing'
 
 /** Last QR settings, so the next download looks the same. */
@@ -94,6 +99,8 @@ interface Store {
   sources: Source[]
   addSource: (label: string) => Source
   toast: (text: string, opts?: ToastOptions) => void
+  /** Clears the alerts of one group, like QR downloads when you switch tab or view. */
+  dismissGroup: (group: string) => void
   qrOpen: boolean
   setQrOpen: (v: boolean) => void
   placements: Source[]
@@ -117,7 +124,7 @@ export function slugify(s: string) {
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [slug, setSlugState] = useState(FORM_ID)
+  const [slug, setSlugState] = useState(() => (customMock() ? CUSTOM_MOCK.ending : FORM_ID))
   const [oldEndings, setOldEndings] = useState<string[]>([])
   const setSlug = useCallback((next: string) => {
     setSlugState((cur) => {
@@ -139,7 +146,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return [...base.filter((b) => !mine.some((m) => m.ref === b.ref)), ...mine]
     })
   }, [])
-  const [plan, setPlanState] = useState<Plan>(() => { try { return localStorage.getItem(PLAN_KEY) === 'pro' ? 'pro' : 'free' } catch { return 'free' } })
+  const [plan, setPlanState] = useState<Plan>(() => { if (customMock()) return 'pro'; try { return localStorage.getItem(PLAN_KEY) === 'pro' ? 'pro' : 'free' } catch { return 'free' } })
   const setPlan = useCallback((p: Plan) => { setPlanState(p); try { localStorage.setItem(PLAN_KEY, p) } catch { /* private mode */ } }, [])
   const [toasts, setToasts] = useState<Toast[]>([])
   const [qrOpen, setQrOpen] = useState(false)
@@ -150,7 +157,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [])
   const [qrRef, setQrRef] = useState('qr')
   const [qrPersonalize, setQrPersonalize] = useState(false)
-  const [domain, setDomain] = useState('')
+  const [domain, setDomain] = useState(() => (customMock() ? CUSTOM_MOCK.domain : ''))
   const nextId = useRef(1)
 
   /** Toasts stack, up to three. Each one times itself (pausing while hovered or focused), leaves the way it came in, then unmounts. */
@@ -158,6 +165,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setToasts((t) => t.map((x) => (x.id === lid ? { ...x, leaving: true } : x)))
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== lid)), 200)
   }, [])
+  const dismissGroup = useCallback((g: string) => {
+    setToasts((t) => { t.filter((x) => x.group === g && !x.leaving).forEach((x) => setTimeout(() => leave(x.id))); return t })
+  }, [leave])
   const toast = useCallback((text: string, opts: ToastOptions = {}) => {
     const id = nextId.current++
     const duration = opts.duration ?? (opts.action ? 6000 : 2600)
@@ -179,9 +189,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const upgrade = useCallback(() => setUpgradeOpen(true), [])
   const closeUpgrade = useCallback(() => setUpgradeOpen(false), [])
 
-  const shortLink = domain ? `${domain}/${slug}` : `tally.so/r/${slug}`
-  const url = useCallback((ref?: string) => `https://tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
-  const display = useCallback((ref?: string) => `tally.so/r/${slug}${ref ? `?ref=${ref}` : ''}`, [slug])
+  // A custom ending only exists on your own domain (Pro), as an extra address. tally.so/r/<form ID> always stays live.
+  const base = domain ? `${domain}/${slug}` : `tally.so/r/${FORM_ID}`
+  const shortLink = base
+  const url = useCallback((ref?: string) => `https://${base}${ref ? `?ref=${ref}` : ''}`, [base])
+  const display = useCallback((ref?: string) => `${base}${ref ? `?ref=${ref}` : ''}`, [base])
 
   const addSource = useCallback((label: string) => {
     const ref = slugify(label) || 'link'
@@ -222,9 +234,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
-    downloadedLink, markDownloaded: () => setDownloaded(`tally.so/r/${slug}`),
-    sources, addSource, toast, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
+    downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
+    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, renameSource, removeSource, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
@@ -251,8 +263,12 @@ function TopAlerts({ toasts, leave }: { toasts: Toast[]; leave: (id: number) => 
   if (!toasts.length) return null
   const all = document.querySelectorAll<HTMLElement>('.modal[role=dialog], .sheet[role=dialog]')
   const host = all[all.length - 1] ?? null
+  // Never over the header: above the modal's top edge on a computer, just under the sheet header on a phone.
+  const sheet = host?.classList.contains('sheet')
+  const head = sheet ? host?.querySelector<HTMLElement>('.sheet-header') : null
+  const style = head ? { top: head.offsetTop + head.offsetHeight + 8 } : undefined
   const list = (
-    <div className={`toast-wrap is-top ${host ? 'in-dialog' : ''}`} aria-live="polite" role="status">
+    <div className={`toast-wrap is-top ${host ? (sheet ? 'in-sheet' : 'in-dialog') : ''}`} style={style} aria-live="polite" role="status">
       <ol className="toast-stack">
         {toasts.map((t) => <ToastItem key={t.id} t={t} depth={0} onDone={() => leave(t.id)} />)}
       </ol>

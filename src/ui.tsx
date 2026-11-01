@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react'
-import { Check, ChevronDown, Copy, Download, X } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Copy, Download, X } from 'lucide-react'
+import { createPortal } from 'react-dom'
 import { planCopy } from './copy'
 import { copyText, useIsMobile, useStore } from './store'
 import { codeSvg, svgSrc, type QrStyle } from './qr'
@@ -112,8 +113,31 @@ export function PanelStack<K extends string>({ active, panels, label, plain = fa
 }
 
 /** On the free plan, the primary action of a Pro setting. Nothing is saved. */
-export function UpgradeButton({ onClick, disabled = false }: { onClick: () => void; disabled?: boolean }) {
-  return <button type="button" className="btn btn-secondary btn-sm upgrade-btn save-btn" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
+/** `primary`: the one black button of a screen, like in the link detail views. Never carries a Pro badge. */
+export function UpgradeButton({ onClick, disabled = false, primary = false }: { onClick: () => void; disabled?: boolean; primary?: boolean }) {
+  return <button type="button" className={`btn ${primary ? 'btn-black' : 'btn-secondary'} btn-sm upgrade-btn save-btn`} aria-haspopup="dialog" disabled={disabled} onClick={onClick}>{planCopy.upgradeToSave}</button>
+}
+
+/**
+ * One pattern for every secondary action in the sheet: a quiet full-width row with a leading icon,
+ * the label (a Pro badge sits next to the label, never on a button of its own), and a trailing chevron.
+ * A row that opens a view points right; a row that opens in place points down and turns when open.
+ */
+export function ActionRow({ icon, label, help, pro = false, onClick, expanded, controls, haspopup, dataRow, ariaLabel }: {
+  icon: ReactNode; label: ReactNode; help?: ReactNode; pro?: boolean; onClick: () => void
+  expanded?: boolean; controls?: string; haspopup?: 'dialog' | 'true'; dataRow?: string; ariaLabel?: string
+}) {
+  const inPlace = expanded !== undefined
+  return (
+    <button type="button" className={`act-row ${expanded ? 'is-open' : ''} ${help ? 'has-help' : ''}`} onClick={onClick} data-row={dataRow} aria-label={ariaLabel}
+      aria-expanded={expanded} aria-controls={controls} aria-haspopup={haspopup}>
+      <span className="act-ic" aria-hidden>{icon}</span>
+      {help
+        ? <span className="act-text"><span className="act-label">{label}{pro && <Pro />}</span><span className="act-help-line">{help}</span></span>
+        : <span className="act-label">{label}{pro && <Pro />}</span>}
+      {inPlace ? <ChevronDown className="act-chev" aria-hidden /> : <ChevronRight className="act-chev" aria-hidden />}
+    </button>
+  )
 }
 
 
@@ -396,4 +420,60 @@ export function Menu({ open, onClose, children, style }: { open: boolean; onClos
   // Scale in from the corner nearest the trigger.
   const origin = style?.right !== undefined ? 'top right' : 'top left'
   return <div className="menu" role="menu" ref={ref} style={{ transformOrigin: origin, ...style }} data-menu-open="true">{children}</div>
+}
+
+/**
+ * A menu that renders in a portal above every modal, so it is never clipped by the sheet.
+ * It opens under its trigger and flips above when there is no room. Arrow keys move, Home/End jump,
+ * Escape closes and returns focus to the trigger, Tab closes.
+ */
+export function PopMenu({ open, anchor, onClose, children, width = 260, label }: {
+  open: boolean; anchor: RefObject<HTMLElement>; onClose: () => void; children: ReactNode; width?: number; label?: string
+}) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [pos, setPos] = useState<{ top: number; left: number; up: boolean } | null>(null)
+  useLayoutEffect(() => {
+    if (!open) { setPos(null); return }
+    const place = () => {
+      const a = anchor.current?.getBoundingClientRect(); const m = ref.current
+      if (!a || !m) return
+      const h = m.offsetHeight
+      const up = a.bottom + 6 + h > window.innerHeight - 8 && a.top - 6 - h > 8
+      const left = Math.max(8, Math.min(a.left, window.innerWidth - width - 8))
+      setPos({ top: up ? a.top - 6 - h : a.bottom + 6, left, up })
+    }
+    place()
+    window.addEventListener('resize', place); window.addEventListener('scroll', place, true)
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
+  }, [open, anchor, width])
+  useEffect(() => {
+    if (!open) return
+    const items = () => [...(ref.current?.querySelectorAll<HTMLElement>('[role=menuitem]') ?? [])]
+    items()[0]?.focus()
+    const onDoc = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (ref.current?.contains(t) || anchor.current?.contains(t)) return
+      onClose()
+    }
+    const onKey = (e: KeyboardEvent) => {
+      const list = items(); const i = list.indexOf(document.activeElement as HTMLElement)
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onClose(); anchor.current?.focus() }
+      else if (e.key === 'Tab') onClose()
+      else if (e.key === 'ArrowDown') { e.preventDefault(); list[(i + 1) % list.length]?.focus() }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); list[(i - 1 + list.length) % list.length]?.focus() }
+      else if (e.key === 'Home') { e.preventDefault(); list[0]?.focus() }
+      else if (e.key === 'End') { e.preventDefault(); list[list.length - 1]?.focus() }
+    }
+    document.addEventListener('mousedown', onDoc)
+    window.addEventListener('keydown', onKey, true)
+    return () => { document.removeEventListener('mousedown', onDoc); window.removeEventListener('keydown', onKey, true) }
+  }, [open, onClose, anchor])
+  if (!open) return null
+  return createPortal(
+    <div className={`menu pop-menu ${pos?.up ? 'is-up' : ''}`} role="menu" aria-label={label} ref={ref} data-menu-open="true"
+      style={{ position: 'fixed', width, top: pos?.top ?? -9999, left: pos?.left ?? -9999, transformOrigin: pos?.up ? 'bottom left' : 'top left' }}>
+      {children}
+    </div>,
+    document.body,
+  )
 }

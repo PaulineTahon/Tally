@@ -99,6 +99,12 @@ function Inner() {
           <option value="free">{planCopy.free}</option>
           <option value="pro">{planCopy.pro}</option>
         </select>
+        {/* Starts over with a saved custom ending on your own domain, so changing it can be tried. */}
+        <select aria-label="Link state" value={/[?&]link=custom\b/.test(window.location.hash) ? 'custom' : 'id'}
+          onChange={(e) => { window.location.hash = `#/${r.route}${e.target.value === 'custom' ? '?link=custom' : ''}`; window.location.reload() }}>
+          <option value="id">tally.so link</option>
+          <option value="custom">Custom ending</option>
+        </select>
         {page && !mobile && g.hidden && <button type="button" className="proto-guide" onClick={g.show}>{guideCopy.restore}</button>}
         {page && mobile && <button type="button" className="proto-guide" aria-expanded={guideOpen} onClick={() => setGuideOpen((v) => !v)}>{guideCopy.mobileToggle(g.left)}</button>}
         {mobile && <button type="button" className="proto-close" aria-label="Hide prototype bar" onClick={() => setNavOpen(false)}>✕</button>}

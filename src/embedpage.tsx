@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, CircleHelp, Code2, Eye, X } from 'lucide-react'
-import { useIsMobile, useStore } from './store'
+import { FORM_ID, useIsMobile, useStore } from './store'
 import { Pro, SmallCopy } from './ui'
 import { EGG_TITLE, embedCopy, embedPageCopy as C } from './copy'
 import { EMBEDS, embedCode, type EmbedMode } from './share'
@@ -54,7 +54,7 @@ export function EmbedPage({ mode: initial, onClose }: { mode: EmbedMode; onClose
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   // Pro switches on Free open the plans, like the Save buttons do.
   const proSwitch = (v: boolean, set: (v: boolean) => void) => (s.plan === 'pro' ? set(v) : s.upgrade())
-  const snippet = embedCode(mode, s.slug)
+  const snippet = embedCode(mode, FORM_ID)
   const form = <PreviewForm hideTitle={hideTitle} alignLeft={alignLeft} branding={branding} onDone={hideOnSubmit ? () => setPopupShown(false) : undefined} />
   return createPortal(
     <div className="ep" role="dialog" aria-modal="true" aria-labelledby="ep-title">
@@ -67,7 +67,7 @@ export function EmbedPage({ mode: initial, onClose }: { mode: EmbedMode; onClose
         {code
           ? <button type="button" className="btn btn-secondary ep-get" onClick={() => setCode(false)}><Eye aria-hidden />{C.backToPreview}</button>
           : <button type="button" className="btn btn-black ep-get" onClick={() => setCode(true)}><Code2 aria-hidden />{C.getCode}</button>}
-        {mode === 'standard' && <div className="ep-sub"><SmallCopy text={`https://tally.so/embed/${s.slug}`} label={C.copyEmbedLink} toastText={C.embedLinkCopied} /></div>}
+        {mode === 'standard' && <div className="ep-sub"><SmallCopy text={`https://tally.so/embed/${FORM_ID}`} label={C.copyEmbedLink} toastText={C.embedLinkCopied} /></div>}
         <hr className="divider" />
         <div className="ep-opts-head">
           <h3>{C.options}</h3>

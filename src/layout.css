@@ -494,8 +494,8 @@ a.list-row { text-decoration: none; color: inherit; }
 .more-box .muted, .lp-edit .muted, .personalize .muted, .callout .muted, .nudge .muted, .sample .muted, .link-card .muted { color: var(--grey-2); }
 .more-box .link-btn:not(.quiet), .lp-edit .link-btn:not(.quiet), .personalize .link-btn:not(.quiet), .link-card .link-btn:not(.quiet) { color: var(--blue-deep); }
 
-/* Share To panels share one grid cell, so the box keeps the tallest panel's height and Done never moves. */
-/* Share To panels: only the active one is shown; .auto-h eases the height between them. */
+/* Share to panels share one grid cell, so the box keeps the tallest panel's height and Done never moves. */
+/* Share to panels: only the active one is shown; .auto-h eases the height between them. */
 .panel-cell { min-width: 0; }
 .panel-cell[hidden] { display: none; }
 .panel-cell.is-active { animation: panel-in 140ms var(--ease-out); }
@@ -505,7 +505,7 @@ a.list-row { text-decoration: none; color: inherit; }
 @media (prefers-reduced-motion: reduce) { .panel-cell.is-active { animation: none; } }
 
 @media (max-width: 757px) {
-  /* Share To on phones: icon and label, 44px tall. */
+  /* Share to on phones: icon and label, 44px tall. */
   .share-to .segmented button { height: 44px; gap: 5px; }
   .share-to .segmented button svg { display: inline-block; }
   /* Text links get a 44px tap area without changing the layout. */
@@ -738,3 +738,58 @@ a.list-row { text-decoration: none; color: inherit; }
   .lp-strip { height: 64px; gap: 10px; }
   .lp-strip-img { width: 72px; height: 38px; }
 }
+
+/*
+ * Secondary actions, one pattern: Customize, More formats, Personalize, Add another code.
+ * A quiet full-width row (no fill, no border), leading icon, label with an optional Pro badge, trailing chevron.
+ * It sits 8px into the gutter so the icon lines up with the content edge and the hover fill has room.
+ */
+.act-row { display: flex; align-items: center; gap: 10px; width: calc(100% + 16px); margin: 0 -8px; height: 40px; padding: 0 8px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 14px; font-weight: 500; color: var(--text); text-align: left; cursor: pointer; transition: background-color 120ms ease; }
+.act-ic { display: inline-flex; flex: none; color: var(--grey-2); }
+.act-ic svg { width: 16px; height: 16px; }
+.act-label { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 0; white-space: nowrap; }
+.act-chev { width: 16px; height: 16px; flex: none; color: var(--grey-2); transition: transform 160ms var(--ease-out); }
+.act-row.is-open .act-chev { transform: rotate(180deg); }
+.act-row:focus-visible { outline: 2px solid var(--blue); outline-offset: -2px; }
+@media (hover: hover) and (pointer: fine) { .act-row:hover { background: var(--hover); } .act-row:hover .act-chev { color: var(--text); } }
+@media (prefers-reduced-motion: reduce) { .act-chev { transition: none; } }
+.act-sub { padding: 4px 0 8px 26px; }
+.act-help { padding-left: 26px; }
+.act-rows { margin-top: 4px; }
+@media (max-width: 757px) { .act-row { height: 44px; font-size: 15px; } }
+
+/* Inline text link inside a sentence, like Pro in "Both are part of Pro." Always underlined. */
+.inline-link { background: none; border: 0; padding: 0; font: inherit; color: var(--blue-deep, var(--blue)); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; border-radius: 3px; }
+.inline-link:hover { text-decoration-thickness: 2px; }
+.inline-link:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* Link ending and domain: the full link you'll get, live, and what keeps working. */
+.lt-result { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; padding: 10px 12px; border-radius: 8px; background: var(--surface-2); }
+.lt-result-label { font-size: 12px; font-weight: 600; color: var(--grey-2); }
+.lt-result-url { font-size: 14px; font-weight: 500; color: var(--text); word-break: break-all; }
+.lt-line { margin: 0; }
+.lt-warn { color: #a3470b; }
+
+/* Share to on phones: icon inline left of the label, one row, 40px visible inside a 44px control. */
+@media (max-width: 757px) {
+  .share-to .segmented button { height: 40px; gap: 6px; flex-direction: row; }
+  .share-to .segmented button svg { display: inline-block; width: 16px; height: 16px; }
+}
+@media (max-width: 757px) {
+  /* The 2px around each tab still belongs to it, so the tap target is the full 44px. */
+  .share-to .segmented button::after { content: ''; position: absolute; inset: -2px -1px; }
+}
+.act-text { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+.act-help-line { font-size: 12px; font-weight: 400; color: var(--grey-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.act-row.has-help { height: 56px; }
+.act-row.has-help .act-ic svg { width: 18px; height: 18px; }
+.entry-rows { display: flex; flex-direction: column; }
+.entry-rows .act-row + .act-row { box-shadow: 0 -1px 0 var(--divider); border-radius: 0 0 8px 8px; }
+.pop-menu { z-index: 300; }
+/* Split download: same outlined button in the QR Code tab and the QR detail. */
+.split-out .split-main { border-radius: 8px 0 0 8px; }
+.split-out .split-caret { width: 36px; padding: 0; border-radius: 0 8px 8px 0; margin-left: -1px; border-left: 0; }
+.split-out .split-caret svg { transition: transform 160ms var(--ease-out); }
+.split-out .split-caret[aria-expanded='true'] svg { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .split-out .split-caret svg { transition: none; } }
+@media (max-width: 757px) { .split-out .split-caret { width: 44px; } }

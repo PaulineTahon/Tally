@@ -102,3 +102,6 @@ body { background: #fafafa; }
 .pg-card-site { font-size: 11px; color: #6b6a66; }
 .pg-card-act { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: #0070d7; }
 .pg-pro { font-size: 10px; font-weight: 500; color: #b8109f; background: #fde8fa; border-radius: 999px; padding: 1px 6px; }
+.pg-act { display: flex; align-items: center; height: 30px; font-size: 13px; font-weight: 500; color: #37352f; }
+.pg-act-label { display: inline-flex; align-items: center; gap: 6px; flex: 1; }
+.pg-chev { color: #6b6a66; font-size: 16px; padding-right: 2px; }

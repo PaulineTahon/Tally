@@ -22,7 +22,7 @@ export const guideCopy = {
     share: {
       title: 'Everything You Share, in One Place',
       items: [
-        { id: 'link-ending', text: 'Tap the pencil on your link and change its ending.' },
+        { id: 'link-ending', text: 'Tap the pencil on your link to add your own domain and ending.' },
         { id: 'rename', text: 'Rename a code. Its link stays the same.' },
         { id: 'dismiss-nudge', text: 'Dismiss the nudge.' },
       ],
