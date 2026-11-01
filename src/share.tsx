@@ -419,6 +419,8 @@ function PlaceRow({ p, pulse }: { p: Source; pulse: number }) {
   // Print-size PNG by default; SVG and PDF sit in the menu.
   const fmt: QrFormat = 'png'
   const download1 = async (f: QrFormat) => {
+    // Free with a logo in: downloading it is Pro, same as the Download button.
+    if (s.plan !== 'pro' && style.logo) { s.upgrade(); return }
     const o = { url: link, shortLink: QR_CAPTION, style, showLink: settings.showLink }
     download(await fileFor(o, f), fileName(p.ref, f))
     s.markDownloaded()

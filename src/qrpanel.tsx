@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { ChevronDown, Download, Maximize2, Share, X, SlidersHorizontal, Upload } from 'lucide-react'
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
-import { EGG_TITLE } from './copy'
-import { Dialog, PopMenu, Pro, Switch, UpgradeButton } from './ui'
+import { EGG_TITLE, planCopy } from './copy'
+import { Dialog, PopMenu, Pro, Switch } from './ui'
 import { buildSvg, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -54,7 +54,11 @@ export function useQrOptions(ref: string): QrOptions {
  * Download as one split button, the same in the QR Code tab and in the QR detail: PNG (or Save image on a phone)
  * on the main part, SVG and PDF in a menu that renders above the sheet, never clipped by it.
  */
-export function DownloadSplit({ refId, label, onDone, primaryRef }: { refId: string; label: string; onDone?: () => void; primaryRef?: React.Ref<HTMLButtonElement> }) {
+export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary = false }: {
+  refId: string; label: string; onDone?: () => void; primaryRef?: React.Ref<HTMLButtonElement>
+  /** Where the screen has no other black button, Upgrade to download is the black primary. */
+  upgradePrimary?: boolean
+}) {
   const s = useStore()
   const mobile = useIsMobile()
   const opts = useQrOptions(refId)
@@ -64,6 +68,17 @@ export function DownloadSplit({ refId, label, onDone, primaryRef }: { refId: str
   const get = async (f: QrFormat) => { download(await fileFor(opts, f), fileName(refId, f)); after(); s.toast(QR_COPY.downloadedAs(f), QR_ALERT) }
   const share = async () => { after(); if ((await saveOrShare(opts, refId)) !== 'closed') s.toast(QR_COPY.imageSaved, QR_ALERT) }
   const others = FORMATS.filter((f) => (mobile ? true : f.id !== 'png'))
+  // Free can try a logo. While one is in, the code can be seen but downloading it is Pro.
+  if (s.plan !== 'pro' && s.settings.style.logo) {
+    return (
+      <div className="split split-out">
+        <button ref={primaryRef} type="button" className={`btn ${upgradePrimary ? 'btn-black' : 'btn-secondary'} btn-sm split-solo ${primaryRef ? 'single-primary' : ''}`}
+          aria-haspopup="dialog" onClick={s.upgrade}>
+          <Download aria-hidden />{planCopy.upgradeToDownload}
+        </button>
+      </div>
+    )
+  }
   return (
     <div className="split split-out">
       <button ref={primaryRef} type="button" className={`btn btn-secondary btn-sm split-main ${primaryRef ? "single-primary" : ""}`}
@@ -99,15 +114,12 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
   const [printing, setPrinting] = useState(0)
   const [full, setFull] = useState(false)
   const file = useRef<HTMLInputElement>(null)
-  // On Free you can try a logo here, but it is only a draft until you upgrade.
-  const [draft, setDraft] = useState<QrStyle | null>(null)
-  const pro = s.plan === 'pro'
-  const shown = draft ?? style
+  // Free can try a logo too: it shows right away, and Download asks to upgrade while it is in.
+  const shown = style
   const placement = s.placements.find((p) => p.ref === refId)
   const opts = useQrOptions(refId)
   const previewOpts = { ...opts, style: shown }
-  const setStyle = (p: Partial<QrStyle>) => (pro ? setSettings({ ...settings, style: { ...style, ...p } }) : setDraft({ ...shown, ...p }))
-  const unsaved = !pro && draft !== null && draft.logo !== null
+  const setStyle = (p: Partial<QrStyle>) => setSettings({ ...settings, style: { ...style, ...p } })
   const onLogo = (f?: File) => {
     if (!f) return
     const r = new FileReader()
@@ -124,17 +136,18 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
           <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
         )}
       </div>
-      <div className="stack gap-8">
-        <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} onDone={() => setPrinting((n) => n + 1)} />
+      <div className="qr-detail-dl">
+        <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary onDone={() => setPrinting((n) => n + 1)} />
+      </div>
+      {/* Free for everyone, so it sits with the download, not under Personalize. */}
+      <div className="row-between qr-plain-row">
+        <label className="field-label" htmlFor="qr-show-link">{QR_COPY.showLink}</label>
+        <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
       </div>
       {/* Personalize has one behaviour: on the code's own page its options are simply shown. */}
-      <section ref={section} className="stack gap-8" aria-labelledby="qr-personalize-title">
+      <section ref={section} className="stack gap-12 qr-section" aria-labelledby="qr-personalize-title">
         <h3 id="qr-personalize-title" className="field-label row gap-4 qr-section-title"><SlidersHorizontal aria-hidden />Personalize <Pro /></h3>
-        <div className="personalize stack gap-12" id="qr-personalize">
-            <div className="row-between">
-              <label className="field-label" htmlFor="qr-show-link">{QR_COPY.showLink}</label>
-              <Switch id="qr-show-link" checked={settings.showLink} label={QR_COPY.showLink} onChange={(v) => setSettings({ ...settings, showLink: v })} />
-            </div>
+        <div className="personalize is-plain stack gap-16" id="qr-personalize">
             <div className="row-between">
               <span className="stack"><span className="field-label">{QR_COPY.logo}</span><span className="xs muted">{QR_COPY.logoHelp}</span></span>
               <div className="row gap-8">
@@ -143,15 +156,9 @@ export function QrDetail({ refId, startPersonalize = false }: { refId: string; s
                 <input ref={file} type="file" accept="image/png,image/jpeg,image/svg+xml" hidden onChange={(e) => { onLogo(e.target.files?.[0]); e.target.value = '' }} />
               </div>
             </div>
-            {unsaved && (
-              <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(null)}>Cancel</button>
-                <UpgradeButton onClick={s.upgrade} />
-              </div>
-            )}
           </div>
       </section>
-      <p className="xs muted" style={{ margin: 0, textAlign: 'center' }}>Responses from this code are tagged, so you'll see where they came from.</p>
+      <p className="xs muted qr-tag-line">Responses from this code are tagged, so you'll see where they came from.</p>
       {full && <FullQr url={opts.url} style={opts.style} onClose={() => setFull(false)} />}
     </div>
   )

@@ -151,6 +151,8 @@ export const planCopy = {
   free: 'Free',
   pro: 'Pro',
   upgradeToSave: 'Upgrade to Save',
+  /** Free, with a logo in the code: downloading it is Pro. */
+  upgradeToDownload: 'Upgrade to download',
   domainSaved: 'Custom domain saved.',
   previewSaved: 'Link preview updated.',
   logoSaved: 'Logo saved for your codes.',

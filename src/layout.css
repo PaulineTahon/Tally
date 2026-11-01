@@ -801,3 +801,18 @@ a.list-row { text-decoration: none; color: inherit; }
 .modal .placements .count-sep, .sheet .placements .count-sep { display: none; }
 @media (max-width: 757px) { .placements .count { width: auto; flex-direction: column; align-items: flex-end; line-height: 1.35; } .placements .count-sep { display: none; } }
 .placements .count-sep { padding: 0 5px; }
+
+/* Download hugs its content on a computer: centred under the code on its page, left in the QR Code tab. Full width on phones. */
+.split-out { width: fit-content; max-width: 100%; }
+.qr-detail-dl { display: flex; justify-content: center; }
+@media (max-width: 757px) { .split-out { width: 100%; } .qr-detail-dl { display: block; } }
+/* Personalize on the code's page: a plain white section, hierarchy from its heading. */
+.qr-section { margin-top: 12px; }
+.personalize.is-plain { padding: 0; background: none; border-radius: 0; }
+.personalize.is-plain .field-label { font-weight: 500; }
+.qr-tag-line { margin: 0; padding-top: 16px; border-top: 1px solid var(--divider); text-align: center; }
+.qr-section-title.field-label { font-size: 15px; font-weight: 600; color: var(--text); }
+.split-out .split-solo { border-radius: 8px; }
+.qr-plain-row { min-height: 32px; }
+.qr-plain-row .field-label { font-weight: 500; }
+@media (max-width: 757px) { .split-out .split-solo { width: 100%; justify-content: center; } }
