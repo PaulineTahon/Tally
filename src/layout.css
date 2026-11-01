@@ -879,3 +879,7 @@ html.is-capture .proto-version { display: none !important; }
   html.is-capture .overlay .modal { max-height: calc(100vh - 48px); }
   html.is-capture .overlay:has(.panel-stack) .modal { max-height: calc(100vh - max(24px, 12vh) - 24px); }
 }
+/* QR Code tab: one plain outlined Download, content-width on a computer, full width on a phone, More formats under it. */
+.dl-plain { align-items: flex-start; }
+.dl-plain-main { align-self: flex-start; }
+@media (max-width: 757px) { .dl-plain { align-items: stretch; } .dl-plain-main { align-self: stretch; width: 100%; justify-content: center; } .dl-plain .dl-more { align-self: flex-start; margin-top: 8px; } }

@@ -572,7 +572,7 @@ function SingleCode({ pulse }: { pulse: number }) {
         <div className="text-actions">
           <TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => openCode(p.ref, true)} />
         </div>
-        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} /></div>
+        <div className="single-dl"><DownloadSplit refId={p.ref} label={p.label} primaryRef={primary} plain /></div>
       </div>
     </div>
   )
