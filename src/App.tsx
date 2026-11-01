@@ -15,15 +15,20 @@ type Route = 'edit' | 'share' | 'insights' | 'submissions'
 /** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs. */
 type Variant = '' | 'entry' | 'tiles' | 'jobs'
 const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
-function setVariant(v: Variant) {
+/** How the social links show, by their ?social= value: none for Rows, icons for Icons, strip for Strip. */
+type Social = '' | 'icons' | 'strip'
+const SOCIALS: { id: Social; label: string }[] = [{ id: '', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
+function setParam(key: 'variant' | 'social', v: string) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
-  if (v) p.set('variant', v); else p.delete('variant')
+  if (v) p.set(key, v); else p.delete(key)
   const qs = p.toString()
   window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
 }
+const setVariant = (v: Variant) => setParam('variant', v)
+const setSocial = (v: Social) => setParam('social', v)
 
-function readRoute(): { route: Route; variant: Variant; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
+function readRoute(): { route: Route; variant: Variant; social: Social; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
@@ -33,6 +38,7 @@ function readRoute(): { route: Route; variant: Variant; publish: boolean; state:
   return {
     route,
     variant: v === 'entry' || v === 'tiles' || v === 'jobs' ? v : '',
+    social: p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -123,6 +129,15 @@ function Inner() {
             <span className="proto-version-label">Version:</span>
             {VERSIONS.map((v) => (
               <button key={v.id} type="button" aria-pressed={r.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</button>
+            ))}
+          </span>
+        )}
+        {/* Prototype only: three layouts for the social links, wherever they show. Kept in sync with ?social=. */}
+        {(r.route === 'edit' || r.route === 'share') && (
+          <span className="proto-version" role="group" aria-label="Social layout">
+            <span className="proto-version-label">Social:</span>
+            {SOCIALS.map((v) => (
+              <button key={v.id} type="button" aria-pressed={r.social === v.id} onClick={() => setSocial(v.id)}>{v.label}</button>
             ))}
           </span>
         )}

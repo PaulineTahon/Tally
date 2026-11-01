@@ -153,7 +153,7 @@ export const shareCopy = {
   copiedInline: 'Copied',
   copyLink: 'Copy link',
   open: 'Open',
-  copyFor: (place: string) => `Copy link for ${place}`,
+  copyFor: (place: string) => `Copy ${place} link`,
   copiedFor: (place: string) => `Link for ${place} copied`,
   openFor: (place: string) => `Share link on ${place}`,
 }

@@ -125,6 +125,8 @@ export const entryVariant = () => /[?&]variant=entry\b/.test(window.location.has
 /** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
 export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.hash + window.location.search)
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
+/** `?social=icons` or `?social=strip`: how the social links show. Rows stay the default. */
+export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'icons' | 'strip') : 'rows' }
 export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 
 /** How the link shows up when it's pasted in a chat or a post. */
@@ -482,6 +484,8 @@ function ChannelRow({ icon, label, href, text, aria, toast = false }: { icon: Re
 /** One borderless row per place, each with its own tagged link. */
 function SocialList({ toast = false }: { toast?: boolean }) {
   const s = useStore()
+  const layout = socialVariant()
+  if (layout !== 'rows') return <SocialIcons strip={layout === 'strip'} />
   return (
     <ul className="ch-list" aria-label="Social">
       {SOCIAL.map((x) => x.open
@@ -490,6 +494,46 @@ function SocialList({ toast = false }: { toast?: boolean }) {
       <ChannelRow icon={<Mail aria-hidden />} label="Email" aria={shareCopy.openFor('Email')} href={emailHref(s.url('email'))} />
     </ul>
   )
+}
+
+/**
+ * `?social=icons` and `?social=strip`: the same tagged links as round buttons with a label under each, in a wrapping
+ * grid or in one row that scrolls sideways (a fade on the right while there's more). Copy shows an alert at the bottom.
+ */
+function SocialIcons({ strip }: { strip: boolean }) {
+  const s = useStore()
+  const list = useRef<HTMLUListElement>(null)
+  const [more, setMore] = useState(false)
+  const check = useCallback(() => {
+    const el = list.current
+    if (el && strip) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
+  }, [strip])
+  useEffect(() => {
+    check()
+    const el = list.current
+    if (!el || !strip) return
+    const ro = new ResizeObserver(check)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [check, strip])
+  const copy = async (place: string, ref: string) => {
+    await copyText(s.url(ref))
+    s.toast(shareCopy.copiedFor(place))
+  }
+  const face = (icon: ReactNode, label: string) => <><span className="soc-circle" aria-hidden>{icon}</span><span className="soc-label" aria-hidden>{label}</span></>
+  const items = (
+    <ul ref={list} className={strip ? 'soc-strip' : 'soc-grid'} aria-label="Social" onScroll={strip ? check : undefined}>
+      {SOCIAL.map((x) => (
+        <li key={x.ref}>
+          {x.open
+            ? <a className="soc-btn" data-row={`soc-${x.ref}`} href={x.open(s.url(x.ref))} target="_blank" rel="noreferrer" aria-label={shareCopy.openFor(x.label)}>{face(x.icon, x.label)}</a>
+            : <button type="button" className="soc-btn" data-row={`soc-${x.ref}`} aria-label={shareCopy.copyFor(x.label)} onClick={() => copy(x.label, x.ref)}>{face(x.icon, x.label)}</button>}
+        </li>
+      ))}
+      <li><a className="soc-btn" data-row="soc-email" href={emailHref(s.url('email'))} aria-label={shareCopy.openFor('Email')}>{face(<Mail />, 'Email')}</a></li>
+    </ul>
+  )
+  return strip ? <div className={`soc-strip-wrap ${more ? 'has-more' : ''}`}>{items}</div> : items
 }
 
 function SocialPanel() {
