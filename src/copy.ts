@@ -156,3 +156,11 @@ export const shareCopy = {
   copyFor: (place: string) => `Copy link for ${place}`,
   openFor: (place: string) => `Share link on ${place}`,
 }
+
+/** Jobs version of the share sheet. */
+export const jobsCopy = {
+  qr: 'QR code',
+  embed: 'Embed',
+  track: 'Track where responses come from',
+  trackLine: 'Each link or code gets its own tag, so you can see results in',
+}

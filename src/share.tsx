@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
   ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
@@ -6,7 +6,7 @@ import {
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, qrUrl, slugify, useIsMobile, useReducedMotion, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, QrImage, Segmented } from './ui'
 import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
-import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
+import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
 
@@ -121,6 +121,8 @@ export type ViewNav = ReturnType<typeof useViewStack>
 export const entryVariant = () => /[?&]variant=entry\b/.test(window.location.hash + window.location.search)
 /** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
 export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.hash + window.location.search)
+/** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
+export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
@@ -430,14 +432,6 @@ function CodeCard({ p, pulse = 0, desc = false }: { p: Source; pulse?: number; d
 function QrCodePanel({ pulse }: { pulse: number }) {
   const s = useStore()
   const openCode = useOpenCode()
-  const mobile = useIsMobile()
-  const [adding, setAdding] = useState(false)
-  const add = (label: string) => {
-    const p = s.addPlacement(label)
-    s.toast(`Code added for ${p.label}`)
-  }
-  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
-  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
   const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
   return (
     <div className="stack gap-12">
@@ -451,21 +445,38 @@ function QrCodePanel({ pulse }: { pulse: number }) {
         {/* One logo for the whole form, so one Customize QR code under the codes: the same text button as Customize preview. */}
         <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
       </div>
-      {/* One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips. */}
-      <div className="stack gap-4 add-code">
-        <ActionRow icon={<Plus />} label={QR_COPY.addAnother} chevron={false} expanded={adding} controls="add-code" onClick={() => setAdding((v) => !v)} />
-        <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>
-        <Collapse open={adding} id="add-code" gap={4}>
-          <div className="stack gap-8" style={{ paddingTop: 8 }}>
-            <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
-            {missing.length > 0 && (
-              <div className="chips">
-                {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
-              </div>
-            )}
-          </div>
-        </Collapse>
-      </div>
+      <AddCodeBlock />
+    </div>
+  )
+}
+
+/** Add another code: a code for another place, with its own ref (qr-poster). It shows right away. */
+function AddCodeBlock({ help = true }: { help?: boolean }) {
+  const s = useStore()
+  const id = `add-code-${useId().replace(/:/g, '')}`
+  const mobile = useIsMobile()
+  const [adding, setAdding] = useState(false)
+  const add = (label: string) => {
+    const p = s.addPlacement(label)
+    s.toast(`Code added for ${p.label}`)
+  }
+  const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
+  const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
+  // One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips.
+  return (
+    <div className="stack gap-4 add-code">
+      <ActionRow icon={<Plus />} label={QR_COPY.addAnother} chevron={false} expanded={adding} controls={id} onClick={() => setAdding((v) => !v)} />
+      {help && <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>}
+      <Collapse open={adding} id={id} gap={4}>
+        <div className="stack gap-8" style={{ paddingTop: 8 }}>
+          <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
+          {missing.length > 0 && (
+            <div className="chips">
+              {missing.map((l) => <button key={l} type="button" className="chip" onClick={() => add(l)}><Plus aria-hidden />{l}</button>)}
+            </div>
+          )}
+        </div>
+      </Collapse>
     </div>
   )
 }
@@ -501,17 +512,53 @@ function ChannelRow({ icon, label, href, text, aria }: { icon: ReactNode; label:
   )
 }
 
-function SocialPanel() {
+/** One borderless row per place, each with its own tagged link. */
+function SocialList() {
   const s = useStore()
+  return (
+    <ul className="ch-list" aria-label="Social">
+      {SOCIAL.map((x) => x.open
+        ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.openFor(x.label)} href={x.open(s.url(x.ref))} />
+        : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} />)}
+      <ChannelRow icon={<Mail aria-hidden />} label="Email" aria={shareCopy.openFor('Email')} href={emailHref(s.url('email'))} />
+    </ul>
+  )
+}
+
+function SocialPanel() {
   return (
     <div className="stack gap-8">
       <p className="small muted" style={{ margin: 0 }}>{shareCopy.tagLine}</p>
-      <ul className="ch-list" aria-label="Social">
-        {SOCIAL.map((x) => x.open
-          ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.openFor(x.label)} href={x.open(s.url(x.ref))} />
-          : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} />)}
-        <ChannelRow icon={<Mail aria-hidden />} label="Email" aria={shareCopy.openFor('Email')} href={emailHref(s.url('email'))} />
-      </ul>
+      <SocialList />
+    </div>
+  )
+}
+
+/**
+ * Jobs version, under the link and its preview: QR code and Embed as two equal outlined buttons (each opens its own
+ * view), then one section to track where responses come from: the social rows, the codes you made, Add another code.
+ */
+function JobsMenu({ onEmbed }: { onEmbed: () => void }) {
+  const s = useStore()
+  const openCode = useOpenCode()
+  const made = s.placements.filter((p) => p.ref !== MAIN_QR)
+  return (
+    <div className="stack gap-24">
+      <div className="jobs-buttons">
+        <button type="button" className="btn btn-secondary" data-row="jobs-qr" aria-haspopup="dialog" onClick={() => openCode(MAIN_QR)}><QrCode aria-hidden />{jobsCopy.qr}</button>
+        <button type="button" className="btn btn-secondary" data-row="ch-embed" aria-haspopup="dialog" onClick={onEmbed}><Code2 aria-hidden />{jobsCopy.embed}</button>
+      </div>
+      <section className="stack gap-8" aria-labelledby="jobs-track">
+        <div className="xs muted small-label" id="jobs-track">{jobsCopy.track}</div>
+        <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+        <SocialList />
+        {made.length > 0 && (
+          <div className="stack gap-8 code-cards is-small">
+            {made.map((p) => <CodeCard key={p.ref} p={p} />)}
+          </div>
+        )}
+        <AddCodeBlock help={false} />
+      </section>
     </div>
   )
 }
@@ -546,12 +593,13 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const s = useStore()
   const tiles = tilesVariant()
   // Switching version from the prototype bar starts the sheet over on its overview.
-  const version = tiles ? 'tiles' : entryVariant() ? 'entry' : 'tabs'
+  const jobs = jobsVariant()
+  const version = jobs ? 'jobs' : tiles ? 'tiles' : entryVariant() ? 'entry' : 'tabs'
   const { reset } = nav
   const firstVersion = useRef(version)
   useEffect(() => { if (firstVersion.current !== version) { firstVersion.current = version; reset() } }, [version, reset])
   // Entry rows and tiles work the same way: an overview, and each way to share as its own subpage.
-  const entry = entryVariant() || tiles
+  const entry = entryVariant() || tiles || jobs
   // Desktop Share tab page: everything that opens (custom domain, preview, a code's page, and in Rows and Tiles each
   // way to share) opens in a centred modal instead of inline. A view opened from inside it gets Back in the header.
   const mobile = useIsMobile()
@@ -575,7 +623,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const panels: { key: Slot; node: ReactNode }[] = [
     ...(entry
       ? [
-        { key: 'menu' as Slot, node: tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
+        { key: 'menu' as Slot, node: jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
         ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> }))),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),

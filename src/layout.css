@@ -916,3 +916,13 @@ html.is-capture .proto-version { display: none !important; }
 /* QR Code tab: a 96px thumbnail, and a right column with the name, a one-line description and Download, centred on it. */
 .single-desc { font-size: 14px; line-height: 20px; color: var(--grey-2); }
 .single-name { line-height: 20px; }
+
+/* Jobs version: QR code and Embed as two equal outlined buttons; the codes you made as small cards. */
+.jobs-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.jobs-buttons .btn { justify-content: center; }
+@media (max-width: 757px) { .jobs-buttons .btn { height: 44px; } }
+.code-cards.is-small .single-code { padding: 10px 12px; }
+.code-cards.is-small .single-preview { padding: 4px; }
+.code-cards.is-small .single-preview img { width: 64px; height: 64px; }
+/* No cards inside the Jobs section: the codes you made are plain rows like the social ones. */
+.code-cards.is-small .single-code { padding: 4px 0; box-shadow: none; border: 0; background: none; }

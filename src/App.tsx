@@ -12,9 +12,9 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles. */
-type Variant = '' | 'entry' | 'tiles'
-const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }]
+/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs. */
+type Variant = '' | 'entry' | 'tiles' | 'jobs'
+const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
 function setVariant(v: Variant) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
@@ -32,7 +32,7 @@ function readRoute(): { route: Route; variant: Variant; publish: boolean; state:
   const v = p.get('variant')
   return {
     route,
-    variant: v === 'entry' || v === 'tiles' ? v : '',
+    variant: v === 'entry' || v === 'tiles' || v === 'jobs' ? v : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -117,7 +117,7 @@ function Inner() {
           <option value="id">tally.so link</option>
           <option value="custom">Custom ending</option>
         </select>
-        {/* Prototype only: switch between the three share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
+        {/* Prototype only: switch between the four share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
         {(r.route === 'edit' || r.route === 'share') && (
           <span className="proto-version" role="group" aria-label="Share sheet version">
             <span className="proto-version-label">Version:</span>
