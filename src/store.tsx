@@ -7,12 +7,13 @@ import { DIRECT, FRESH, MAIN_QR, MAIN_QR_LABEL, SEED, ZERO, type Counts, type Se
 export const FORM_ID = 'KpYalV'
 
 /**
- * Every QR code opens the form by its ID, tagged with its ref. The ID never changes, so printed
- * codes keep working whatever the link ending or domain is.
+ * Every QR code opens the form by its ID, tagged with its ref: on your custom domain when one is on
+ * (forms.acme.com/r/KpYalV), on tally.so otherwise. Never the custom ending: the ID never changes, so
+ * printed codes keep working whatever the ending is.
  */
-/** The line printed under a code: always the form ID link, so print never depends on a custom ending. */
-export const QR_CAPTION = `tally.so/r/${FORM_ID}`
-export const qrUrl = (ref: string) => `https://tally.so/r/${FORM_ID}?ref=${ref === MAIN_QR ? mainRefFor(window.location.hash) : ref}`
+/** The line printed under a code: the same form ID link the code opens, without its ref. */
+export const qrCaptionFor = (domain: string) => `${domain || 'tally.so'}/r/${FORM_ID}`
+export const qrUrlFor = (domain: string, ref: string) => `https://${qrCaptionFor(domain)}?ref=${ref === MAIN_QR ? mainRefFor(window.location.hash) : ref}`
 
 /** Recording the changelog GIF (codes=main&demo=changelog): your form's own code carries the changelog ref, like every other visual. */
 function mainRefFor(hash: string) {
@@ -95,6 +96,9 @@ interface Store {
   domain: string
   setDomain: (d: string) => void
   shortLink: string
+  /** The link a QR code opens and prints: your domain (or tally.so) and the form ID, never the custom ending. */
+  qrLink: string
+  qrUrl: (ref: string) => string
   url: (ref?: string) => string
   display: (ref?: string) => string
   downloadedLink: string | null
@@ -207,6 +211,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // A custom ending only exists on your own domain (Pro), as an extra address. tally.so/r/<form ID> always stays live.
   const base = domain ? `${domain}/${slug}` : `tally.so/r/${FORM_ID}`
   const shortLink = base
+  const qrLink = qrCaptionFor(domain)
+  const qrUrl = useCallback((ref: string) => qrUrlFor(domain, ref), [domain])
   const url = useCallback((ref?: string) => `https://${base}${ref ? `?ref=${ref}` : ''}`, [base])
   const display = useCallback((ref?: string) => `${base}${ref ? `?ref=${ref}` : ''}`, [base])
 
@@ -259,10 +265,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [sources])
 
   const value = useMemo<Store>(() => ({
-    slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
-    downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
+    slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, qrLink, qrUrl, url, display,
+    downloadedLink, markDownloaded: () => setDownloaded(qrLink),
     sources, addSource, addLink, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, addLink, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings])
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, qrLink, qrUrl, url, display, downloadedLink, sources, addSource, addLink, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { screenHref } from './params'
 import { ChevronDown, Download, Maximize2, Share, X, Upload, Plus } from 'lucide-react'
-import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
+import { EASTER_EGG, FORM_TITLE, MAIN_QR, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE, planCopy } from './copy'
 import { Dialog, PopMenu, Pro } from './ui'
@@ -57,7 +57,7 @@ export const QR_COPY = {
 
 export function useQrOptions(ref: string): QrOptions {
   const s = useStore()
-  return { url: qrUrl(ref), shortLink: QR_CAPTION, style: s.settings.style, showLink: true }
+  return { url: s.qrUrl(ref), shortLink: s.qrLink, style: s.settings.style, showLink: true }
 }
 
 /**
@@ -139,12 +139,12 @@ function CodePreview({ refId }: { refId: string }) {
   return (
     <div className="qr-focus">
       <div className="qr-print">
-        <img className="qr-img" src={svgSrc(buildSvg(opts, { tight: true }))} alt={`QR code that opens ${qrUrl(refId).replace('https://', '')}`} />
+        <img className="qr-img" src={svgSrc(buildSvg(opts, { tight: true }))} alt={`QR code that opens ${opts.url.replace('https://', '')}`} />
       </div>
       {mobile && (
         <button type="button" className="btn btn-secondary btn-sm icon-btn qr-full-btn" aria-label="Show full screen" onClick={() => setFull(true)}><Maximize2 aria-hidden /></button>
       )}
-      {full && <FullQr url={opts.url} style={opts.style} onClose={() => setFull(false)} />}
+      {full && <FullQr url={opts.url} caption={opts.shortLink} style={opts.style} onClose={() => setFull(false)} />}
     </div>
   )
 }
@@ -243,14 +243,14 @@ export function QrPanel() {
   )
 }
 
-function FullQr({ url, style, onClose }: { url: string; style: QrStyle; onClose: () => void }) {
+function FullQr({ url, caption, style, onClose }: { url: string; caption: string; style: QrStyle; onClose: () => void }) {
   const btn = useRef<HTMLButtonElement>(null)
   useEffect(() => { btn.current?.focus() }, [])
   return (
     <div className="full-qr" role="dialog" aria-modal="true" aria-label="QR code, full screen">
       <button ref={btn} type="button" className="btn btn-ghost icon-btn full-close" style={{ width: 44, height: 44 }} onClick={onClose} aria-label="Close"><X aria-hidden /></button>
       <img src={svgSrc(codeSvg(url, style))} alt={`QR code that opens ${url}`} />
-      <div className="qr-shortlink" style={{ fontSize: 22 }}>{QR_CAPTION}</div>
+      <div className="qr-shortlink" style={{ fontSize: 22 }}>{caption}</div>
       <a className="small egg" href={EASTER_EGG} target="_blank" rel="noreferrer">{EGG_TITLE}</a>
     </div>
   )
