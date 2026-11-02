@@ -110,8 +110,9 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
             </div>
           )}
 
-          <section className="stack gap-16" aria-labelledby="share-h">
-            <h2 id="share-h" className="section-h">Share Link</h2>
+          {/* Share link is a section title like Link preview and Embed: one style for every title in Share. */}
+          <section className="stack gap-8" aria-labelledby="share-h">
+            <h2 id="share-h" className="section-label">{shareCopy.linkTitle}</h2>
             <ShareBlock />
           </section>
 

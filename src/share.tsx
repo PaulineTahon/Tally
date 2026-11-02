@@ -1,8 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { MonoMark } from './brand'
 import {
   ArrowLeft, Code2, Download, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
-  ChartNoAxesColumn, EllipsisVertical, Trash2, ChevronRight, Link2,
+  ChartNoAxesColumn, EllipsisVertical, Trash2, ChevronRight, Link2, Link as LinkIcon,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
@@ -129,6 +129,8 @@ export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.has
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
 /** `?social=rows|icons|strip`: how the social links show. Without it, Icons in Split and Rows everywhere else. */
 export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(rows|icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'rows' | 'icons' | 'strip') : splitVariant() ? 'icons' : 'rows' }
+/** `&track=list`: Split's tracking page as one list of every source (socials, your links, your codes) with an All / Links / QR codes filter. Without it, the two sections. */
+export const trackListVariant = () => /[?&]track=list\b/.test(window.location.hash + window.location.search)
 export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
@@ -594,7 +596,7 @@ function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => v
 }
 
 /**
- * A code as a list item, like Tally's list rows: its name in bold and its ref in grey under it, no icon tile.
+ * A code as a list item, like Tally's list rows: the QR code icon (no tile), its name in bold and its ref in grey under it.
  * The whole row opens the code's page (a stretched button); Download and More options sit above it, so they never open the page.
  */
 export function CodeRow({ p, name, removedText }: { p: Source; name?: string; removedText?: (name: string) => string }) {
@@ -622,7 +624,7 @@ export function CodeRow({ p, name, removedText }: { p: Source; name?: string; re
   return (
     <li ref={row} className="code-row" data-ref={p.ref}>
       <button type="button" className="code-row-open" aria-label={QR_COPY.openFor(label)} onClick={() => openCode(p.ref)}>
-        <span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
+        <span className="row-lead"><QrCode className="row-type-ic" aria-hidden /><span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span></span>
       </button>
       {/* Two quiet icons on every row, in one column: Download PNG, then More options with SVG, PDF and, on codes you made, Remove. */}
       <span className="row-actions">
@@ -713,6 +715,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const linkTop = (
     <>
       <div className="stack gap-8 link-block">
+        {inModal && <h3 className="section-label" id="share-link-label">{shareCopy.linkTitle}</h3>}
         <LinkBar extra={jobs || tabbed ? (big) => <JobsQrButton big={big} /> : undefined} />
         <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
       </div>
@@ -730,7 +733,8 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     // Split's Share tab page has the room: no tabs, Share then Embed as sections.
     ...(stacked ? [{ key: 's-stack' as Slot, node: (
       <div className="stack gap-24 split-stack">
-        <section className="stack gap-8" aria-labelledby="split-sec-share"><h3 className="section-label" id="split-sec-share">{splitCopy.share}</h3>{shareTab}</section>
+        {/* The page's own Share link title heads this section. */}
+        <section className="stack gap-8" aria-labelledby="share-h">{shareTab}</section>
         <section className="stack gap-8" aria-labelledby="split-sec-embed"><h3 className="section-label" id="split-sec-embed">{splitCopy.embed}</h3>{embedTab}</section>
       </div>
     ) }] : [
@@ -887,8 +891,11 @@ function SplitTagLine() {
   return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
 }
 
-/** A link you made, as a row like a code: name and ref, Copy on the trailing edge, then More options. */
-function LinkRow({ p }: { p: Source }) {
+/**
+ * A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options.
+ * `rowCopy` (the list view): a click anywhere on the row copies too, except on Copy and More options.
+ */
+function LinkRow({ p, rowCopy = false }: { p: Source; rowCopy?: boolean }) {
   const s = useStore()
   const more = useRef<HTMLButtonElement>(null)
   const row = useRef<HTMLLIElement>(null)
@@ -906,8 +913,8 @@ function LinkRow({ p }: { p: Source }) {
     }, 60)
   }
   return (
-    <li ref={row} className="code-row link-row" data-ref={p.ref}>
-      <span className="code-row-text grow"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
+    <li ref={row} className={`code-row link-row ${rowCopy ? 'is-row-copy' : ''}`} data-ref={p.ref} onClick={rowCopy ? rowCopyClick(() => copyLink(s, p.label, p.ref)) : undefined}>
+      <span className="row-lead grow"><LinkIcon className="row-type-ic" aria-hidden /><span className="code-row-text"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span></span>
       <span className="row-actions">
         <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
         <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} title={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><EllipsisVertical aria-hidden /></button>
@@ -948,6 +955,11 @@ function AddLinkBlock() {
 
 /** See where responses come from: two sections. Links (the socials in the Social layout you picked, then your links, then Add another link) and QR codes (your codes, then Add another code). */
 function SplitTrackPage() {
+  if (trackListVariant()) return <SplitTrackList />
+  return <SplitTrackSections />
+}
+
+function SplitTrackSections() {
   const s = useStore()
   const links = useExtraLinks()
   const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
@@ -974,6 +986,74 @@ function SplitTrackPage() {
         </AutoHeight>
         <AddCodeBlock help={false} />
       </section>
+    </div>
+  )
+}
+
+/* ---------- Split tracking page, list view (&track=list) ---------- */
+
+type Store = ReturnType<typeof useStore>
+async function copyLink(s: Store, label: string, ref: string) {
+  await copyText(s.url(ref))
+  s.toast(splitCopy.copied(label))
+}
+/** A click on the row itself runs `fn`; clicks on its buttons, or in its menu (a portal), don't. */
+const rowCopyClick = (fn: () => void) => (e: MouseEvent<HTMLElement>) => {
+  const t = e.target as HTMLElement
+  if (!e.currentTarget.contains(t) || t.closest('.row-actions, button, a, input')) return
+  fn()
+}
+
+/** A social or Email as a list row: its own mark, name and ref, and Copy. The whole row copies. */
+function SocialSourceRow({ icon, label, refName }: { icon: ReactNode; label: string; refName: string }) {
+  const s = useStore()
+  return (
+    <li className="code-row link-row is-row-copy" data-ref={refName} data-row={`soc-${refName}`} onClick={rowCopyClick(() => copyLink(s, label, refName))}>
+      <span className="row-lead grow"><span className="row-type-ic" aria-hidden>{icon}</span><span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={refName}</span></span></span>
+      <span className="row-actions">
+        <CopyButton outline className="btn-sm link-row-copy" text={s.url(refName)} ariaLabel={shareCopy.copyFor(label)} toastText={splitCopy.copied(label)} />
+      </span>
+    </li>
+  )
+}
+
+export type TrackFilter = 'all' | 'links' | 'qr'
+
+/**
+ * Every tracked source in one list: the socials and Email, your links, then your codes, each with its type icon,
+ * name and ref. All / Links / QR codes filters it in place, and the Add another rows under it follow the filter.
+ */
+function SplitTrackList() {
+  const s = useStore()
+  const links = useExtraLinks()
+  const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
+  const [filter, setFilter] = useState<TrackFilter>('all')
+  const showLinks = filter !== 'qr'
+  const showCodes = filter !== 'links'
+  return (
+    <div className="stack gap-24 split-page track-list qr-list-scope">
+      <SplitTagLine />
+      <div className="stack gap-8">
+        <div className="share-to track-filter">
+          <Segmented<TrackFilter>
+            label={splitCopy.filterLabel} value={filter} onChange={setFilter}
+            options={[
+              { value: 'all', label: splitCopy.filterAll },
+              { value: 'links', label: splitCopy.linksLabel },
+              { value: 'qr', label: splitCopy.codesLabel },
+            ]}
+          />
+        </div>
+        <AutoHeight k={`${filter}-${links.length}-${s.placements.length}`} slow>
+          <ul className="code-rows" aria-label={filter === 'all' ? splitCopy.allSources : filter === 'links' ? splitCopy.linksLabel : splitCopy.codesLabel}>
+            {showLinks && [...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
+            {showLinks && links.map((p) => <LinkRow key={p.ref} p={p} rowCopy />)}
+            {showCodes && codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+          </ul>
+        </AutoHeight>
+        {showLinks && <AddLinkBlock />}
+        {showCodes && <AddCodeBlock help={false} />}
+      </div>
     </div>
   )
 }

@@ -796,7 +796,8 @@ a.list-row { text-decoration: none; color: inherit; }
 .split-out .split-caret[aria-expanded='true'] svg { transform: rotate(180deg); }
 @media (prefers-reduced-motion: reduce) { .split-out .split-caret svg { transition: none; } }
 @media (max-width: 757px) { .split-out .split-caret { width: 44px; } }
-.qr-section-title { margin: 0; font-size: 14px; }
+/* Add your logo: the same field label as Image, Title and Description in Customize preview. */
+.qr-section-title { margin: 0; }
 .qr-section-title svg { width: 16px; height: 16px; color: var(--grey-2); margin-right: 4px; }
 /* Visits and submissions: one line when there is room, two short lines in the sheet and on phones. */
 .placements .count { width: auto; display: inline-flex; gap: 0; }
@@ -1037,3 +1038,11 @@ html.is-capture .proto-version { display: none !important; }
 
 /* Section labels in Share (Share, Embed, Link preview, Links, QR codes, More ways to share, Logo): Tally's 14px bold in the text colour. */
 .section-label { margin: 0; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text); }
+
+/* Type icons on code and link rows: Lucide Link or QR code (socials keep their own marks), in the text colour, no tile.
+   18px, centred on the 20px name line. */
+.row-lead { display: flex; align-items: flex-start; gap: var(--row-gap); flex: 1; min-width: 0; }
+.row-type-ic { flex: none; display: inline-flex; width: 18px; height: 18px; margin-top: 1px; color: var(--text); }
+.row-type-ic svg { width: 18px; height: 18px; }
+/* List view rows that copy from anywhere on the row. */
+.code-row.is-row-copy { cursor: pointer; }

@@ -147,6 +147,8 @@ export const planCopy = {
 export const shareCopy = {
   /** The title over QR Code, Social and Embed. */
   moreWays: 'More ways to share',
+  /** The title over the link, on the Share tab page and in the sheet. */
+  linkTitle: 'Share link',
   /** Under the link, like Tally today. Once a domain is saved it reads Edit custom domain. */
   useDomain: 'Use custom domain',
   editDomain: 'Edit custom domain',
@@ -182,6 +184,9 @@ export const splitCopy = {
   codes: (n: number) => `${n} ${n === 1 ? 'code' : 'codes'}`,
   linksLabel: 'Links',
   codesLabel: 'QR codes',
+  filterLabel: 'Show',
+  filterAll: 'All',
+  allSources: 'All tracked links and codes',
   yourLinks: 'Your links',
   addLink: 'Add another link',
   linkPlaceholder: 'Where will it go? Like Newsletter or Website',
