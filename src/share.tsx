@@ -369,7 +369,8 @@ export function EmbedThumb({ mode }: { mode: EmbedMode }) {
  * Tally's full Embed page with that layout ready: every option Tally has, and a live preview.
  * Embedding is free on Tally, so there is no Pro badge here.
  */
-function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
+/** `primary`: Copy code is the black button, where Copy link isn't on screen (an Embed tab or view of its own). */
+function EmbedPanel({ onPick, primary = false }: { onPick?: (m: EmbedMode) => void; primary?: boolean }) {
   const mobile = useIsMobile()
   const s = useStore()
   const [mode, setMode] = useState<EmbedMode>('standard')
@@ -387,9 +388,9 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
       </div>
       {/* The whole real snippet for the picked layout, in a short box that scrolls (wheel, trackpad, touch, or arrow keys once focused). */}
       <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
-      {/* Copy code is the primary button here, with Customize embed right of it on the same line. */}
+      {/* Customize embed sits right of Copy code, on the same line. Copy code is black only where Copy link isn't on screen. */}
       <div className="embed-actions">
-        <CopyButton className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
+        <CopyButton outline={!primary} className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
         <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
       </div>
     </div>
@@ -645,10 +646,10 @@ export function CodeRow({ p, name, removedText }: { p: Source; name?: string; re
   )
 }
 
-export function ChannelPanel({ channel, pulse = 0, onEmbed }: { channel: Channel; pulse?: number; onEmbed?: (m: EmbedMode) => void }) {
+export function ChannelPanel({ channel, pulse = 0, onEmbed, alone = false }: { channel: Channel; pulse?: number; onEmbed?: (m: EmbedMode) => void; alone?: boolean }) {
   if (channel === 'qr') return <QrCodePanel pulse={pulse} />
   if (channel === 'social') return <SocialPanel />
-  return <EmbedPanel onPick={onEmbed} />
+  return <EmbedPanel onPick={onEmbed} primary={alone} />
 }
 
 /** The last More ways to share tab you used, kept per browser. QR Code until you pick another. */
@@ -728,7 +729,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   )
   const shareTab = <div className="stack gap-24">{linkTop}{split && <SplitTrackRow onOpen={() => nav.go('track-link')} />}</div>
   // The same Embed as Tabs and Jobs: Standard, Popup or Full page, the code for it, then Copy code and Customize embed.
-  const embedTab = <div className="split-embed"><EmbedPanel onPick={setEmbed} /></div>
+  const embedTab = <div className="split-embed"><EmbedPanel onPick={setEmbed} primary={!stacked} /></div>
   const panels: { key: Slot; node: ReactNode }[] = tabbed ? [
     // Split's Share tab page has the room: no tabs, Share then Embed as sections.
     ...(stacked ? [{ key: 's-stack' as Slot, node: (
@@ -751,7 +752,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     ...(entry
       ? [
         { key: 'menu' as Slot, node: jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} onTrack={() => nav.go('track')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
-        ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> }))),
+        ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} alone /></div> }))),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
     ...(pageModal ? [] : [
@@ -771,7 +772,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
     : view === 'track' ? <JobsTracking tab={trackTab} onTab={setTrackTab} />
     : view === 'track-link' ? <SplitTrackPage />
-    : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} /> : null
+    : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} alone /> : null
   return (
     <CompactCtx.Provider value={inModal}>
     <OpenCodeCtx.Provider value={openCode}>

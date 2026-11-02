@@ -108,8 +108,11 @@ export function EmbedPage({ mode: initial, onClose }: { mode: EmbedMode; onClose
           <div className="ep-code">
             <h3>{C.codeTitle}</h3>
             <p>{C.codeHelp}</p>
-            <pre>{snippet}</pre>
-            <SmallCopy text={snippet} label={C.copyCode} toastText={C.codeCopied} primary />
+            {/* The code and Copy code on a light card, so the black Copy code stands out from the dark page. */}
+            <div className="ep-code-card">
+              <pre>{snippet}</pre>
+              <SmallCopy text={snippet} label={C.copyCode} toastText={C.codeCopied} primary />
+            </div>
           </div>
         ) : (
           <>
