@@ -983,23 +983,20 @@ function SplitTrackPage({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) =>
       </div>
       {tab === 'social' ? (
         <div className="stack gap-8">
-          <AutoHeight k={String(links.length)} slow>
-            <ul className="code-rows" aria-label={splitCopy.linksLabel}>
-              {[...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
-              {links.map((p) => <LinkRow key={p.ref} p={p} rowCopy />)}
-            </ul>
-          </AutoHeight>
+          {/* A plain list: adding a link only adds its row. Keying the list by its length remounted and faded every row. */}
+          <ul className="code-rows" aria-label={splitCopy.linksLabel}>
+            {[...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
+            {links.map((p) => <LinkRow key={p.ref} p={p} rowCopy />)}
+          </ul>
           <AddLinkBlock />
           {/* Any ?ref= works, not only the ones listed here. */}
           <p className="small muted ref-tip" style={{ margin: 0 }}>{tipBefore}<code>{REF_TIP_CODE}</code>{tipAfter}</p>
         </div>
       ) : (
         <div className="stack gap-8">
-          <AutoHeight k={String(s.placements.length)} slow>
-            <ul className="code-rows" aria-label={splitCopy.codesLabel}>
-              {codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
-            </ul>
-          </AutoHeight>
+          <ul className="code-rows" aria-label={splitCopy.codesLabel}>
+            {codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+          </ul>
           <AddCodeBlock help={false} />
         </div>
       )}
