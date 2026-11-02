@@ -241,6 +241,8 @@ function EndingView({ inModal, onBack }: { inModal: boolean; onBack: () => void 
     s.setDomain(cleanDomain)
     s.setSlug(cleanDomain && cleanEnding ? cleanEnding : FORM_ID)
     s.toast(endingCopy.updated)
+    // Saved: back to the Share overview, the same way Back goes, so the new link shows there.
+    onBack()
   }
   return (
     <div className="stack gap-12">
@@ -315,7 +317,7 @@ function PreviewView({ inModal, onBack, saved, onSave }: { inModal: boolean; onB
       <div className="row gap-8" style={{ justifyContent: 'flex-end' }}>
         {dirty && <button type="button" className="btn btn-ghost btn-sm" onClick={() => setDraft(saved)}>{endingCopy.cancel}</button>}
         {s.plan === 'pro'
-          ? <button type="button" className="btn btn-black btn-sm save-btn" disabled={!dirty} onClick={() => { onSave(draft); s.toast(planCopy.previewSaved) }}>Save</button>
+          ? <button type="button" className="btn btn-black btn-sm save-btn" disabled={!dirty} onClick={() => { onSave(draft); s.toast(planCopy.previewSaved); onBack() }}>Save</button>
           : <UpgradeButton primary disabled={!dirty} onClick={s.upgrade} />}
       </div>
     </div>
