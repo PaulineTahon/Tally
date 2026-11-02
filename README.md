@@ -36,7 +36,7 @@ I started with the quick win, then the bigger bet:
 
 The demo form uses Tally's default header, a plain off-white band with no cover image. The surrounding Tally UI is static on purpose. Only the share feature changes. Every number on the Insights tab is example data.
 
-The visuals page has the changelog image and GIF, a poster, LinkedIn and X images and a cover for the demo form, every code in them really scans, and layered sources for Figma are in `design-sources/`.
+The visuals page has the changelog image and GIF, a poster and LinkedIn and X images, every code in them really scans, and layered sources for Figma are in `design-sources/`.
 
 ## Built with
 

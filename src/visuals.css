@@ -59,10 +59,6 @@ body { background: #fafafa; }
 
 @media (max-width: 757px) { .visuals { padding: 16px; } .v-head { flex-wrap: wrap; } }
 
-/* Cover */
-.cover-art { background: #F7F7F6; }
-.cover-art svg { display: block; }
-
 /* The Share tab in the changelog window (Simple), at 0.7267 of the real UI's size, as in Figma */
 .cm { position: absolute; left: 38.56px; top: -3.06px; width: 688.88px; padding: 37.06px 17.44px 87.2px; display: flex; flex-direction: column; color: #37352f; }
 .cm-head { display: flex; align-items: center; gap: 5.81px; }

@@ -1,6 +1,6 @@
 import { DEFAULT_STYLE, LOGO_RATIO, QUIET, eyePath, logoMarkup, matrix, modulePath } from './qr'
 
-/* Shared drawing pieces for the visuals page and the form header in the prototype. */
+/* Shared drawing pieces for the visuals page. */
 
 /** Every visual opens the same live form, tagged by where it was seen. */
 const FORM = 'https://tally.so/r/KpYalV'
@@ -44,57 +44,3 @@ export function wobble(points: [number, number][], seed: number, amt = 2.2, clos
   return d
 }
 export const rect = (x: number, y: number, w: number, h: number, seed: number) => wobble([[x, y], [x + w, y], [x + w, y + h], [x, y + h]], seed)
-
-const INK = '#000000'
-const GREY = '#DFDFDF'
-const pen = { fill: 'none', stroke: INK, strokeWidth: 5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-
-/**
- * Form cover, 3000x1000, no text. Off-white with black line art, centred on x 1500 so phones
- * and wide screens both keep it. Tally shows covers object-fit cover, centred, so on a wide
- * screen only the middle band of the height shows; everything that matters sits in y 340 to 680.
- */
-export function CoverArt({ url, slice = false }: { url: string; slice?: boolean }) {
-  const tick = (x: number, y: number, r: number) => <path transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h40" stroke={PINK} strokeWidth={6} strokeLinecap="round" />
-  return (
-    <svg viewBox="0 0 3000 1000" width="100%" height="100%" preserveAspectRatio={slice ? 'xMidYMid slice' : undefined}
-      role="img" aria-label="A paper poster with a QR code taped up, and a hand holding up a phone to scan it">
-      <defs>
-        <filter id="cover-shadow" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="10" stdDeviation="16" floodColor="#000" floodOpacity="0.08" />
-        </filter>
-      </defs>
-      <rect data-layer="Background" width="3000" height="1000" fill="#F7F7F6" />
-      {/* Poster */}
-      <g data-layer="Poster" transform="translate(1350 505) rotate(2.5) scale(0.66)">
-        <rect x={-190} y={-232} width={380} height={464} rx={6} fill="#fff" stroke={GREY} strokeWidth={3} filter="url(#cover-shadow)" />
-        <Qr x={-150} y={-200} size={300} url={url} />
-        <rect x={-120} y={128} width={240} height={14} rx={7} fill={GREY} />
-        <rect x={-86} y={162} width={172} height={14} rx={7} fill={GREY} />
-        <rect x={-70} y={-254} width={140} height={44} rx={4} fill={GREY} transform="rotate(-4)" />
-      </g>
-      {/* Hand holding a phone up to scan */}
-      <g data-layer="Hand and phone" transform="translate(1710 500) rotate(-8) scale(0.66)">
-        <path d={rect(-70, -120, 140, 250, 71)} {...pen} fill="#fff" />
-        <path d="M-45 -92h90v124h-90z" {...pen} strokeWidth={4} />
-        {/* The phone shows the same real code, never a fake pattern. */}
-        <Qr x={-40} y={-80} size={80} url={url} />
-        <path d="M-18 108h36" {...pen} />
-        <path d="M-70 40c-34 4-40 30-8 34M-70 78c-34 4-38 28-6 32M-70 116c-28 6-30 26-2 28" {...pen} />
-        <path d="M70 60c30-10 46 6 30 30c-10 14-26 22-34 22" {...pen} />
-        {/* wrist running off the bottom */}
-        <path d="M-60 140c-6 140-12 420-18 720M60 128c10 160 18 440 24 732" {...pen} />
-        <path d="M-110 -170l-28 -26M0 -190v-40M110 -170l28 -26" {...pen} stroke={GREY} />
-      </g>
-      {/* Three pink ticks, well away from the code */}
-      <g data-layer="Accent marks">
-        {tick(1120, 410, 35)}
-        {tick(1560, 380, -50)}
-        {tick(1880, 610, 20)}
-        {/* Grey secondary marks */}
-        <path d="M1140 570l-44 6" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
-        <path d="M1580 670l38 22" stroke={GREY} strokeWidth={6} strokeLinecap="round" />
-      </g>
-    </svg>
-  )
-}

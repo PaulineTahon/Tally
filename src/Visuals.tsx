@@ -1,7 +1,7 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
 import { Download, Check, Copy, Ellipsis, QrCode } from 'lucide-react'
-import { CoverArt, QrBox, VISUAL_URL } from './coverArt'
+import { QrBox, VISUAL_URL } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
 import { guideCopy } from './guideCopy'
@@ -221,11 +221,6 @@ function Poster() {
   )
 }
 
-/* ---------- Form cover: 3000x1000, off-white, no text. The art lives in coverArt.tsx. ---------- */
-function Cover() {
-  return <div className="art cover-art"><CoverArt url={VISUAL_URL('qr-cover')} /></div>
-}
-
 function Exportable({ title, name, w = 1200, h = 630, children, caption, extra, onBeforeExport }: {
   title: string; name: string; w?: number; h?: number; children: ReactNode; caption: ReactNode; extra?: ReactNode; onBeforeExport?: () => void
 }) {
@@ -318,10 +313,6 @@ export default function Visuals() {
       <Exportable title="Poster" name="tally-qr-poster" w={800} h={1131}
         caption={<p>Print it, stick it up, and responses from it show up as Poster in Insights.</p>}>
         <Poster />
-      </Exportable>
-      <Exportable title="Form cover" name="tally-qr-cover" w={1500} h={500}
-        caption={<p>Cover for the easter-egg form. No text, so it works behind any form title. The code opens tally.so/r/KpYalV?ref=qr-cover.</p>}>
-        <Cover />
       </Exportable>
       <Exportable title={`Social image: ${net === 'linkedin' ? 'LinkedIn' : 'X'}`} name={`tally-qr-social-${net}`}
         extra={<div className="segmented" role="tablist" aria-label="Network" style={{ width: 180 }}>

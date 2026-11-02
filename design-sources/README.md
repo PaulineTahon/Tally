@@ -17,11 +17,6 @@ design-sources/
     tally-qr-social-linkedin-2400x1260.png
     tally-qr-social-x-2400x1260.png Final PNGs, for reference
     qr/qr-linkedin.svg, qr/qr-x.svg The real codes (?ref=qr-linkedin, ?ref=qr-x)
-  cover/
-    cover-3000x1000.svg             Layered source of the form cover (export at 1x)
-    cover-in-context-3000x1500.svg  The cover with the form title under it, to judge the pair
-    tally-qr-cover-3000x1000.png    Final PNG, for reference
-    qr/qr-cover.svg                 The real code (?ref=qr-cover)
   fonts/
     Inter-Regular, Medium, SemiBold, Bold, ExtraBold (.ttf) and the OFL licence
 ```
@@ -32,11 +27,6 @@ design-sources/
 - Every QR code is its own group called QR code, in the rounded style: separate round dots and rounded corner eyes. If you move or resize one, keep it square and keep white space around it.
 - Changelog: Background, Tally wordmark, Copy (Headline, Subline), Browser window (Browser bar, Share tab UI with the Link preview card and the QR code button).
 - Social: Background, Illustration (Drawing, the white Patches that tidy the drawn code's edges, QR code), Headline, Underline, Subline, Tally wordmark. The drawing and the pink underline are images, as in my Figma frame.
-- Cover: Background, Poster, Hand and phone, Accent marks. It has no text on purpose, so it works behind any title.
-
-## The Form Title
-
-The demo form is called "Scanned your way here". It only lives in one text layer, Form title, in `cover/cover-in-context-3000x1500.svg`. That file is just for judging the cover and the title together; the title isn't part of any exported image, and the live form sets its own title.
 
 ## Fonts
 
