@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, Check, Copy, ChevronDown, ChevronRight, QrCode, ChartNoAxesColumn } from 'lucide-react'
+import { Download, Check, Copy, ChevronDown, QrCode } from 'lucide-react'
 import { CoverArt, PINK, Qr, QrBox, VISUAL_URL, rect, wobble } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
@@ -116,8 +116,8 @@ function Wordmark() {
 }
 
 /**
- * The Share tab as it looks now (Split, the default version): Share link with Copy and the QR code button, Use custom
- * domain, the link preview with Customize preview, the row that opens See where responses come from, then Embed.
+ * The Share tab as it looks now (Simple, my proposal): Share link with Copy and the QR code button, Use custom
+ * domain, the link preview with Customize preview, then Embed with no layout picked yet.
  * Your QR Code is open on the right, the way the QR code button opens it: the real code, Download and the logo.
  */
 function ShareTabMock() {
@@ -141,12 +141,6 @@ function ShareTabMock() {
           <span className="cm-card-text"><span className="cm-card-title">Community picnic RSVP</span><span className="cm-card-site">tally.so</span></span>
         </div>
         <span className="cm-text">Customize preview<span className="cm-pro">Pro</span></span>
-      </div>
-      <div className="cm-track" data-layer="Tracking row">
-        <ChartNoAxesColumn aria-hidden />
-        <span className="cm-track-text"><b>See where responses come from</b><span>Add a link for each channel, then compare them in Insights.</span></span>
-        <span className="cm-count">2 codes</span>
-        <ChevronRight aria-hidden className="cm-chev" />
       </div>
       <div className="cm-block">
         <span className="cm-label">Embed</span>
@@ -294,13 +288,13 @@ function ChangelogGif() {
   return (
     <section className="v-item">
       <div className="row-between v-head">
-        <div className="stack gap-4"><h2>Changelog GIF</h2><span className="small muted">2400 × 1600, 10 fps, 14.2 s loop</span></div>
+        <div className="stack gap-4"><h2>Changelog GIF</h2><span className="small muted">2400 × 1600, 10 fps, 17.4 s loop</span></div>
         <a className="btn btn-black" href={GIF} download="tally-qr-changelog-2400x1600.gif"><Download aria-hidden />Download GIF</a>
       </div>
       <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
-        <img src={GIF} alt="On the Share tab, the QR code button next to Copy opens Your QR Code, which downloads as a PNG. See where responses come from lists a tagged link per place, and Copy copies the WhatsApp one. Then Embed shows Copy code with Customize embed beside it." style={{ width: '100%', height: '100%', display: 'block' }} />
+        <img src={GIF} alt="On the Share tab, Copy copies the link, and the QR code button next to it opens Your QR Code, which downloads as a PNG. In Embed, picking Standard shows its code with Copy code. Insights then lists Your QR Code next to Direct / None in Sources." style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
-      <div className="v-caption small"><p>For the changelog entry, next to the image above. It starts on the Share tab, opens Your QR Code from the button next to Copy and downloads it, copies the WhatsApp link from See where responses come from, then shows Embed. Social posts and link previews keep using the static image.</p></div>
+      <div className="v-caption small"><p>For the changelog entry, next to the image above. It starts on the Share tab, copies the link, opens Your QR Code from the button next to Copy and downloads it, picks Standard in Embed and copies its code, then ends on Insights with Your QR Code in Sources. Social posts and link previews keep using the static image.</p></div>
     </section>
   )
 }
