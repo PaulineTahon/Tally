@@ -51,23 +51,22 @@ function RealQr({ x, y, size, url }: { x: number; y: number; size: number; url: 
 
 /* ---------- Social: 1200x630 exported at 2x, white, from Figma (Social Linkedin / proposal) ---------- */
 function Social({ qrRef }: { qrRef: string }) {
-  const o = 0.7
   return (
     <div className="art social">
       <div className="layer" data-layer="Illustration" style={{ inset: 0, overflow: 'hidden' }}>
-        <Img name="Drawing" src="social-illustration.png" x={531.5} y={132} w={518} h={365.5} style={{ opacity: o }} />
-        <Patch x={828.545} y={157.28} w={61.4575} h={16.8275} />
-        <Img name="Patch" src="social-patch-5.svg" x={745} y={304.5} w={128.5} h={30.5} />
-        <Patch x={707.825} y={304.34} w={43.8985} h={10.243} />
-        <Patch x={715.14} y={288.975} w={14.633} h={23.4125} />
-        <Patch x={715.14} y={166.06} w={14.633} h={23.4125} />
-        <Patch x={706.36} y={152.16} w={49.02} h={21.949} />
-        <Img name="Patch" src="social-patch-1.svg" x={946.34} y={256.415} w={15.73} h={31.0945} />
-        <Turned name="Patch" src="social-patch-2.svg" x={940.685} y={253.415} w={23.8145} h={25.6125} iw={21.3205} ih={14.201} deg={-55.29} />
-        <Turned name="Patch" src="social-patch-3.svg" x={948.895} y={245.35} w={70.4615} h={70.4615} iw={58.385} ih={41.263} deg={45} />
-        <Img name="Patch" src="social-patch-4.svg" x={935.5} y={302} w={103.5} h={10.5} />
-        <Patch x={708} y={164.493} w={169.44} h={141.507} />
-        <RealQr x={719.04} y={162.477} size={164.16} url={VISUAL_URL(qrRef)} />
+        <Img name="Drawing" src="social-illustration.png" x={519.6895} y={120.6009} w={550.3105} h={388.2983} />
+        <Patch x={835.2632} y={147.4573} w={65.2911} h={17.8773} />
+        <Img name="Patch" src="social-patch-5.svg" x={746.5066} y={303.8607} w={136.5153} h={32.4025} />
+        <Patch x={707.0128} y={303.6895} w={46.6365} h={10.8818} />
+        <Patch x={714.7855} y={287.3668} w={15.5455} h={24.8728} />
+        <Patch x={714.7855} y={156.7846} w={15.5455} h={24.8728} />
+        <Patch x={705.4583} y={142.0163} w={52.0774} h={23.3182} />
+        <Img name="Patch" src="social-patch-1.svg" x={960.4044} y={252.778} w={16.7114} h={33.0342} />
+        <Turned name="Patch" src="social-patch-2.svg" x={954.4} y={249.585} w={25.3} h={27.21} iw={22.6503} ih={15.0866} deg={-55.29} />
+        <Turned name="Patch" src="social-patch-3.svg" x={963.12} y={241.02} w={74.8566} h={74.8566} iw={62.0265} ih={43.8366} deg={45} />
+        <Img name="Patch" src="social-patch-4.svg" x={948.8892} y={301.2047} w={109.9559} h={11.1549} />
+        <Patch x={707.1987} y={155.1281} w={180.0727} h={150.3262} />
+        <RealQr x={718.8848} y={153.0033} size={174.4205} url={VISUAL_URL(qrRef)} />
       </div>
       <h1 className="so-title" data-layer="Headline">Your forms,<br />out in the<br />real world</h1>
       <Squiggle kind="social" x={43.64} y={351.705} w={297.3345} h={36.587} iw={295.583} ih={30.508} mw={279.5} mh={17.4105} mx={16.859} my={8.5895} />
