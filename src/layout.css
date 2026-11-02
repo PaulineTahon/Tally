@@ -1027,3 +1027,11 @@ html.is-capture .proto-version { display: none !important; }
 .embed-cards.is-sheet { grid-template-columns: repeat(3, minmax(0, 120px)); gap: 12px; padding: 2px 0 4px; justify-content: start; }
 .embed-cards.is-sheet .embed-thumb { aspect-ratio: 4 / 3; }
 .embed-cards.is-sheet .embed-card { gap: 6px; }
+
+/* Full-width Share tab page only (never in the sheet or a modal): bigger embed cards, 180px, and the code box at the
+   link field's width, 520px. Phones keep the sheet sizes. */
+@media (min-width: 758px) {
+  .share-page .embed-cards.is-sheet:not([role=dialog] *) { grid-template-columns: repeat(3, minmax(0, 180px)); gap: 16px; }
+  .share-page .embed-cards.is-sheet:not([role=dialog] *) .embed-card { gap: 8px; }
+  .share-page .code-peek:not([role=dialog] *) { max-width: 520px; }
+}
