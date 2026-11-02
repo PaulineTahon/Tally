@@ -128,8 +128,8 @@ export const entryVariant = () => currentVariant() === 'entry'
 /** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
 export const tilesVariant = () => currentVariant() === 'tiles'
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
-/** `?social=rows|icons|strip`: how the social links show. Without it, Icons in Split and Rows everywhere else. */
-export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(rows|icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'rows' | 'icons' | 'strip') : splitVariant() ? 'icons' : 'rows' }
+/** How the social links show in each version: Icons in Split and Rows everywhere else. */
+export const socialVariant = (): 'rows' | 'icons' | 'strip' => (splitVariant() ? 'icons' : 'rows')
 export const jobsVariant = () => currentVariant() === 'jobs'
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
@@ -513,7 +513,7 @@ function SocialList({ split = false }: { split?: boolean }) {
 }
 
 /**
- * `?social=icons` and `?social=strip`: the same tagged links as round buttons with a label under each, in a wrapping
+ * Icons and Strip: the same tagged links as round buttons with a label under each, in a wrapping
  * grid or in one row that scrolls sideways (a fade on the right while there's more). Copy shows an alert at the bottom.
  */
 function SocialIcons({ strip, showRef = false, copied = shareCopy.copiedFor }: { strip: boolean; showRef?: boolean; copied?: (label: string) => string }) {

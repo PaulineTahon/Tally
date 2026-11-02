@@ -17,11 +17,7 @@ type Route = 'edit' | 'share' | 'insights' | 'submissions'
 type Variant = 'split' | 'tabs' | 'entry' | 'tiles' | 'jobs' | 'simple'
 // Only the layouts this build offers (all six, unless VITE_VARIANTS says otherwise).
 const VERSIONS: { id: Variant; label: string }[] = ([{ id: 'simple', label: 'Simple' }, { id: 'split', label: 'Split' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }] as { id: Variant; label: string }[]).filter((v) => VARIANTS.includes(v.id))
-/** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
-type Social = '' | 'rows' | 'icons' | 'strip'
-const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
-const defaultSocial = (v: Variant) => (v === 'split' ? 'icons' : 'rows')
-function setParam(key: 'variant' | 'social', v: string) {
+function setParam(key: 'variant', v: string) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
   if (v) p.set(key, v); else p.delete(key)
@@ -29,9 +25,8 @@ function setParam(key: 'variant' | 'social', v: string) {
   window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
 }
 const setVariant = (v: Variant) => setParam('variant', v === 'simple' ? '' : v)
-const setSocial = (v: Social) => setParam('social', v)
 
-function readRoute(): { route: Route; variant: Variant; social: Social; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
+function readRoute(): { route: Route; variant: Variant; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
@@ -42,7 +37,6 @@ function readRoute(): { route: Route; variant: Variant; social: Social; publish:
     // No ?variant= means Simple, my proposal, the changelog demo included.
     // A layout this build doesn't offer opens Simple too.
     variant: currentVariant(),
-    social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -133,15 +127,6 @@ function Inner() {
             <span className="proto-version-label">Version:</span>
             {VERSIONS.map((v) => (
               <button key={v.id} type="button" aria-pressed={r.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</button>
-            ))}
-          </span>
-        )}
-        {/* Prototype only: three layouts for the social links, wherever they show. Kept in sync with ?social=. */}
-        {(r.route === 'edit' || r.route === 'share') && (
-          <span className="proto-version" role="group" aria-label="Social layout">
-            <span className="proto-version-label">Social:</span>
-            {SOCIALS.map((v) => (
-              <button key={v.id} type="button" aria-pressed={(r.social || defaultSocial(r.variant)) === v.id} onClick={() => setSocial(v.id === defaultSocial(r.variant) ? '' : v.id)}>{v.label}</button>
             ))}
           </span>
         )}
