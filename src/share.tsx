@@ -8,7 +8,7 @@ import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TI
 import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
 import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle, useQrOptions } from './qrpanel'
 import { buildSvg, svgSrc } from './qr'
-import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy, splitCopy } from './copy'
+import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy, simpleCopy, splitCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
 
@@ -130,6 +130,8 @@ export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.has
 export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'icons' | 'strip') : 'rows' }
 export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 /** `?variant=split`: Link, QR code and Embed as tabs. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
+/** `?variant=simple`: the Jobs overview cut down to the link, one QR code and Embed. No tracking. */
+export const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
 export const splitVariant = () => /[?&]variant=split\b/.test(window.location.hash + window.location.search)
 
 /** How the link shows up when it's pasted in a chat or a post. */
@@ -674,12 +676,13 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   // Switching version from the prototype bar starts the sheet over on its overview.
   const jobs = jobsVariant()
   const split = splitVariant()
-  const version = split ? 'split' : jobs ? 'jobs' : tiles ? 'tiles' : entryVariant() ? 'entry' : 'tabs'
+  const simple = simpleVariant()
+  const version = simple ? 'simple' : split ? 'split' : jobs ? 'jobs' : tiles ? 'tiles' : entryVariant() ? 'entry' : 'tabs'
   const { reset } = nav
   const firstVersion = useRef(version)
   useEffect(() => { if (firstVersion.current !== version) { firstVersion.current = version; reset() } }, [version, reset])
   // Entry rows and tiles work the same way: an overview, and each way to share as its own subpage.
-  const entry = entryVariant() || tiles || jobs
+  const entry = entryVariant() || tiles || jobs || simple
   // Desktop Share tab page: everything that opens (custom domain, preview, a code's page, and in Rows and Tiles each
   // way to share) opens in a centred modal instead of inline. A view opened from inside it gets Back in the header.
   const mobile = useIsMobile()
@@ -708,7 +711,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const linkTop = (
     <>
       <div className="stack gap-8 link-block">
-        <LinkBar extra={jobs ? (big) => <JobsQrButton big={big} /> : undefined} />
+        <LinkBar extra={jobs || simple ? (big) => <JobsQrButton big={big} /> : undefined} />
         <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
       </div>
       <div className="stack gap-8">
@@ -718,6 +721,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       </div>
     </>
   )
+  const simpleEmbed = <SplitEmbedTab onCustomize={() => { s.dismissGroup('qr'); setEmbed('standard') }} />
   const panels: { key: Slot; node: ReactNode }[] = split ? [
     { key: 's-link' as Slot, node: <div className="stack gap-24">{linkTop}<SplitTrackRow kind="link" onOpen={() => nav.go('track-link')} /></div> },
     { key: 's-qr' as Slot, node: <SplitQrTab onTrack={() => nav.go('track-qr')} /> },
@@ -732,15 +736,15 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   ] : [
     ...(entry
       ? [
-        { key: 'menu' as Slot, node: jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} onTrack={() => nav.go('track')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
-        ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}<ChannelPanel channel={c} onEmbed={setEmbed} /></div> }))),
+        { key: 'menu' as Slot, node: simple ? <SimpleMenu onEmbed={() => nav.go('ch-embed')} /> : jobs ? <JobsMenu onEmbed={() => nav.go('ch-embed')} onTrack={() => nav.go('track')} /> : tiles ? <ShareTiles onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> : <EntryRows onOpen={(c) => nav.go(`ch-${c}` as ChannelView)} /> },
+        ...(pageModal ? [] : CHANNELS.map((c) => ({ key: `ch-${c}` as Slot, node: <div className="stack gap-12">{head(`ch-${c}` as ChannelView)}{simple && c === 'embed' ? simpleEmbed : <ChannelPanel channel={c} onEmbed={setEmbed} />}</div> }))),
       ]
       : CHANNELS.map((c) => ({ key: c as Slot, node: <ChannelPanel channel={c} onEmbed={setEmbed} /> }))),
     ...(pageModal ? [] : [
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
       { key: 'track' as Slot, node: <div className="stack gap-12">{head('track')}<JobsTracking tab={trackTab} onTab={setTrackTab} /></div> },
-      { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
+      { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} simple={simple} /></div> },
     ]),
   ]
   const overview: Slot = split ? `s-${splitTab}` : entry ? 'menu' : channel
@@ -750,10 +754,11 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const modalTitle = view !== 'main' && nav.depth > 1 ? <ViewHead view={view} onBack={nav.back} as="span" /> : plainTitle
   const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
     : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
-    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
+    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} simple={simple} />
     : view === 'track' ? <JobsTracking tab={trackTab} onTab={setTrackTab} />
     : view === 'track-link' ? <SplitLinkPage />
     : view === 'track-qr' ? <SplitQrPage />
+    : view === 'ch-embed' && simple ? simpleEmbed
     : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} /> : null
   return (
     <CompactCtx.Provider value={inModal}>
@@ -1008,6 +1013,17 @@ function SplitQrPage() {
         </AutoHeight>
         <AddCodeBlock help={false} />
       </div>
+    </div>
+  )
+}
+
+/* ---------- Simple version ---------- */
+
+/** Simple, under the link and its preview: Embed as one blue text link with the code icon. Nothing else. */
+function SimpleMenu({ onEmbed }: { onEmbed: () => void }) {
+  return (
+    <div className="simple-menu">
+      <button type="button" className="simple-embed" data-row="ch-embed" aria-haspopup="dialog" onClick={onEmbed}><Code2 aria-hidden />{simpleCopy.embedLink}</button>
     </div>
   )
 }

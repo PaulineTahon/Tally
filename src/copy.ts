@@ -170,6 +170,10 @@ export const jobsCopy = {
 }
 
 /** Split version: Link, QR code and Embed as tabs. Extra links and extra codes are the same idea, a ref on the same link. */
+export const simpleCopy = {
+  embedLink: 'Embed on your website',
+}
+
 export const splitCopy = {
   tabs: 'Ways to share',
   link: 'Link',

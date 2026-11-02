@@ -3,7 +3,7 @@ import { ChevronDown, Download, Maximize2, Share, X, Upload, Plus } from 'lucide
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
 import { EGG_TITLE, planCopy } from './copy'
-import { Dialog, PopMenu, Pro } from './ui'
+import { Collapse, Dialog, PopMenu, Pro, TextAction } from './ui'
 import { buildSvg, isLogoData, logoLoads, codeSvg, download, fileFor, pngBlob, svgSrc, type QrFormat, type QrOptions, type QrStyle } from './qr'
 
 export const FORMATS: { id: QrFormat; label: string; help: string }[] = [
@@ -132,7 +132,8 @@ function CodePreview({ refId }: { refId: string }) {
  * isn't on screen), the logo, and the tracking line. In the share sheet it is a detail view; elsewhere, its own
  * dialog. `focusLogo`: opened from Customize QR code, so it scrolls to the logo and focuses it.
  */
-export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLogo?: boolean }) {
+/** `simple`: the Simple version. Customize QR code (Pro) sits under Download, and the logo only shows once you open it. */
+export function QrDetail({ refId, focusLogo = false, simple = false }: { refId: string; focusLogo?: boolean; simple?: boolean }) {
   const s = useStore()
   const { settings, setSettings } = s
   const { style } = settings
@@ -140,6 +141,7 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
   const upload = useRef<HTMLButtonElement>(null)
   const head = useRef<HTMLHeadingElement>(null)
   const placement = s.placements.find((p) => p.ref === refId)
+  const [logoOpen, setLogoOpen] = useState(focusLogo)
   const setLogo = (logo: string | null) => setSettings({ ...settings, style: { ...style, logo } })
   const onLogo = (f?: File) => {
     if (!f) return
@@ -169,7 +171,20 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
         <div className="qr-detail-dl">
           <DownloadSplit refId={refId} label={placement?.label ?? QR_COPY.yourCode} upgradePrimary />
         </div>
+        {simple && (
+          <div className="text-actions qr-detail-customize">
+            <TextAction label={QR_COPY.customizeCode} pro dataRow="logo" onClick={() => {
+              setLogoOpen((v) => !v)
+              if (!logoOpen) window.setTimeout(() => head.current?.focus({ preventScroll: false }), 60)
+            }} />
+          </div>
+        )}
       </div>
+      {simple ? <Collapse open={logoOpen}>{logoBlock()}</Collapse> : logoBlock()}
+    </div>
+  )
+  function logoBlock() {
+    return <>
       <hr className="divider qr-detail-div" />
       {/* One logo for the whole form. Free can try it: it shows right away, and downloading it is Pro. */}
       <section className="qr-logo" aria-labelledby="qr-logo-h">
@@ -185,8 +200,8 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
           </div>
         </div>
       </section>
-    </div>
-  )
+    </>
+  }
 }
 
 export const INSIGHTS_QR_HREF = '#/insights?focus=qr'

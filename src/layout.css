@@ -996,3 +996,11 @@ html.is-capture .proto-version { display: none !important; }
   .split-qr-code { width: 144px; height: 144px; }
   .code-row .link-row-copy { font-size: 0; gap: 0; width: 44px; padding: 0; justify-content: center; }
 }
+
+/* Simple version: Embed as a blue text link with the code icon. Customize QR code under Download on the code's page. */
+.simple-embed { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; margin: -4px 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; line-height: 18px; color: var(--blue-deep); cursor: pointer; border-radius: 4px; }
+.simple-embed svg { width: 16px; height: 16px; flex: none; }
+@media (hover: hover) and (pointer: fine) { .simple-embed:hover { text-decoration: underline; text-underline-offset: 3px; } }
+.simple-embed:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (max-width: 757px) { .simple-embed { padding: 13px 0; margin: -13px 0; } }
+.qr-detail-customize { justify-content: center; margin-top: -8px; }
