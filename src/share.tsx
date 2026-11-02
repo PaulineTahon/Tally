@@ -135,8 +135,8 @@ export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash 
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
 export const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
-/** Split is the default: no ?variant= means Split (Tabs is ?variant=tabs). The changelog demo keeps Tabs, like its GIF. */
-export const splitVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=split\b/.test(q) || (!/[?&]variant=/.test(q) && !/[?&]demo=changelog\b/.test(q)) }
+/** Split is the default: no ?variant= means Split (Tabs is ?variant=tabs), the changelog demo included. */
+export const splitVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=split\b/.test(q) || !/[?&]variant=/.test(q) }
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {

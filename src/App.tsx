@@ -43,8 +43,8 @@ function readRoute(): { route: Route; variant: Variant; social: Social; track: T
   const v = p.get('variant')
   return {
     route,
-    // No ?variant= means Split; the changelog demo keeps Tabs, like its GIF.
-    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : p.get('demo') === 'changelog' ? 'tabs' : 'split',
+    // No ?variant= means Split, the changelog demo included, like its GIF.
+    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : 'split',
     social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     track: p.get('track') === 'list' ? 'list' : '',
     publish: p.get('published') === '1',
