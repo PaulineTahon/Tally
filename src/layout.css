@@ -970,7 +970,6 @@ html.is-capture .proto-version { display: none !important; }
 @media (prefers-reduced-motion: reduce) { .code-row { transition: none; } }
 /* A code row ends with Download (an outlined button with icon and label, like a link row's Copy) and More options (SVG, PDF, Remove). Above the stretched row button, so they never open the code. */
 .code-row-dl { flex: none; }
-.row-more-slot { display: inline-block; height: 1px; }
 .ref-tip code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; color: var(--text); background: var(--surface-2); padding: 1px 4px; border-radius: 4px; }
 .code-row-more { flex: none; width: 32px; padding: 0; justify-content: center; }
 .code-row-more svg { width: 18px; height: 18px; }

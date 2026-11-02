@@ -13,9 +13,9 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-/** The share sheet layouts, by their ?variant= value: none (or split) for Split, the default, tabs for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs, simple for Simple. */
+/** The share sheet layouts, by their ?variant= value: none (or simple) for Simple, the default, split for Split, tabs for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs. */
 type Variant = 'split' | 'tabs' | 'entry' | 'tiles' | 'jobs' | 'simple'
-const VERSIONS: { id: Variant; label: string }[] = [{ id: 'split', label: 'Split' }, { id: 'simple', label: 'Simple' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
+const VERSIONS: { id: Variant; label: string }[] = [{ id: 'simple', label: 'Simple' }, { id: 'split', label: 'Split' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
 /** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
 type Social = '' | 'rows' | 'icons' | 'strip'
 const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
@@ -30,7 +30,7 @@ function setParam(key: 'variant' | 'social' | 'track', v: string) {
   const qs = p.toString()
   window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
 }
-const setVariant = (v: Variant) => setParam('variant', v === 'split' ? '' : v)
+const setVariant = (v: Variant) => setParam('variant', v === 'simple' ? '' : v)
 const setSocial = (v: Social) => setParam('social', v)
 const setTrack = (v: Track) => setParam('track', v)
 
@@ -43,8 +43,8 @@ function readRoute(): { route: Route; variant: Variant; social: Social; track: T
   const v = p.get('variant')
   return {
     route,
-    // No ?variant= means Split, the changelog demo included, like its GIF.
-    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : 'split',
+    // No ?variant= means Simple, my proposal, the changelog demo included.
+    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : 'simple',
     social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     track: p.get('track') === 'list' ? 'list' : '',
     publish: p.get('published') === '1',

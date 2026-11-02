@@ -152,8 +152,8 @@ function ShareTabMock() {
         <span className="cm-label">Embed</span>
         <span className="cm-desc">Pick how the form shows up on your site. <u>How embedding works</u></span>
         <div className="cm-embeds">
-          {['Standard', 'Popup', 'Full page'].map((l, i) => (
-            <span key={l} className="cm-embed"><span className={`cm-embed-pic ${i === 0 ? 'is-on' : ''}`}><i /><i /><i /></span>{l}</span>
+          {['Standard', 'Popup', 'Full page'].map((l) => (
+            <span key={l} className="cm-embed"><span className="cm-embed-pic"><i /><i /><i /></span>{l}</span>
           ))}
         </div>
       </div>

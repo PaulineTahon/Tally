@@ -134,9 +134,10 @@ export const trackListVariant = () => /[?&]track=list\b/.test(window.location.ha
 export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
-export const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
-/** Split is the default: no ?variant= means Split (Tabs is ?variant=tabs), the changelog demo included. */
-export const splitVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=split\b/.test(q) || !/[?&]variant=/.test(q) }
+/** Simple is the default: no ?variant= means Simple, the changelog demo included. */
+export const simpleVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=simple\b/.test(q) || !/[?&]variant=/.test(q) }
+/** `?variant=split`: how I'd add tracked links on top of Simple. */
+export const splitVariant = () => /[?&]variant=split\b/.test(window.location.hash + window.location.search)
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
@@ -365,34 +366,42 @@ export function EmbedThumb({ mode }: { mode: EmbedMode }) {
 }
 
 /**
- * Three layouts to pick from (Standard first), Copy code for the one you picked, and Customize embed, which opens
- * Tally's full Embed page with that layout ready: every option Tally has, and a live preview.
+ * Three layouts to pick from, none picked to start with. Once you pick one, its code, Copy code and Customize embed
+ * (which opens Tally's full Embed page with that layout ready: every option Tally has, and a live preview) open under them.
  * Embedding is free on Tally, so there is no Pro badge here.
  */
 /** `primary`: Copy code is the black button, where Copy link isn't on screen (an Embed tab or view of its own). */
-function EmbedPanel({ onPick, primary = false }: { onPick?: (m: EmbedMode) => void; primary?: boolean }) {
+function EmbedPanel({ onPick, primary = false, gap = 12 }: { onPick?: (m: EmbedMode) => void; primary?: boolean; gap?: number }) {
   const mobile = useIsMobile()
   const s = useStore()
-  const [mode, setMode] = useState<EmbedMode>('standard')
+  const [picked, setPicked] = useState<EmbedMode | null>(null)
+  // While nothing is picked the code part is closed (and inert), so what it holds never shows.
+  const mode: EmbedMode = picked ?? 'standard'
   const label = EMBEDS.find((e) => e.id === mode)?.label ?? ''
+  const codeId = `embed-code-${useId().replace(/:/g, '')}`
   return (
-    <div className="stack gap-12">
+    <div className="stack" style={{ gap }}>
       <p className="small muted" style={{ margin: 0 }}>{embedCopy.intro}{mobile && ` ${embedCopy.desktop}`} <a className="link-btn small inline-link" href={embedCopy.helpUrl} target="_blank" rel="noreferrer">{embedCopy.help}<span className="sr-only"> {embedCopy.newTab}</span></a></p>
       <div className="embed-cards is-sheet" role="group" aria-label={embedCopy.layout}>
         {EMBEDS.map((e) => (
-          <button type="button" key={e.id} className="embed-card" data-mode={e.id} aria-pressed={mode === e.id} onClick={() => setMode(e.id)}>
+          <button type="button" key={e.id} className="embed-card" data-mode={e.id} aria-pressed={picked === e.id} aria-controls={codeId} onClick={() => setPicked(e.id)}>
             <EmbedThumb mode={e.id} />
             <span>{e.label}</span>
           </button>
         ))}
       </div>
-      {/* The whole real snippet for the picked layout, in a short box that scrolls (wheel, trackpad, touch, or arrow keys once focused). */}
-      <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
-      {/* Customize embed sits right of Copy code, on the same line. Copy code is black only where Copy link isn't on screen. */}
-      <div className="embed-actions">
-        <CopyButton outline={!primary} big={mobile} label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
-        <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
-      </div>
+      {/* Opens under the layouts once one is picked, so they never move. */}
+      <Collapse open={picked !== null} id={codeId} gap={gap}>
+        <div className="stack" style={{ gap }}>
+          {/* The whole real snippet for the picked layout, in a short box that scrolls (wheel, trackpad, touch, or arrow keys once focused). */}
+          <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
+          {/* Customize embed sits right of Copy code, on the same line. Copy code is black only where Copy link isn't on screen. */}
+          <div className="embed-actions">
+            <CopyButton outline={!primary} big={mobile} label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
+            <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
+          </div>
+        </div>
+      </Collapse>
     </div>
   )
 }
@@ -730,7 +739,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   )
   const shareTab = <div className="stack gap-24">{linkTop}{split && <SplitTrackRow onOpen={() => nav.go('track-link')} />}</div>
   // The same Embed as Tabs and Jobs: Standard, Popup or Full page, the code for it, then Copy code and Customize embed.
-  const embedTab = <div className="split-embed"><EmbedPanel onPick={setEmbed} primary={!stacked} /></div>
+  const embedTab = <div className="split-embed"><EmbedPanel onPick={setEmbed} primary={!stacked} gap={8} /></div>
   const panels: { key: Slot; node: ReactNode }[] = tabbed ? [
     // Split's Share tab page has the room: no tabs, Share then Embed as sections.
     ...(stacked ? [{ key: 's-stack' as Slot, node: (
@@ -1023,8 +1032,6 @@ function SocialSourceRow({ icon, label, refName }: { icon: ReactNode; label: str
       <span className="row-lead grow"><span className="row-type-ic" aria-hidden>{icon}</span><span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={refName}</span></span></span>
       <span className="row-actions">
         <CopyButton outline className="btn-sm link-row-copy" text={s.url(refName)} ariaLabel={shareCopy.copyFor(label)} toastText={splitCopy.copied(label)} />
-        {/* No More options here (a preset has nothing to remove), but the same slot, so Copy lines up with the Copy and Download of the other rows. */}
-        <span className="code-row-more row-more-slot" aria-hidden />
       </span>
     </li>
   )

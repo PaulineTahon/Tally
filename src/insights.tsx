@@ -36,8 +36,8 @@ const DAYS: Record<Range, number[][]> = {
   '24h': [[0, 0], [0, 0], [1, 0], [0, 0], [2, 1], [0, 0]],
 }
 
-/** Simple (?variant=simple) has no tracked links and one code, so Sources only shows what exists there: Your QR Code and Direct / None. */
-const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
+/** Simple (the default, or ?variant=simple) has no tracked links and one code, so Sources only shows what exists there: Your QR Code and Direct / None. */
+const simpleVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=simple\b/.test(q) || !/[?&]variant=/.test(q) }
 function simpleRows(rows: SourceRow[]): SourceRow[] {
   const qr = rows.find((x) => x.ref === MAIN_QR)
   const visits = rows.reduce((t, x) => t + x.visits, 0)
