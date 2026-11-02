@@ -184,7 +184,7 @@ function Changelog() {
 
 /** The changelog post, in one place. */
 const POST = {
-  title: 'Share your form anywhere',
+  title: 'Your forms, out in the real world',
   body: 'Share now has everything you need to get your form in front of people, and to see what works.',
   bullets: [
     ['QR codes, ready to print.', 'Every form gets its own QR code. Download it as PNG, SVG or PDF, and add your logo in the middle (Pro).'],
