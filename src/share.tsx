@@ -897,7 +897,7 @@ function SplitTrackRow({ onOpen }: { onOpen: () => void }) {
 const REF_TIP_CODE = '?ref=anything'
 
 /**
- * A link you made, as a row like a preset: the link icon, name and ref, More options, then Copy on the trailing edge, so Copy ends every link row.
+ * A link you made, as a row like a preset: the link icon, name and ref, then Copy and More options, in the same order as a code row's Download and More options.
  * `rowCopy`: a click anywhere on the row copies too, except on Copy and More options.
  */
 function LinkRow({ p, rowCopy = false }: { p: Source; rowCopy?: boolean }) {
@@ -921,8 +921,8 @@ function LinkRow({ p, rowCopy = false }: { p: Source; rowCopy?: boolean }) {
     <li ref={row} className={`code-row link-row ${rowCopy ? 'is-row-copy' : ''}`} data-ref={p.ref} onClick={rowCopy ? rowCopyClick(() => copyLink(s, p.label, p.ref)) : undefined}>
       <span className="row-lead grow"><LinkIcon className="row-type-ic" aria-hidden /><span className="code-row-text"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span></span>
       <span className="row-actions">
-        <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} title={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><EllipsisVertical aria-hidden /></button>
         <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
+        <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} title={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><EllipsisVertical aria-hidden /></button>
       </span>
       <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={splitCopy.moreForLink(p.label)} width={180}>
         <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
