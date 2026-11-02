@@ -1,3 +1,4 @@
+import { currentVariant } from './params'
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { MonoMark } from './brand'
 import {
@@ -123,19 +124,19 @@ export function useViewStack() {
 export type ViewNav = ReturnType<typeof useViewStack>
 
 /** `?variant=entry`: three entry rows instead of the tabs, each opening its own subpage. Tabs stay the default. */
-export const entryVariant = () => /[?&]variant=entry\b/.test(window.location.hash + window.location.search)
+export const entryVariant = () => currentVariant() === 'entry'
 /** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
-export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.hash + window.location.search)
+export const tilesVariant = () => currentVariant() === 'tiles'
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
 /** `?social=rows|icons|strip`: how the social links show. Without it, Icons in Split and Rows everywhere else. */
 export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(rows|icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'rows' | 'icons' | 'strip') : splitVariant() ? 'icons' : 'rows' }
-export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
+export const jobsVariant = () => currentVariant() === 'jobs'
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
 /** Simple is the default: no ?variant= means Simple, the changelog demo included. */
-export const simpleVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=simple\b/.test(q) || !/[?&]variant=/.test(q) }
+export const simpleVariant = () => currentVariant() === 'simple'
 /** `?variant=split`: how I'd add tracked links on top of Simple. */
-export const splitVariant = () => /[?&]variant=split\b/.test(window.location.hash + window.location.search)
+export const splitVariant = () => currentVariant() === 'split'
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
