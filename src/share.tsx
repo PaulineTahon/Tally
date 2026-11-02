@@ -129,8 +129,6 @@ export const tilesVariant = () => /[?&]variant=tiles\b/.test(window.location.has
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
 /** `?social=rows|icons|strip`: how the social links show. Without it, Icons in Split and Rows everywhere else. */
 export const socialVariant = (): 'rows' | 'icons' | 'strip' => { const m = /[?&]social=(rows|icons|strip)\b/.exec(window.location.hash + window.location.search); return m ? (m[1] as 'rows' | 'icons' | 'strip') : splitVariant() ? 'icons' : 'rows' }
-/** `&track=list`: Split's tracking page as one list of every source (socials, your links, your codes) with an All / Links / QR codes filter. Without it, the two sections. */
-export const trackListVariant = () => /[?&]track=list\b/.test(window.location.hash + window.location.search)
 export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash + window.location.search)
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
@@ -755,7 +753,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     ...(pageModal ? [] : [
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
-      { key: 'track-link' as Slot, node: <div className="stack gap-12">{head('track-link')}<SplitTrackPage /></div> },
+      { key: 'track-link' as Slot, node: <div className="stack gap-12">{head('track-link')}<SplitTrackPage tab={trackTab} onTab={setTrackTab} /></div> },
       { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
     ]),
   ] : [
@@ -781,7 +779,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
     : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
     : view === 'track' ? <JobsTracking tab={trackTab} onTab={setTrackTab} />
-    : view === 'track-link' ? <SplitTrackPage />
+    : view === 'track-link' ? <SplitTrackPage tab={trackTab} onTab={setTrackTab} />
     : view.startsWith('ch-') ? <ChannelPanel channel={view.slice(3) as Channel} onEmbed={setEmbed} alone /> : null
   return (
     <CompactCtx.Provider value={inModal}>
@@ -896,23 +894,11 @@ function SplitTrackRow({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-/** The line on top of the page, linking to Insights. */
-function SplitTagLine() {
-  const [before, after] = splitCopy.pageLine.split('Insights')
-  const [tipBefore, tipAfter] = splitCopy.refTip.split(REF_TIP_CODE)
-  return (
-    <div className="stack gap-4">
-      <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
-      {/* One tip under the intro: any ?ref= works, not only the ones listed here. */}
-      <p className="small muted ref-tip" style={{ margin: 0 }}>{tipBefore}<code>{REF_TIP_CODE}</code>{tipAfter}</p>
-    </div>
-  )
-}
 const REF_TIP_CODE = '?ref=anything'
 
 /**
- * A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options.
- * `rowCopy` (the list view): a click anywhere on the row copies too, except on Copy and More options.
+ * A link you made, as a row like a preset: the link icon, name and ref, More options, then Copy on the trailing edge, so Copy ends every link row.
+ * `rowCopy`: a click anywhere on the row copies too, except on Copy and More options.
  */
 function LinkRow({ p, rowCopy = false }: { p: Source; rowCopy?: boolean }) {
   const s = useStore()
@@ -935,8 +921,8 @@ function LinkRow({ p, rowCopy = false }: { p: Source; rowCopy?: boolean }) {
     <li ref={row} className={`code-row link-row ${rowCopy ? 'is-row-copy' : ''}`} data-ref={p.ref} onClick={rowCopy ? rowCopyClick(() => copyLink(s, p.label, p.ref)) : undefined}>
       <span className="row-lead grow"><LinkIcon className="row-type-ic" aria-hidden /><span className="code-row-text"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span></span>
       <span className="row-actions">
-        <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
         <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} title={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><EllipsisVertical aria-hidden /></button>
+        <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
       </span>
       <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={splitCopy.moreForLink(p.label)} width={180}>
         <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
@@ -972,45 +958,56 @@ function AddLinkBlock() {
   )
 }
 
-/** See where responses come from: two sections. Links (the socials in the Social layout you picked, then your links, then Add another link) and QR codes (your codes, then Add another code). */
-function SplitTrackPage() {
-  if (trackListVariant()) return <SplitTrackList />
-  return <SplitTrackSections />
-}
-
-function SplitTrackSections() {
+/**
+ * See where responses come from, with the Jobs page's structure: one line, then Links and QR codes as tabs.
+ * Both tabs use the same rows (code-row): icon, name over ?ref=, then the actions, and an Add another row under them.
+ * The sheet and the Share tab page both show this page.
+ */
+function SplitTrackPage({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => void }) {
   const s = useStore()
   const links = useExtraLinks()
   const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
+  const [before, after] = splitCopy.pageLine.split('Insights')
+  const [tipBefore, tipAfter] = splitCopy.refTip.split(REF_TIP_CODE)
   return (
-    <div className="stack gap-24 split-page qr-list-scope">
-      <SplitTagLine />
-      <section className="stack gap-8" aria-labelledby="split-links-label">
-        <div className="section-label" id="split-links-label">{splitCopy.linksLabel}</div>
-        <p className="small muted" style={{ margin: 0 }}>{splitCopy.socialHelp}</p>
-        {/* The socials and Email as rows like the QR codes: their mark, name and ref, and Copy. Then your links. */}
-        <AutoHeight k={String(links.length)} slow>
-          <ul className="code-rows" aria-label={splitCopy.linksLabel}>
-            {[...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
-            {links.map((p) => <LinkRow key={p.ref} p={p} />)}
-          </ul>
-        </AutoHeight>
-        <AddLinkBlock />
-      </section>
-      <section className="stack gap-8" aria-labelledby="split-codes-label">
-        <div className="section-label" id="split-codes-label">{splitCopy.codesLabel}</div>
-        <AutoHeight k={String(s.placements.length)} slow>
-          <ul className="code-rows" aria-label={splitCopy.codesLabel}>
-            {codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
-          </ul>
-        </AutoHeight>
-        <AddCodeBlock help={false} />
-      </section>
+    <div className="stack split-page split-track-tabs qr-list-scope">
+      <div className="stack share-to split-track-head">
+        <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
+        <Segmented<TrackTab>
+          label={splitCopy.track} value={tab} onChange={onTab}
+          options={[
+            { value: 'social', label: splitCopy.linksLabel, icon: <Link2 aria-hidden /> },
+            { value: 'qr', label: splitCopy.codesLabel, icon: <QrCode aria-hidden /> },
+          ]}
+        />
+      </div>
+      {tab === 'social' ? (
+        <div className="stack gap-8">
+          <AutoHeight k={String(links.length)} slow>
+            <ul className="code-rows" aria-label={splitCopy.linksLabel}>
+              {[...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
+              {links.map((p) => <LinkRow key={p.ref} p={p} rowCopy />)}
+            </ul>
+          </AutoHeight>
+          <AddLinkBlock />
+          {/* Any ?ref= works, not only the ones listed here. */}
+          <p className="small muted ref-tip" style={{ margin: 0 }}>{tipBefore}<code>{REF_TIP_CODE}</code>{tipAfter}</p>
+        </div>
+      ) : (
+        <div className="stack gap-8">
+          <AutoHeight k={String(s.placements.length)} slow>
+            <ul className="code-rows" aria-label={splitCopy.codesLabel}>
+              {codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+            </ul>
+          </AutoHeight>
+          <AddCodeBlock help={false} />
+        </div>
+      )}
     </div>
   )
 }
 
-/* ---------- Split tracking page, list view (&track=list) ---------- */
+/* ---------- Split tracking page rows ---------- */
 
 type Store = ReturnType<typeof useStore>
 async function copyLink(s: Store, label: string, ref: string) {
@@ -1037,43 +1034,3 @@ function SocialSourceRow({ icon, label, refName }: { icon: ReactNode; label: str
   )
 }
 
-export type TrackFilter = 'all' | 'links' | 'qr'
-
-/**
- * Every tracked source in one list: the socials and Email, your links, then your codes, each with its type icon,
- * name and ref. All / Links / QR codes filters it in place, and the Add another rows under it follow the filter.
- */
-function SplitTrackList() {
-  const s = useStore()
-  const links = useExtraLinks()
-  const codes = [...s.placements.filter((p) => p.ref === MAIN_QR), ...s.placements.filter((p) => p.ref !== MAIN_QR)]
-  const [filter, setFilter] = useState<TrackFilter>('all')
-  const showLinks = filter !== 'qr'
-  const showCodes = filter !== 'links'
-  return (
-    <div className="stack gap-24 split-page track-list qr-list-scope">
-      <SplitTagLine />
-      <div className="stack gap-8">
-        <div className="share-to track-filter">
-          <Segmented<TrackFilter>
-            label={splitCopy.filterLabel} value={filter} onChange={setFilter}
-            options={[
-              { value: 'all', label: splitCopy.filterAll },
-              { value: 'links', label: splitCopy.linksLabel },
-              { value: 'qr', label: splitCopy.codesLabel },
-            ]}
-          />
-        </div>
-        <AutoHeight k={`${filter}-${links.length}-${s.placements.length}`} slow>
-          <ul className="code-rows" aria-label={filter === 'all' ? splitCopy.allSources : filter === 'links' ? splitCopy.linksLabel : splitCopy.codesLabel}>
-            {showLinks && [...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
-            {showLinks && links.map((p) => <LinkRow key={p.ref} p={p} rowCopy />)}
-            {showCodes && codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
-          </ul>
-        </AutoHeight>
-        {showLinks && <AddLinkBlock />}
-        {showCodes && <AddCodeBlock help={false} />}
-      </div>
-    </div>
-  )
-}

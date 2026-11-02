@@ -1046,5 +1046,13 @@ html.is-capture .proto-version { display: none !important; }
 .row-lead { display: flex; align-items: flex-start; gap: var(--row-gap); flex: 1; min-width: 0; }
 .row-type-ic { flex: none; display: inline-flex; width: 18px; height: 18px; margin-top: 1px; color: var(--text); }
 .row-type-ic svg { width: 18px; height: 18px; }
-/* List view rows that copy from anywhere on the row. */
+/* Link rows that copy from anywhere on the row. */
 .code-row.is-row-copy { cursor: pointer; }
+
+/* Split's tracking page: Jobs' structure (a line, then Links | QR codes as tabs) with Split's rows on both tabs.
+   One rhythm: 12 from the line to the tabs, then the same 16 (12 on a phone) from the tabs to the rows as Split's
+   Share | Embed tabs, rows of the same height and padding, and 8 from the rows to Add another. */
+.split-track-tabs { gap: 16px; }
+.split-track-head { gap: 12px; }
+@media (max-width: 757px) { .split-track-tabs { gap: 12px; } }
+@media (min-width: 758px) { .share-page .split-track-head { max-width: 520px; } }

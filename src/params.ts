@@ -1,5 +1,5 @@
-/** Prototype only: the version, Social layout and tracking view you picked travel with you from screen to screen. */
-const KEEP = ['variant', 'social', 'track'] as const
+/** Prototype only: the version and Social layout you picked travel with you from screen to screen. */
+const KEEP = ['variant', 'social'] as const
 
 /** `extra` like `?state=noqr`; the current ?variant= and ?social= are added unless `extra` sets them. */
 export function keepParams(extra = ''): string {

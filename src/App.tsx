@@ -20,10 +20,7 @@ const VERSIONS: { id: Variant; label: string }[] = [{ id: 'simple', label: 'Simp
 type Social = '' | 'rows' | 'icons' | 'strip'
 const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
 const defaultSocial = (v: Variant) => (v === 'split' ? 'icons' : 'rows')
-/** Split's tracking page, by its ?track= value: none for the two sections, list for one list with a filter. */
-type Track = '' | 'list'
-const TRACKS: { id: Track; label: string }[] = [{ id: '', label: 'Sections' }, { id: 'list', label: 'List' }]
-function setParam(key: 'variant' | 'social' | 'track', v: string) {
+function setParam(key: 'variant' | 'social', v: string) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
   if (v) p.set(key, v); else p.delete(key)
@@ -32,9 +29,8 @@ function setParam(key: 'variant' | 'social' | 'track', v: string) {
 }
 const setVariant = (v: Variant) => setParam('variant', v === 'simple' ? '' : v)
 const setSocial = (v: Social) => setParam('social', v)
-const setTrack = (v: Track) => setParam('track', v)
 
-function readRoute(): { route: Route; variant: Variant; social: Social; track: Track; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
+function readRoute(): { route: Route; variant: Variant; social: Social; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
   const [path, q = ''] = h.split('?')
   const p = new URLSearchParams(q)
@@ -46,7 +42,6 @@ function readRoute(): { route: Route; variant: Variant; social: Social; track: T
     // No ?variant= means Simple, my proposal, the changelog demo included.
     variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : 'simple',
     social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
-    track: p.get('track') === 'list' ? 'list' : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -146,15 +141,6 @@ function Inner() {
             <span className="proto-version-label">Social:</span>
             {SOCIALS.map((v) => (
               <button key={v.id} type="button" aria-pressed={(r.social || defaultSocial(r.variant)) === v.id} onClick={() => setSocial(v.id === defaultSocial(r.variant) ? '' : v.id)}>{v.label}</button>
-            ))}
-          </span>
-        )}
-        {/* Prototype only: Split's tracking page as two sections, or as one list with a filter. Kept in sync with ?track=. */}
-        {(r.route === 'edit' || r.route === 'share') && r.variant === 'split' && (
-          <span className="proto-version" role="group" aria-label="Tracking view">
-            <span className="proto-version-label">Tracking:</span>
-            {TRACKS.map((v) => (
-              <button key={v.label} type="button" aria-pressed={r.track === v.id} onClick={() => setTrack(v.id)}>{v.label}</button>
             ))}
           </span>
         )}
