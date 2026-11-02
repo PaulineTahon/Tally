@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, X, ArrowUpRight } from 'lucide-react'
 import { guideCopy, type GuidePage } from './guideCopy'
+import { currentVariant } from './params'
 import './guide.css'
 
 /* Prototype chrome only: a small card with things to try on each screen. */
@@ -23,6 +24,15 @@ export function tick(id: string) {
   if (!t.includes(id)) write(TRIED_KEY, [...t, id])
 }
 
+/** The items for a page in the current version: Simple swaps or drops the ones that only fit more codes. */
+function guideItems(page: GuidePage): { id: string; text: string }[] {
+  const simple = currentVariant() === 'simple'
+  return guideCopy.pages[page].items.flatMap((i: { id: string; text: string; simple?: string | null }) => {
+    if (!simple || i.simple === undefined) return [{ id: i.id, text: i.text }]
+    return i.simple === null ? [] : [{ id: i.id, text: i.simple }]
+  })
+}
+
 export function useGuide(page: GuidePage) {
   const [, force] = useState(0)
   useEffect(() => {
@@ -32,7 +42,7 @@ export function useGuide(page: GuidePage) {
     return () => { window.removeEventListener(EVENT, on); window.removeEventListener('storage', on) }
   }, [])
   const tried = read(TRIED_KEY)
-  const items = guideCopy.pages[page].items
+  const items = guideItems(page)
   const done = items.filter((i) => tried.includes(i.id)).length
   return {
     hidden: read(HIDDEN_KEY).includes(page),
@@ -65,6 +75,7 @@ export function GuideCard({ page, open, onClose, mobile = false, delay = true }:
   useEffect(() => { if (open) { const t = window.setTimeout(() => { first.current = false }, 700); return () => window.clearTimeout(t) } }, [open])
   if (!mounted) return null
   const p = guideCopy.pages[page]
+  const items = guideItems(page)
   return (
     <aside role="complementary" aria-label="Prototype guide"
       className={`guide ${mobile ? 'is-mobile' : ''} ${leaving ? 'is-leaving' : ''} ${first.current ? 'is-delayed' : ''}`}>
@@ -74,7 +85,7 @@ export function GuideCard({ page, open, onClose, mobile = false, delay = true }:
       </div>
       <h2 className="guide-title">{p.title}</h2>
       <ul className="guide-items">
-        {p.items.map((i) => {
+        {items.map((i) => {
           const on = g.tried.includes(i.id)
           return (
             <li key={i.id} className={on ? 'is-done' : undefined}>

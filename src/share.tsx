@@ -128,8 +128,6 @@ export const entryVariant = () => currentVariant() === 'entry'
 /** `?variant=tiles`: a "Link preview" label over the card, and three tiles instead of the tabs, each opening its own subpage. */
 export const tilesVariant = () => currentVariant() === 'tiles'
 /** Jobs: get responses fast on top (link, preview, QR code and Embed), then track where they come from. */
-/** How the social links show in each version: Icons in Split and Rows everywhere else. */
-export const socialVariant = (): 'rows' | 'icons' | 'strip' => (splitVariant() ? 'icons' : 'rows')
 export const jobsVariant = () => currentVariant() === 'jobs'
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
@@ -497,56 +495,17 @@ function ChannelRow({ icon, label, text, aria, refName, copied: copiedText = sha
 }
 
 /** One borderless row per place, each with its own tagged link. */
-/** `showRef` (Split): each row shows its ref under the name, like code rows. Icons and Strip keep one line and show it as a tooltip. */
+/** `showRef` (Split): each row shows its ref under the name, like code rows. */
 /** `split`: the Split copy ("LinkedIn link copied") and the ref under each name. */
 function SocialList({ split = false }: { split?: boolean }) {
   const s = useStore()
-  const layout = socialVariant()
   const showRef = split
   const copied = split ? splitCopy.copied : shareCopy.copiedFor
-  if (layout !== 'rows') return <SocialIcons strip={layout === 'strip'} showRef={showRef} copied={copied} />
   return (
     <ul className="ch-list" aria-label="Social">
       {[...SOCIAL, EMAIL].map((x) => <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} refName={showRef ? x.ref : undefined} copied={copied} />)}
     </ul>
   )
-}
-
-/**
- * Icons and Strip: the same tagged links as round buttons with a label under each, in a wrapping
- * grid or in one row that scrolls sideways (a fade on the right while there's more). Copy shows an alert at the bottom.
- */
-function SocialIcons({ strip, showRef = false, copied = shareCopy.copiedFor }: { strip: boolean; showRef?: boolean; copied?: (label: string) => string }) {
-  const s = useStore()
-  const list = useRef<HTMLUListElement>(null)
-  const [more, setMore] = useState(false)
-  const check = useCallback(() => {
-    const el = list.current
-    if (el && strip) setMore(el.scrollLeft + el.clientWidth < el.scrollWidth - 2)
-  }, [strip])
-  useEffect(() => {
-    check()
-    const el = list.current
-    if (!el || !strip) return
-    const ro = new ResizeObserver(check)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [check, strip])
-  const copy = async (place: string, ref: string) => {
-    await copyText(s.url(ref))
-    s.toast(copied(place))
-  }
-  const face = (icon: ReactNode, label: string) => <><span className="soc-circle" aria-hidden>{icon}</span><span className="soc-label" aria-hidden>{label}</span></>
-  const items = (
-    <ul ref={list} className={strip ? 'soc-strip' : 'soc-grid'} aria-label="Social" onScroll={strip ? check : undefined}>
-      {[...SOCIAL, EMAIL].map((x) => (
-        <li key={x.ref}>
-          <button type="button" className="soc-btn" data-row={`soc-${x.ref}`} aria-label={shareCopy.copyFor(x.label)} title={showRef ? `?ref=${x.ref}` : undefined} onClick={() => copy(x.label, x.ref)}>{face(x.icon, x.label)}</button>
-        </li>
-      ))}
-    </ul>
-  )
-  return strip ? <div className={`soc-strip-wrap ${more ? 'has-more' : ''}`}>{items}</div> : items
 }
 
 function SocialPanel() {
