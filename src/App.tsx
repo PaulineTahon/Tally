@@ -12,9 +12,9 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs. */
-type Variant = '' | 'entry' | 'tiles' | 'jobs'
-const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
+/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs, split for Split. */
+type Variant = '' | 'entry' | 'tiles' | 'jobs' | 'split'
+const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }, { id: 'split', label: 'Split' }]
 /** How the social links show, by their ?social= value: none for Rows, icons for Icons, strip for Strip. */
 type Social = '' | 'icons' | 'strip'
 const SOCIALS: { id: Social; label: string }[] = [{ id: '', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
@@ -37,7 +37,7 @@ function readRoute(): { route: Route; variant: Variant; social: Social; publish:
   const v = p.get('variant')
   return {
     route,
-    variant: v === 'entry' || v === 'tiles' || v === 'jobs' ? v : '',
+    variant: v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' ? v : '',
     social: p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
@@ -123,7 +123,7 @@ function Inner() {
           <option value="id">tally.so link</option>
           <option value="custom">Custom ending</option>
         </select>
-        {/* Prototype only: switch between the four share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
+        {/* Prototype only: switch between the five share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
         {(r.route === 'edit' || r.route === 'share') && (
           <span className="proto-version" role="group" aria-label="Share sheet version">
             <span className="proto-version-label">Version:</span>

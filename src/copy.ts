@@ -168,3 +168,28 @@ export const jobsCopy = {
   codes: 'Your other QR codes',
   trackLine: 'Each link or code gets its own tag. See results in',
 }
+
+/** Split version: Link, QR code and Embed as tabs. Extra links and extra codes are the same idea, a ref on the same link. */
+export const splitCopy = {
+  tabs: 'Ways to share',
+  link: 'Link',
+  qr: 'QR code',
+  embed: 'Embed',
+  track: 'Make one for each place',
+  linkHelp: 'Get a tagged link for each social or site, then see in Insights which one brings in responses.',
+  qrHelp: 'Add a code for each poster or flyer, then see in Insights which one brings in responses.',
+  links: (n: number) => `${n} ${n === 1 ? 'link' : 'links'}`,
+  codes: (n: number) => `${n} ${n === 1 ? 'code' : 'codes'}`,
+  linkPage: 'A link for each place',
+  qrPage: 'A code for each place',
+  social: 'Social',
+  yourLinks: 'Your links',
+  addLink: 'Add another link',
+  linkPlaceholder: 'Where will it go? Like Newsletter or Website',
+  linkPlaceholderShort: 'Like Newsletter or Website',
+  linkAdded: (label: string) => `Link added for ${label}`,
+  removedLink: 'Removed. The link still works and its responses stay tagged.',
+  moreForLink: (label: string) => `More options for ${label} link`,
+  embedIntro: 'Paste this code on your website where the form should show up.',
+  suggestedLinks: ['Newsletter', 'Website', 'Slack', 'Discord'],
+}

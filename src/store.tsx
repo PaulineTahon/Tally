@@ -101,6 +101,8 @@ interface Store {
   markDownloaded: () => void
   sources: Source[]
   addSource: (label: string) => Source
+  /** Split version: a tagged link for another place, with its own ref. Never takes a social's or a code's ref. */
+  addLink: (label: string) => Source
   toast: (text: string, opts?: ToastOptions) => void
   /** Clears the alerts of one group, like QR downloads when you switch tab or view. */
   dismissGroup: (group: string) => void
@@ -217,6 +219,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return s
   }, [sources])
 
+  const addLink = useCallback((label: string) => {
+    const name = label.trim()
+    const same = sources.find((s) => s.kind === 'custom' && s.label.toLowerCase() === name.toLowerCase())
+    if (same) { if (same.hidden) setSources((all) => all.map((x) => (x.ref === same.ref ? { ...x, hidden: false } : x))); return same }
+    const base = slugify(name) || 'link'
+    let ref = base
+    for (let i = 2; sources.some((s) => s.ref === ref) || ref === MAIN_QR; i++) ref = `${base}-${i}`
+    const s: Source = { ref, label: name, kind: 'custom', responses: 0, counts: ZERO }
+    setSources((all) => [...all, s])
+    return s
+  }, [sources])
+
   /** Extra codes get qr-<place>, made unique once and never changed, so printed copies keep their tag. */
   const addPlacement = useCallback((label: string) => {
     tick('add-code')
@@ -247,8 +261,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<Store>(() => ({
     slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display,
     downloadedLink, markDownloaded: () => setDownloaded(QR_CAPTION),
-    sources, addSource, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings,
-  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings])
+    sources, addSource, addLink, toast, dismissGroup, qrOpen, setQrOpen, qrRef, setQrRef, qrPersonalize, setQrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings,
+  }), [slug, setSlug, oldEndings, removeEnding, plan, setPlan, upgrade, upgradeOpen, closeUpgrade, setDataset, domain, setDomain, shortLink, url, display, downloadedLink, sources, addSource, addLink, toast, dismissGroup, qrOpen, qrRef, qrPersonalize, placements, addPlacement, removePlacement, restorePlacement, settings, setSettings])
 
   return (
     <Ctx.Provider value={value}>
