@@ -195,7 +195,7 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
       <section className="qr-logo" aria-labelledby="qr-logo-h">
         <div className="row-between logo-row">
           <span className="stack gap-4">
-            <h3 ref={head} id="qr-logo-h" className="qr-section-title field-label" tabIndex={-1} data-row="logo-section">{QR_COPY.logo} <Pro /></h3>
+            <h3 ref={head} id="qr-logo-h" className="qr-section-title section-label" tabIndex={-1} data-row="logo-section">{QR_COPY.logo} <Pro /></h3>
             <span className="xs muted">{QR_COPY.logoHelp}</span>
           </span>
           <div className="row gap-8">

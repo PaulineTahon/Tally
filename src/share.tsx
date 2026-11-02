@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
+import { MonoMark } from './brand'
 import {
   ArrowLeft, Code2, Download, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
-  ChartNoAxesColumn, MoreHorizontal, Trash2, ChevronRight, Link2,
+  ChartNoAxesColumn, EllipsisVertical, Trash2, ChevronRight, Link2,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
@@ -66,7 +66,7 @@ export function LinkBar({ extra }: { extra?: (big: boolean) => ReactNode } = {})
 export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (c: Channel) => void }) {
   return (
     <div className="stack gap-8 share-to">
-      <div className="xs muted small-label">{shareCopy.moreWays}</div>
+      <div className="section-label">{shareCopy.moreWays}</div>
       <Segmented<Channel>
         label={shareCopy.moreWays} value={value} onChange={onChange}
         options={[
@@ -80,13 +80,14 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
 }
 
 
-/** Each item copies just its own tagged link, with its ref. None of them opens an app or a website. Email is last, on its own. */
+/** Each item copies just its own tagged link, with its ref. None of them opens an app or a website. Email is last, on its own.
+ * The marks are drawn in the text colour, like Tally's own icons, never in brand colours. */
 export const SOCIAL: { ref: string; label: string; icon: ReactNode }[] = [
-  { ref: 'whatsapp', label: 'WhatsApp', icon: <WhatsApp /> },
-  { ref: 'instagram', label: 'Instagram', icon: <Instagram /> },
-  { ref: 'facebook', label: 'Facebook', icon: <Facebook /> },
-  { ref: 'linkedin', label: 'LinkedIn', icon: <Linkedin /> },
-  { ref: 'x', label: 'X', icon: <XLogo /> },
+  { ref: 'whatsapp', label: 'WhatsApp', icon: <MonoMark brand="whatsapp" size={18} /> },
+  { ref: 'instagram', label: 'Instagram', icon: <MonoMark brand="instagram" size={18} /> },
+  { ref: 'facebook', label: 'Facebook', icon: <MonoMark brand="facebook" size={18} /> },
+  { ref: 'linkedin', label: 'LinkedIn', icon: <MonoMark brand="linkedin" size={18} /> },
+  { ref: 'x', label: 'X', icon: <MonoMark brand="x" size={18} /> },
 ]
 
 
@@ -434,13 +435,13 @@ function AddCodeBlock({ help = true }: { help?: boolean }) {
   }
   const taken = new Set(s.placements.map((p) => p.label.toLowerCase()))
   const missing = SUGGESTED.filter((l) => !taken.has(l.toLowerCase()))
-  // One left edge for the + icon, the helper, the field and the chips. Row, 4px, helper, 12px, field, 8px, chips.
+  // One left edge for the + icon, the helper, the field and the chips, 8px apart: row, helper, field, chips.
   return (
-    <div className="stack gap-4 add-code">
+    <div className="stack gap-8 add-code">
       <ActionRow icon={<Plus />} label={QR_COPY.addAnother} chevron={false} expanded={adding} controls={id} onClick={() => setAdding((v) => !v)} />
       {help && <span className="xs muted add-code-help">{mobile ? 'Give each place its own code to see which one works.' : 'Using it in more than one place? Give each place its own code to see which one brings in responses.'}</span>}
-      <Collapse open={adding} id={id} gap={4}>
-        <div className="stack gap-8" style={{ paddingTop: 8 }}>
+      <Collapse open={adding} id={id} gap={8}>
+        <div className="stack gap-8">
           <AddPlace label={QR_COPY.addAnother} placeholder={mobile ? 'Like Poster or Slides' : 'Where will it go? Like Poster or Slides'} onAdd={add} />
           {missing.length > 0 && (
             <div className="chips">
@@ -593,10 +594,10 @@ function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => v
 }
 
 /**
- * A code as a list item: QR icon and name. The whole row opens the code's page (a stretched button);
- * Download and, on codes you made, More options sit above it, so they never open the page.
+ * A code as a list item, like Tally's list rows: its name in bold and its ref in grey under it, no icon tile.
+ * The whole row opens the code's page (a stretched button); Download and More options sit above it, so they never open the page.
  */
-export function CodeRow({ p, name, showRef = false, removedText }: { p: Source; name?: string; showRef?: boolean; removedText?: (name: string) => string }) {
+export function CodeRow({ p, name, removedText }: { p: Source; name?: string; removedText?: (name: string) => string }) {
   const s = useStore()
   const openCode = useOpenCode()
   const label = name ?? p.label
@@ -620,18 +621,16 @@ export function CodeRow({ p, name, showRef = false, removedText }: { p: Source; 
   }
   return (
     <li ref={row} className="code-row" data-ref={p.ref}>
-      {/* The QR icon, like on the QR Code tab: the scannable code is on the code's page and in downloads. */}
-      <span className="code-row-icon" aria-hidden><QrCode /></span>
       <button type="button" className="code-row-open" aria-label={QR_COPY.openFor(label)} onClick={() => openCode(p.ref)}>
-        {showRef
-          ? <span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
-          : <span className="code-row-name">{label}</span>}
+        <span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
       </button>
       {/* Two quiet icons on every row, in one column: Download PNG, then More options with SVG, PDF and, on codes you made, Remove. */}
+      <span className="row-actions">
       <button type="button" className="btn btn-ghost btn-sm code-row-more code-row-png" aria-label={QR_COPY.downloadPng} title={QR_COPY.downloadPng}
         onClick={(e) => { e.stopPropagation(); files.get('png') }}><Download aria-hidden /></button>
       <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} title={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu}
-        onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }}><MoreHorizontal aria-hidden /></button>
+        onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }}><EllipsisVertical aria-hidden /></button>
+      </span>
       <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={QR_COPY.moreFor(label)} width={200}>
         <button type="button" role="menuitem" onClick={() => { setMenu(false); files.get('svg') }}><Download aria-hidden /><span>{QR_COPY.downloadAs('SVG')}</span></button>
         <button type="button" role="menuitem" onClick={() => { setMenu(false); files.get('pdf') }}><Download aria-hidden /><span>{QR_COPY.downloadAs('PDF')}</span></button>
@@ -718,7 +717,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
         <TextAction label={s.domain ? shareCopy.editDomain : shareCopy.useDomain} pro dataRow="ending" onClick={() => nav.go('ending')} />
       </div>
       <div className="stack gap-8">
-        <div className="xs muted small-label" id="lp-label">Link preview</div>
+        <div className="section-label" id="lp-label">Link preview</div>
         <PreviewStrip draft={saved} />
         <TextAction label={linkCopy.customize} pro dataRow="preview" onClick={() => nav.go('preview')} />
       </div>
@@ -731,8 +730,8 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     // Split's Share tab page has the room: no tabs, Share then Embed as sections.
     ...(stacked ? [{ key: 's-stack' as Slot, node: (
       <div className="stack gap-24 split-stack">
-        <section className="stack gap-8" aria-labelledby="split-sec-share"><h3 className="split-sec-label" id="split-sec-share">{splitCopy.share}</h3>{shareTab}</section>
-        <section className="stack gap-8" aria-labelledby="split-sec-embed"><h3 className="split-sec-label" id="split-sec-embed">{splitCopy.embed}</h3>{embedTab}</section>
+        <section className="stack gap-8" aria-labelledby="split-sec-share"><h3 className="section-label" id="split-sec-share">{splitCopy.share}</h3>{shareTab}</section>
+        <section className="stack gap-8" aria-labelledby="split-sec-embed"><h3 className="section-label" id="split-sec-embed">{splitCopy.embed}</h3>{embedTab}</section>
       </div>
     ) }] : [
       { key: 's-share' as Slot, node: shareTab },
@@ -818,7 +817,7 @@ function ShareTiles({ onOpen }: { onOpen: (c: Channel) => void }) {
   ]
   return (
     <div className="stack gap-8">
-      <div className="xs muted small-label" id="share-to-label">{shareCopy.moreWays}</div>
+      <div className="section-label" id="share-to-label">{shareCopy.moreWays}</div>
       <div className="share-tiles" role="list" aria-labelledby="share-to-label">
         {tiles.map((t) => (
           <span role="listitem" key={t.c}>
@@ -837,7 +836,7 @@ function ShareTiles({ onOpen }: { onOpen: (c: Channel) => void }) {
 function EntryRows({ onOpen }: { onOpen: (c: Channel) => void }) {
   return (
     <div className="stack gap-8">
-      <div className="xs muted small-label" id="share-to-label-rows">{shareCopy.moreWays}</div>
+      <div className="section-label" id="share-to-label-rows">{shareCopy.moreWays}</div>
       <div className="entry-rows" role="list" aria-labelledby="share-to-label-rows">
         <span role="listitem"><ActionRow icon={<QrCode />} label="QR Code" help="Download a code to print" dataRow="ch-qr" onClick={() => onOpen('qr')} /></span>
         <span role="listitem"><ActionRow icon={<Megaphone />} label="Social" help="A tagged link for each app" dataRow="ch-social" onClick={() => onOpen('social')} /></span>
@@ -888,7 +887,7 @@ function SplitTagLine() {
   return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
 }
 
-/** A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options. */
+/** A link you made, as a row like a code: name and ref, Copy on the trailing edge, then More options. */
 function LinkRow({ p }: { p: Source }) {
   const s = useStore()
   const more = useRef<HTMLButtonElement>(null)
@@ -908,12 +907,11 @@ function LinkRow({ p }: { p: Source }) {
   }
   return (
     <li ref={row} className="code-row link-row" data-ref={p.ref}>
-      <span className="code-row-icon" aria-hidden><Link2 /></span>
       <span className="code-row-text grow"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
-      <div className="code-row-dl link-row-copy-wrap">
+      <span className="row-actions">
         <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
-      </div>
-      <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
+        <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} title={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><EllipsisVertical aria-hidden /></button>
+      </span>
       <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={splitCopy.moreForLink(p.label)} width={180}>
         <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
       </PopMenu>
@@ -932,10 +930,10 @@ function AddLinkBlock() {
   const taken = new Set(links.map((p) => p.label.toLowerCase()))
   const missing = splitCopy.suggestedLinks.filter((l) => !taken.has(l.toLowerCase()))
   return (
-    <div className="stack gap-4 add-code">
+    <div className="stack gap-8 add-code">
       <ActionRow icon={<Plus />} label={splitCopy.addLink} chevron={false} expanded={adding} controls={id} onClick={() => setAdding((v) => !v)} />
-      <Collapse open={adding} id={id} gap={4}>
-        <div className="stack gap-8" style={{ paddingTop: 8 }}>
+      <Collapse open={adding} id={id} gap={8}>
+        <div className="stack gap-8">
           <AddPlace label={splitCopy.addLink} placeholder={mobile ? splitCopy.linkPlaceholderShort : splitCopy.linkPlaceholder} onAdd={add} />
           {missing.length > 0 && (
             <div className="chips">
@@ -957,7 +955,7 @@ function SplitTrackPage() {
     <div className="stack gap-24 split-page qr-list-scope">
       <SplitTagLine />
       <section className="stack gap-8" aria-labelledby="split-links-label">
-        <div className="xs muted small-label" id="split-links-label">{splitCopy.linksLabel}</div>
+        <div className="section-label" id="split-links-label">{splitCopy.linksLabel}</div>
         <p className="small muted" style={{ margin: 0 }}>{splitCopy.socialHelp}</p>
         <SocialList split />
         {links.length > 0 && (
@@ -968,10 +966,10 @@ function SplitTrackPage() {
         <AddLinkBlock />
       </section>
       <section className="stack gap-8" aria-labelledby="split-codes-label">
-        <div className="xs muted small-label" id="split-codes-label">{splitCopy.codesLabel}</div>
+        <div className="section-label" id="split-codes-label">{splitCopy.codesLabel}</div>
         <AutoHeight k={String(s.placements.length)} slow>
           <ul className="code-rows" aria-label={splitCopy.codesLabel}>
-            {codes.map((p) => <CodeRow key={p.ref} p={p} showRef removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+            {codes.map((p) => <CodeRow key={p.ref} p={p} removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
           </ul>
         </AutoHeight>
         <AddCodeBlock help={false} />
