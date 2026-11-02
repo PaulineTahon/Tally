@@ -39,6 +39,7 @@ export const QR_COPY = {
   moreFor: (label: string) => `More options for ${label} QR code`,
   openFor: (label: string) => `${label} QR code, open details`,
   downloadPng: 'Download PNG',
+  downloadAs: (f: string) => `Download ${f}`,
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',
   downloadedAs: (f: QrFormat) => `${f.toUpperCase()} downloaded`,
@@ -108,6 +109,24 @@ export function DownloadSplit({ refId, label, onDone, primaryRef, upgradePrimary
       <PopMenu open={menu} anchor={caret} onClose={() => setMenu(false)} label={QR_COPY.otherFormats} width={280}>{menuItems}</PopMenu>
     </div>
   )
+}
+
+/**
+ * Downloads for a row of codes: PNG on the row, SVG and PDF in its More options menu. No animation, an alert at the
+ * bottom. Free with a logo in can't download: each one opens the plans pop-up instead.
+ */
+export function useQrFiles(refId: string) {
+  const s = useStore()
+  const opts = useQrOptions(refId)
+  const locked = s.plan !== 'pro' && !!s.settings.style.logo
+  const get = async (f: QrFormat) => {
+    if (locked) { s.upgrade(); return }
+    download(await fileFor(opts, f), fileName(refId, f))
+    if (refId === MAIN_QR) tick('download-main')
+    s.markDownloaded()
+    s.toast(QR_COPY.downloadedAs(f), QR_ALERT)
+  }
+  return { get, locked }
 }
 
 /** The code itself, as big as the view allows. A phone can show it full screen. */

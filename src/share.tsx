@@ -1,12 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
+  ArrowLeft, Code2, Download, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
   ChartNoAxesColumn, MoreHorizontal, Trash2, ChevronRight, Link2,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
-import { AddPlace, SUGGESTED, DownloadSplit, insightsQrHref, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
+import { AddPlace, SUGGESTED, insightsQrHref, useQrFiles, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy, splitCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
@@ -602,6 +602,7 @@ export function CodeRow({ p, name, showRef = false, removedText }: { p: Source; 
   const label = name ?? p.label
   const more = useRef<HTMLButtonElement>(null)
   const row = useRef<HTMLLIElement>(null)
+  const files = useQrFiles(p.ref)
   const [menu, setMenu] = useState(false)
   const remove = () => {
     setMenu(false)
@@ -626,16 +627,19 @@ export function CodeRow({ p, name, showRef = false, removedText }: { p: Source; 
           ? <span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
           : <span className="code-row-name">{label}</span>}
       </button>
-      <div className="code-row-dl"><DownloadSplit refId={p.ref} label={p.label} /></div>
-      {/* Your QR Code can't be removed, so it has no ⋯ and its Download sits on the trailing edge. */}
-      {p.ref !== MAIN_QR && (
-        <>
-          <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
-          <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={QR_COPY.moreFor(label)} width={180}>
-            <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
-          </PopMenu>
-        </>
-      )}
+      {/* Two quiet icons on every row, in one column: Download PNG, then More options with SVG, PDF and, on codes you made, Remove. */}
+      <button type="button" className="btn btn-ghost btn-sm code-row-more code-row-png" aria-label={QR_COPY.downloadPng} title={QR_COPY.downloadPng}
+        onClick={(e) => { e.stopPropagation(); files.get('png') }}><Download aria-hidden /></button>
+      <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} title={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu}
+        onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }}><MoreHorizontal aria-hidden /></button>
+      <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={QR_COPY.moreFor(label)} width={200}>
+        <button type="button" role="menuitem" onClick={() => { setMenu(false); files.get('svg') }}><Download aria-hidden /><span>{QR_COPY.downloadAs('SVG')}</span></button>
+        <button type="button" role="menuitem" onClick={() => { setMenu(false); files.get('pdf') }}><Download aria-hidden /><span>{QR_COPY.downloadAs('PDF')}</span></button>
+        {p.ref !== MAIN_QR && <>
+          <div className="menu-sep" role="separator" />
+          <button type="button" role="menuitem" onClick={remove}><Trash2 aria-hidden /><span>{QR_COPY.remove}</span></button>
+        </>}
+      </PopMenu>
     </li>
   )
 }
