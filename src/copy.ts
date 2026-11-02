@@ -194,6 +194,7 @@ export const splitCopy = {
   linkAdded: (label: string) => `Link added for ${label}`,
   pageLine: 'Each one opens the same form with its own tag, so Insights shows where responses came from.',
   socialHelp: 'Click one to copy its tagged link.',
+  refTip: 'Or add ?ref=anything to your link yourself.',
   copied: (name: string) => `${name} link copied`,
   removedLink: (name: string) => `${name} link removed. It still opens your form, but new responses won't be tagged.`,
   removedCode: (name: string) => `${name} code removed. Printed copies still open your form, but new responses won't be tagged.`,

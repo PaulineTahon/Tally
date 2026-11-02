@@ -890,8 +890,16 @@ function SplitTrackRow({ onOpen }: { onOpen: () => void }) {
 /** The line on top of the page, linking to Insights. */
 function SplitTagLine() {
   const [before, after] = splitCopy.pageLine.split('Insights')
-  return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
+  const [tipBefore, tipAfter] = splitCopy.refTip.split(REF_TIP_CODE)
+  return (
+    <div className="stack gap-4">
+      <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
+      {/* One tip under the intro: any ?ref= works, not only the ones listed here. */}
+      <p className="small muted ref-tip" style={{ margin: 0 }}>{tipBefore}<code>{REF_TIP_CODE}</code>{tipAfter}</p>
+    </div>
+  )
 }
+const REF_TIP_CODE = '?ref=anything'
 
 /**
  * A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options.
@@ -971,12 +979,13 @@ function SplitTrackSections() {
       <section className="stack gap-8" aria-labelledby="split-links-label">
         <div className="section-label" id="split-links-label">{splitCopy.linksLabel}</div>
         <p className="small muted" style={{ margin: 0 }}>{splitCopy.socialHelp}</p>
-        <SocialList split />
-        {links.length > 0 && (
-          <AutoHeight k={String(links.length)} slow>
-            <ul className="code-rows" aria-label={splitCopy.yourLinks}>{links.map((p) => <LinkRow key={p.ref} p={p} />)}</ul>
-          </AutoHeight>
-        )}
+        {/* The socials and Email as rows like the QR codes: their mark, name and ref, and Copy. Then your links. */}
+        <AutoHeight k={String(links.length)} slow>
+          <ul className="code-rows" aria-label={splitCopy.linksLabel}>
+            {[...SOCIAL, EMAIL].map((x) => <SocialSourceRow key={x.ref} icon={x.icon} label={x.label} refName={x.ref} />)}
+            {links.map((p) => <LinkRow key={p.ref} p={p} />)}
+          </ul>
+        </AutoHeight>
         <AddLinkBlock />
       </section>
       <section className="stack gap-8" aria-labelledby="split-codes-label">
@@ -1014,6 +1023,8 @@ function SocialSourceRow({ icon, label, refName }: { icon: ReactNode; label: str
       <span className="row-lead grow"><span className="row-type-ic" aria-hidden>{icon}</span><span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={refName}</span></span></span>
       <span className="row-actions">
         <CopyButton outline className="btn-sm link-row-copy" text={s.url(refName)} ariaLabel={shareCopy.copyFor(label)} toastText={splitCopy.copied(label)} />
+        {/* No More options here (a preset has nothing to remove), but the same slot, so Copy lines up with the Copy and Download of the other rows. */}
+        <span className="code-row-more row-more-slot" aria-hidden />
       </span>
     </li>
   )
