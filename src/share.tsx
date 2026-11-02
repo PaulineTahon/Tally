@@ -624,8 +624,7 @@ export function CodeRow({ p, name }: { p: Source; name?: string }) {
         <span className="code-row-name">{label}</span>
       </button>
       <div className="code-row-dl"><DownloadSplit refId={p.ref} label={p.label} /></div>
-      {/* Your QR Code can't be removed: an empty space keeps its Download in line with the others. */}
-      {p.ref === MAIN_QR && <span className="code-row-more-space" aria-hidden />}
+      {/* Your QR Code can't be removed, so it has no ⋯ and its Download sits on the trailing edge. */}
       {p.ref !== MAIN_QR && (
         <>
           <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
