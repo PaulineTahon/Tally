@@ -1022,3 +1022,8 @@ html.is-capture .proto-version { display: none !important; }
 .split-embed > .stack { gap: 8px; }
 .split-embed .code-peek { height: 46px; }
 .split-out .split-caret { flex: none; }
+
+/* Embed layouts, compact everywhere: three small cards on one row, 120px at most, with a 4:3 thumbnail. */
+.embed-cards.is-sheet { grid-template-columns: repeat(3, minmax(0, 120px)); gap: 12px; padding: 2px 0 4px; justify-content: start; }
+.embed-cards.is-sheet .embed-thumb { aspect-ratio: 4 / 3; }
+.embed-cards.is-sheet .embed-card { gap: 6px; }
