@@ -6,6 +6,10 @@
   BASE_PATH = "/"
   NODE_VERSION = "20"
 
+# The production deploy (main) offers only Simple and Split. Branch deploys, like review, keep all six.
+[context.production.environment]
+  VITE_VARIANTS = "simple,split"
+
 [[redirects]]
   from = "/visuals"
   to = "/visuals/"

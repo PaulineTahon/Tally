@@ -1,3 +1,4 @@
+import { currentVariant } from './params'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail, MessageSquareText } from 'lucide-react'
 import { MonoMark } from './brand'
@@ -37,7 +38,7 @@ const DAYS: Record<Range, number[][]> = {
 }
 
 /** Simple (the default, or ?variant=simple) has no tracked links and one code, so Sources only shows what exists there: Your QR Code and Direct / None. */
-const simpleVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=simple\b/.test(q) || !/[?&]variant=/.test(q) }
+const simpleVariant = () => currentVariant() === 'simple'
 function simpleRows(rows: SourceRow[]): SourceRow[] {
   const qr = rows.find((x) => x.ref === MAIN_QR)
   const visits = rows.reduce((t, x) => t + x.visits, 0)

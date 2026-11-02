@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { keepParams, screenHref } from './params'
+import { keepParams, screenHref, currentVariant, VARIANTS } from './params'
 import { StoreProvider, useIsMobile, useStore } from './store'
 import { Editor, ShareTab, type PublishState } from './screens'
 import { planCopy, publishCopy } from './copy'
@@ -15,7 +15,8 @@ type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
 /** The share sheet layouts, by their ?variant= value: none (or simple) for Simple, the default, split for Split, tabs for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs. */
 type Variant = 'split' | 'tabs' | 'entry' | 'tiles' | 'jobs' | 'simple'
-const VERSIONS: { id: Variant; label: string }[] = [{ id: 'simple', label: 'Simple' }, { id: 'split', label: 'Split' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
+// Only the layouts this build offers (all six, unless VITE_VARIANTS says otherwise).
+const VERSIONS: { id: Variant; label: string }[] = ([{ id: 'simple', label: 'Simple' }, { id: 'split', label: 'Split' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }] as { id: Variant; label: string }[]).filter((v) => VARIANTS.includes(v.id))
 /** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
 type Social = '' | 'rows' | 'icons' | 'strip'
 const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
@@ -36,11 +37,11 @@ function readRoute(): { route: Route; variant: Variant; social: Social; publish:
   const p = new URLSearchParams(q)
   const route: Route = path === 'share' ? 'share' : path === 'insights' || path === 'results' ? 'insights' : path === 'submissions' ? 'submissions' : 'edit'
   const st = p.get('state')
-  const v = p.get('variant')
   return {
     route,
     // No ?variant= means Simple, my proposal, the changelog demo included.
-    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : 'simple',
+    // A layout this build doesn't offer opens Simple too.
+    variant: currentVariant(),
     social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
@@ -126,7 +127,7 @@ function Inner() {
           <option value="id">tally.so link</option>
           <option value="custom">Custom ending</option>
         </select>
-        {/* Prototype only: switch between the six share sheet layouts. Kept in sync with ?variant=, so each one can be linked. */}
+        {/* Prototype only: switch between the share sheet layouts this build offers. Kept in sync with ?variant=, so each one can be linked. */}
         {(r.route === 'edit' || r.route === 'share') && (
           <span className="proto-version" role="group" aria-label="Share sheet version">
             <span className="proto-version-label">Version:</span>

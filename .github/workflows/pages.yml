@@ -24,7 +24,10 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      # Pages builds main, which offers only Simple and Split.
       - run: npm run build
+        env:
+          VITE_VARIANTS: simple,split
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
