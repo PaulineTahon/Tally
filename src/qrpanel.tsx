@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { screenHref } from './params'
 import { ChevronDown, Download, Maximize2, Share, X, Upload, Plus } from 'lucide-react'
 import { EASTER_EGG, QR_CAPTION, FORM_TITLE, MAIN_QR, qrUrl, canNativeShare, slugify, useIsMobile, useStore } from './store'
 import { tick } from './guide'
@@ -189,7 +190,8 @@ export function QrDetail({ refId, focusLogo = false }: { refId: string; focusLog
   )
 }
 
-export const INSIGHTS_QR_HREF = '#/insights?focus=qr'
+/** Insights with the QR rows lit up, in the same version you're looking at. */
+export const insightsQrHref = () => screenHref('/insights', '?focus=qr')
 
 export const SUGGESTED = ['Poster', 'Flyer', 'Slides', 'Newspaper']
 

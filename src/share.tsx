@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
 import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
-import { AddPlace, SUGGESTED, DownloadSplit, INSIGHTS_QR_HREF, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
+import { AddPlace, SUGGESTED, DownloadSplit, insightsQrHref, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy, splitCopy } from './copy'
 import { tick } from './guide'
 import { EmbedPage } from './embedpage'
@@ -132,7 +132,8 @@ export const jobsVariant = () => /[?&]variant=jobs\b/.test(window.location.hash 
 /** `?variant=split`: Share and Embed as tabs, with one row to see where responses come from. Extra links and extra codes share one pattern, since both only add a ref to the same link. */
 /** `?variant=simple`: Share and Embed as tabs: the link, one QR code and Embed. No tracking. */
 export const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
-export const splitVariant = () => /[?&]variant=split\b/.test(window.location.hash + window.location.search)
+/** Split is the default: no ?variant= means Split (Tabs is ?variant=tabs). The changelog demo keeps Tabs, like its GIF. */
+export const splitVariant = () => { const q = window.location.hash + window.location.search; return /[?&]variant=split\b/.test(q) || (!/[?&]variant=/.test(q) && !/[?&]demo=changelog\b/.test(q)) }
 
 /** How the link shows up when it's pasted in a chat or a post. */
 function PreviewCard({ img, title, desc }: { img: string; title: string; desc: string }) {
@@ -406,7 +407,7 @@ function QrCodePanel({ desc = true, help = true }: { pulse: number; desc?: boole
   return (
     <div className="stack gap-12 qr-list-scope">
       <div className="stack gap-8">
-        {desc && <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>}
+        {desc && <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={insightsQrHref()}>Insights</a>.</p>}
         {/* Your QR Code first, then each code you made, as list items. New ones show right away. */}
         <AutoHeight k={String(s.placements.length)} slow>
           <ul className="code-rows" aria-label={QR_COPY.yourCode}>
@@ -577,7 +578,7 @@ function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => v
   return (
     <div className="stack gap-24 jobs-track">
       <div className="stack gap-8 share-to">
-        <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+        <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={insightsQrHref()}>Insights</a>.</p>
         <Segmented<TrackTab>
           label={jobsCopy.track} value={tab} onChange={onTab}
           options={[
@@ -880,7 +881,7 @@ function SplitTrackRow({ onOpen }: { onOpen: () => void }) {
 /** The line on top of the page, linking to Insights. */
 function SplitTagLine() {
   const [before, after] = splitCopy.pageLine.split('Insights')
-  return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>{after}</p>
+  return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={insightsQrHref()}>Insights</a>{after}</p>
 }
 
 /** A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options. */

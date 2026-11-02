@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { keepParams, screenHref } from './params'
 import { StoreProvider, useIsMobile, useStore } from './store'
 import { Editor, ShareTab, type PublishState } from './screens'
 import { planCopy, publishCopy } from './copy'
@@ -12,9 +13,9 @@ import { guideCopy, type GuidePage } from './guideCopy'
 
 type Route = 'edit' | 'share' | 'insights' | 'submissions'
 
-/** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs, split for Split, simple for Simple. */
-type Variant = '' | 'entry' | 'tiles' | 'jobs' | 'split' | 'simple'
-const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }, { id: 'split', label: 'Split' }, { id: 'simple', label: 'Simple' }]
+/** The share sheet layouts, by their ?variant= value: none (or split) for Split, the default, tabs for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs, simple for Simple. */
+type Variant = 'split' | 'tabs' | 'entry' | 'tiles' | 'jobs' | 'simple'
+const VERSIONS: { id: Variant; label: string }[] = [{ id: 'split', label: 'Split' }, { id: 'simple', label: 'Simple' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }]
 /** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
 type Social = '' | 'rows' | 'icons' | 'strip'
 const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
@@ -26,7 +27,7 @@ function setParam(key: 'variant' | 'social', v: string) {
   const qs = p.toString()
   window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
 }
-const setVariant = (v: Variant) => setParam('variant', v)
+const setVariant = (v: Variant) => setParam('variant', v === 'split' ? '' : v)
 const setSocial = (v: Social) => setParam('social', v)
 
 function readRoute(): { route: Route; variant: Variant; social: Social; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
@@ -38,7 +39,8 @@ function readRoute(): { route: Route; variant: Variant; social: Social; publish:
   const v = p.get('variant')
   return {
     route,
-    variant: v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : '',
+    // No ?variant= means Split; the changelog demo keeps Tabs, like its GIF.
+    variant: v === 'tabs' || v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : p.get('demo') === 'changelog' ? 'tabs' : 'split',
     social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
@@ -68,7 +70,7 @@ function Inner() {
   }, [])
   useEffect(() => { s.setQrOpen(false) }, [r.route, r.state]) // eslint-disable-line
   useEffect(() => { if (r.qr) s.setQrOpen(true) }, []) // eslint-disable-line
-  const go = useCallback((route: Route, extra = '') => { window.location.hash = `/${route}${extra}`; window.scrollTo(0, 0) }, [])
+  const go = useCallback((route: Route, extra = '') => { window.location.hash = `/${route}${keepParams(extra)}`; window.scrollTo(0, 0) }, [])
   const onTab = (t: Tab) => { if (t === 'share' && r.route === 'insights' && r.state === 'empty') tick('go-share'); go(t === 'insights' ? 'insights' : t === 'submissions' ? 'submissions' : 'share') }
   const toShare = () => { if (r.state === 'empty') tick('go-share'); go('share') }
   const page: GuidePage | null = r.route === 'edit' ? 'publish' : r.route === 'share' ? 'share' : r.route === 'insights' ? `insights-${r.state}` : null
@@ -96,7 +98,7 @@ function Inner() {
       {mobile && !navOpen && <button type="button" className="proto-pill" onClick={() => setNavOpen(true)} aria-expanded={false}>Screens</button>}
       {(!mobile || navOpen) && <nav className="proto-nav" aria-label="Prototype screens">
         <span className="proto-label">Prototype</span>
-        <a href="#/edit" aria-current={r.route === 'edit'}>Publish</a>
+        <a href={screenHref('/edit')} aria-current={r.route === 'edit'}>Publish</a>
         {r.route === 'edit' && (
           <select aria-label={publishCopy.protoLabel} value={r.pub} onChange={(e) => { setSheet(false); go('edit', e.target.value === 'first' ? '' : `?pub=${e.target.value}`) }}>
             <option value="first">{publishCopy.protoFirst}</option>
@@ -104,8 +106,8 @@ function Inner() {
             <option value="data">{publishCopy.protoResponses}</option>
           </select>
         )}
-        <a href="#/share" aria-current={r.route === 'share'}>Share tab</a>
-        <a href="#/insights" aria-current={r.route === 'insights'}>Insights</a>
+        <a href={screenHref('/share')} aria-current={r.route === 'share'}>Share tab</a>
+        <a href={screenHref('/insights')} aria-current={r.route === 'insights'}>Insights</a>
         {r.route === 'insights' && (
           <select aria-label="Insights state" value={r.state} onChange={(e) => { tick('switch-states'); go('insights', `?state=${e.target.value}`) }}>
             <option value="data">With QR responses</option>
@@ -120,7 +122,7 @@ function Inner() {
         </select>
         {/* Starts over with a saved custom ending on your own domain, so changing it can be tried. */}
         <select aria-label="Link state" value={/[?&]link=custom\b/.test(window.location.hash) ? 'custom' : 'id'}
-          onChange={(e) => { window.location.hash = `#/${r.route}${e.target.value === 'custom' ? '?link=custom' : ''}`; window.location.reload() }}>
+          onChange={(e) => { window.location.hash = `#/${r.route}${keepParams(e.target.value === 'custom' ? '?link=custom' : '')}`; window.location.reload() }}>
           <option value="id">tally.so link</option>
           <option value="custom">Custom ending</option>
         </select>
