@@ -390,7 +390,7 @@ function EmbedPanel({ onPick, primary = false }: { onPick?: (m: EmbedMode) => vo
       <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
       {/* Customize embed sits right of Copy code, on the same line. Copy code is black only where Copy link isn't on screen. */}
       <div className="embed-actions">
-        <CopyButton outline={!primary} className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
+        <CopyButton outline={!primary} big={mobile} label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
         <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
       </div>
     </div>
@@ -687,7 +687,8 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const entry = entryVariant() || tiles || jobs
   // Split and Simple: two tabs, Share and Embed. Split's full-width Share tab page stacks them instead.
   const tabbed = split || simple
-  const stacked = split && !inModal
+  // Split's and Simple's Share tab page stack Share link and Embed as sections, one below the other, at every width.
+  const stacked = tabbed && !inModal
   // Desktop Share tab page: everything that opens (custom domain, preview, a code's page, and in Rows and Tiles each
   // way to share) opens in a centred modal instead of inline. A view opened from inside it gets Back in the header.
   const mobile = useIsMobile()

@@ -3,7 +3,7 @@ import { ChevronDown, Inbox, QrCode, TrendingUp, Check, CircleHelp, Globe, Mail,
 import { MonoMark } from './brand'
 import { useIsMobile, useStore, type Source } from './store'
 import { tick } from './guide'
-import { DIRECT, OTHER_LABEL, rangeKey, type Range } from './seed'
+import { DIRECT, MAIN_QR, OTHER_LABEL, rangeKey, type Range } from './seed'
 import { DashHeader, FormTitle, Shell, type Tab } from './chrome'
 import { Menu } from './ui'
 
@@ -13,7 +13,7 @@ const RANGES: { id: Range; label: string }[] = [
   { id: '24h', label: 'Last 24 hours' }, { id: '7d', label: 'Last 7 days' }, { id: '30d', label: 'Last 30 days' }, { id: 'all', label: 'All time' },
 ]
 
-interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
+interface SourceRow { name: string; visits: number; subs: number; qr?: boolean; ref?: string }
 
 /**
  * Sources come from the same seed as the Share tab and the QR Code tab. Direct / None is the real
@@ -22,7 +22,7 @@ interface SourceRow { name: string; visits: number; subs: number; qr?: boolean }
 function sourceRows(sources: Source[], range: Range): SourceRow[] {
   const k = rangeKey(range)
   const rows: SourceRow[] = sources.map((x) => ({
-    name: x.label || OTHER_LABEL,
+    name: x.label || OTHER_LABEL, ref: x.ref,
     visits: x.counts[k][0], subs: x.counts[k][1], qr: x.kind === 'qr',
   }))
   rows.push({ name: 'Direct / None', visits: DIRECT[k][0], subs: DIRECT[k][1] })
@@ -36,10 +36,22 @@ const DAYS: Record<Range, number[][]> = {
   '24h': [[0, 0], [0, 0], [1, 0], [0, 0], [2, 1], [0, 0]],
 }
 
+/** Simple (?variant=simple) has no tracked links and one code, so Sources only shows what exists there: Your QR Code and Direct / None. */
+const simpleVariant = () => /[?&]variant=simple\b/.test(window.location.hash + window.location.search)
+function simpleRows(rows: SourceRow[]): SourceRow[] {
+  const qr = rows.find((x) => x.ref === MAIN_QR)
+  const visits = rows.reduce((t, x) => t + x.visits, 0)
+  const subs = rows.reduce((t, x) => t + x.subs, 0)
+  // Without tagged links, every visit that didn't come from the code arrives as Direct / None, so the totals stay the same.
+  const direct: SourceRow = { name: 'Direct / None', visits: visits - (qr?.visits ?? 0), subs: subs - (qr?.subs ?? 0) }
+  return [direct, ...(qr ? [qr] : [])].filter((x) => x.visits > 0 || x.qr).sort((a, c) => c.visits - a.visits)
+}
+
 function rowsFor(sources: Source[], range: Range, state: InsightsState) {
   if (state === 'empty') return [{ name: 'Direct / None', visits: 8, subs: 0 }]
   const r = sourceRows(sources, range)
-  return state === 'noqr' ? r.filter((x) => !x.qr) : r
+  const shown = state === 'noqr' ? r.filter((x) => !x.qr) : r
+  return simpleVariant() ? simpleRows(shown) : shown
 }
 
 export function Insights({ onTab, onEdit, state, onShare }: {
