@@ -178,7 +178,7 @@ function Changelog() {
       <div className="cl-wm" data-layer="Tally wordmark"><Wordmark /></div>
       <div className="cl-copy" data-layer="Copy">
         <h1 data-layer="Headline">Share your form anywhere</h1>
-        <p data-layer="Subline">QR codes, tagged links and embeds, all in Share. See what brings in responses.</p>
+        <p data-layer="Subline">QR codes and embeds, all in Share. See what brings in responses.</p>
       </div>
       <div className="browser" data-layer="Browser window">
         <div className="browser-bar" data-layer="Browser bar">
@@ -200,7 +200,6 @@ const POST = {
   body: 'Share now has everything you need to get your form in front of people, and to see what works.',
   bullets: [
     ['QR codes, ready to print.', 'Every form gets its own QR code. Download it as PNG, SVG or PDF, and add your logo in the middle (Pro).'],
-    ['See where responses come from.', 'Each social link and each QR code gets its own tag. Add a code for every poster or flyer, and Insights shows which one works best.'],
     ['Embed and custom domain, one click away.', 'Copy your embed code or customize it right from Share, and put your form on your own domain (Pro).'],
   ] as [string, string][],
   end: 'Open Share on any form to try it. Happy sharing!',
