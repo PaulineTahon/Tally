@@ -387,9 +387,9 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
       </div>
       {/* The whole real snippet for the picked layout, in a short box that scrolls (wheel, trackpad, touch, or arrow keys once focused). */}
       <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
-      {/* Customize embed sits right of Copy code, on the same line. */}
+      {/* Copy code is the primary button here, with Customize embed right of it on the same line. */}
       <div className="embed-actions">
-        <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
+        <CopyButton className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />
         <TextAction label={embedCopy.customize} haspopup="dialog" dataRow="embed-settings" onClick={() => { s.dismissGroup('qr'); onPick?.(mode) }} />
       </div>
     </div>
@@ -626,10 +626,10 @@ export function CodeRow({ p, name, removedText }: { p: Source; name?: string; re
       <button type="button" className="code-row-open" aria-label={QR_COPY.openFor(label)} onClick={() => openCode(p.ref)}>
         <span className="row-lead"><QrCode className="row-type-ic" aria-hidden /><span className="code-row-text"><span className="code-row-name">{label}</span><span className="code-row-ref">?ref={p.ref}</span></span></span>
       </button>
-      {/* Two quiet icons on every row, in one column: Download PNG, then More options with SVG, PDF and, on codes you made, Remove. */}
+      {/* Download PNG, an outlined button with its icon and label like a link row's Copy, then More options with SVG, PDF and, on codes you made, Remove. */}
       <span className="row-actions">
-      <button type="button" className="btn btn-ghost btn-sm code-row-more code-row-png" aria-label={QR_COPY.downloadPng} title={QR_COPY.downloadPng}
-        onClick={(e) => { e.stopPropagation(); files.get('png') }}><Download aria-hidden /></button>
+      <button type="button" className="btn btn-secondary btn-sm code-row-dl" aria-label={QR_COPY.downloadPngFor(label)} title={QR_COPY.downloadPng}
+        onClick={(e) => { e.stopPropagation(); files.get('png') }}><Download aria-hidden /><span>{QR_COPY.download}</span></button>
       <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={QR_COPY.moreFor(label)} title={QR_COPY.moreFor(label)} aria-haspopup="menu" aria-expanded={menu}
         onClick={(e) => { e.stopPropagation(); setMenu((m) => !m) }}><EllipsisVertical aria-hidden /></button>
       </span>

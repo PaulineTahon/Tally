@@ -233,11 +233,11 @@ export function CopyButton({ text, className = '', big = false, outline = false,
   )
 }
 
-export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go spread the word.' }: { text: string; label?: string; toastText?: string }) {
+export function SmallCopy({ text, label = 'Copy', toastText = 'Link copied. Go spread the word.', primary = false }: { text: string; label?: string; toastText?: string; primary?: boolean }) {
   const [copied, setCopied] = useState(false)
   const { toast } = useStore()
   return (
-    <button type="button" className={`btn btn-secondary btn-sm ${copied ? 'is-copied' : ''}`} aria-label={`${label} ${text.length > 80 ? '' : text}`.trim()}
+    <button type="button" className={`btn ${primary ? 'btn-black' : 'btn-secondary'} btn-sm ${copied ? 'is-copied' : ''}`} aria-label={`${label} ${text.length > 80 ? '' : text}`.trim()}
       onClick={async () => { setCopied(true); setTimeout(() => setCopied(false), 2000); await copyText(text); toast(toastText) }}>
       <IconSwap on={copied} />{label}
       <span className="sr-only" aria-live="polite">{copied ? 'Copied' : ''}</span>

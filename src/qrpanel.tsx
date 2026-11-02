@@ -39,6 +39,8 @@ export const QR_COPY = {
   moreFor: (label: string) => `More options for ${label} QR code`,
   openFor: (label: string) => `${label} QR code, open details`,
   downloadPng: 'Download PNG',
+  download: 'Download',
+  downloadPngFor: (label: string) => `Download ${label} as PNG`,
   downloadAs: (f: string) => `Download ${f}`,
   saveOrShare: 'Save image',
   otherFormats: 'Other formats',

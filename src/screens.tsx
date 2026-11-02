@@ -3,7 +3,6 @@ import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRi
 import { EXAMPLE_UNTAGGED, FORM_TITLE, copyText, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
 import { publishCopy, shareCopy } from './copy'
-import { CoverArt, VISUAL_URL } from './coverArt'
 import { ShareBlock, SOCIAL, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
@@ -44,7 +43,8 @@ export function Editor({ onPublished, published, pub }: { onPublished: (first: b
         </div>
       </header>
       <main className="editor-canvas">
-        <div className="cover" aria-hidden><CoverArt url={VISUAL_URL('qr-cover')} slice /></div>
+        {/* The default form header: a plain off-white band, no custom cover. */}
+        <div className="cover" aria-hidden />
         <div className="form-col">
           <div className="form-logo" aria-hidden>🧺</div>
           <h1 className="form-title">{FORM_TITLE}</h1>

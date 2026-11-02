@@ -967,10 +967,11 @@ html.is-capture .proto-version { display: none !important; }
 /* The trailing actions (Download and ⋮, or Copy and ⋮) as one group, 4px apart, above the stretched row button. */
 .row-actions { position: relative; z-index: 1; display: inline-flex; align-items: center; gap: var(--row-actions-gap); flex: none; }
 @media (prefers-reduced-motion: reduce) { .code-row { transition: none; } }
-/* A code row ends with two icons in one column: Download PNG and More options (SVG, PDF, Remove). Above the stretched row button, so they never open the code. */
+/* A code row ends with Download (an outlined button with icon and label, like a link row's Copy) and More options (SVG, PDF, Remove). Above the stretched row button, so they never open the code. */
+.code-row-dl { flex: none; }
 .code-row-more { flex: none; width: 32px; padding: 0; justify-content: center; }
 .code-row-more svg { width: 18px; height: 18px; }
-@media (max-width: 757px) { .code-row-more { width: 44px; height: 44px; min-height: 44px; } }
+@media (max-width: 757px) { .code-row-more { width: 44px; height: 44px; min-height: 44px; } .code-row-dl, .code-row .link-row-copy { height: 44px; min-height: 44px; } }
 @media (max-width: 757px) {
   /* On a phone the row keeps the split button, as an icon, so the name has room. */
   .code-row .split-main { font-size: 0; gap: 0; width: 44px; padding: 0; justify-content: center; }
@@ -1001,7 +1002,6 @@ html.is-capture .proto-version { display: none !important; }
 @media (max-width: 757px) {
   .split-qr { gap: 16px; }
   .split-qr-code { width: 144px; height: 144px; }
-  .code-row .link-row-copy { font-size: 0; gap: 0; width: 44px; height: 44px; min-height: 44px; padding: 0; justify-content: center; }
 }
 
 

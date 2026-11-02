@@ -109,7 +109,7 @@ export function EmbedPage({ mode: initial, onClose }: { mode: EmbedMode; onClose
             <h3>{C.codeTitle}</h3>
             <p>{C.codeHelp}</p>
             <pre>{snippet}</pre>
-            <SmallCopy text={snippet} label={C.copyCode} toastText={C.codeCopied} />
+            <SmallCopy text={snippet} label={C.copyCode} toastText={C.codeCopied} primary />
           </div>
         ) : (
           <>
