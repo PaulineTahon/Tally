@@ -344,7 +344,7 @@ export default function Visuals() {
             <button key={n} type="button" role="tab" aria-selected={net === n} onClick={() => setNet(n)}>{n === 'linkedin' ? 'LinkedIn' : 'X'}</button>
           ))}
         </div>}
-        caption={<p>One form, one QR code, endless places to stick it. New on the Share tab: download your QR code, make one per place, and see which one brought responses. ✨</p>}>
+        caption={<p>Print it, share it, and see in Insights what it brings in.</p>}>
         <Social key={net} qrRef={`qr-${net}`} />
       </Exportable>
       <p className="xs muted" style={{ textAlign: 'center' }}>Psst. The codes in these images really scan. Each one is tagged with where it was seen.</p>
