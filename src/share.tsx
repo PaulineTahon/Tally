@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react'
 import { Facebook, Instagram, Linkedin, WhatsApp, XLogo } from './brand'
 import {
-  ArrowLeft, ArrowUpRight, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
+  ArrowLeft, Code2, Copy, Check, Mail, Megaphone, QrCode, Share, Plus,
   ChartNoAxesColumn, MoreHorizontal, Trash2, ChevronRight, Link2,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, QR_CAPTION, slugify, useIsMobile, useStore } from './store'
@@ -80,18 +80,19 @@ export function ChannelPicker({ value, onChange }: { value: Channel; onChange: (
   )
 }
 
-const enc = encodeURIComponent
 
-/** Each row shares just its own tagged link. WhatsApp and Email open their app; the rest copy. */
-export const SOCIAL: { ref: string; label: string; icon: ReactNode; open?: (link: string) => string }[] = [
-  { ref: 'whatsapp', label: 'WhatsApp', icon: <WhatsApp />, open: (l) => `https://wa.me/?text=${enc(l)}` },
+/** Each item copies just its own tagged link, with its ref. None of them opens an app or a website. Email is last, on its own. */
+export const SOCIAL: { ref: string; label: string; icon: ReactNode }[] = [
+  { ref: 'whatsapp', label: 'WhatsApp', icon: <WhatsApp /> },
   { ref: 'instagram', label: 'Instagram', icon: <Instagram /> },
   { ref: 'facebook', label: 'Facebook', icon: <Facebook /> },
   { ref: 'linkedin', label: 'LinkedIn', icon: <Linkedin /> },
   { ref: 'x', label: 'X', icon: <XLogo /> },
 ]
 
-export const emailHref = (link: string) => `mailto:?subject=${enc(FORM_TITLE)}&body=${enc(link)}`
+
+/** Email copies its own tagged link too (ref=email), like the socials. */
+const EMAIL = { ref: 'email', label: 'Email', icon: <Mail aria-hidden /> }
 
 /* ---------- Link ---------- */
 
@@ -454,8 +455,8 @@ function AddCodeBlock({ help = true }: { help?: boolean }) {
 
 /* ---------- Panels ---------- */
 
-/** One channel row: the whole row is the tap target. WhatsApp opens, the rest copy and confirm in place. */
-function ChannelRow({ icon, label, href, text, aria, toast = false }: { icon: ReactNode; label: string; href?: string; text?: string; aria: string; toast?: boolean }) {
+/** One channel row: the whole row is the tap target. Every row copies its tagged link, says Copied in place and shows the alert at the bottom. */
+function ChannelRow({ icon, label, text, aria, refName, copied: copiedText = shareCopy.copiedFor }: { icon: ReactNode; label: string; text: string; aria: string; refName?: string; copied?: (label: string) => string }) {
   const s = useStore()
   const [copied, setCopied] = useState(false)
   const timer = useRef<number>()
@@ -463,40 +464,38 @@ function ChannelRow({ icon, label, href, text, aria, toast = false }: { icon: Re
     setCopied(true)
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => setCopied(false), 1600)
-    if (text) await copyText(text)
-    // Jobs version: the same Copied, plus a bottom alert.
-    if (toast) s.toast(shareCopy.copiedFor(label))
+    await copyText(text)
+    s.toast(copiedText(label))
   }
   useEffect(() => () => window.clearTimeout(timer.current), [])
   const body = <>
     <span className="row-icon">{icon}</span>
-    <span className="title grow">{label}</span>
+    {refName
+      ? <span className="code-row-text grow"><span className="title">{label}</span><span className="code-row-ref">?ref={refName}</span></span>
+      : <span className="title grow">{label}</span>}
     <span className="ch-trail" data-on={copied} aria-hidden>
-      {href
-        ? <span className="ch-a"><ArrowUpRight />{shareCopy.open}</span>
-        : <><span className="ch-a"><Copy />{shareCopy.copyLink}</span><span className="ch-b"><Check />{shareCopy.copiedInline}</span></>}
+      <span className="ch-a"><Copy />{shareCopy.copyLink}</span><span className="ch-b"><Check />{shareCopy.copiedInline}</span>
     </span>
   </>
   return (
     <li>
-      {href
-        ? <a className="ch-row" href={href} target="_blank" rel="noreferrer" aria-label={aria}>{body}</a>
-        : <button type="button" className={`ch-row ${copied ? 'is-copied' : ''}`} aria-label={aria} onClick={copy}>{body}<span className="sr-only" aria-live="polite">{copied ? shareCopy.copiedInline : ''}</span></button>}
+      <button type="button" className={`ch-row ${copied ? 'is-copied' : ''}`} data-row={`soc-${refName ?? label.toLowerCase()}`} aria-label={aria} onClick={copy}>{body}<span className="sr-only" aria-live="polite">{copied ? shareCopy.copiedInline : ''}</span></button>
     </li>
   )
 }
 
 /** One borderless row per place, each with its own tagged link. */
-function SocialList({ toast = false }: { toast?: boolean }) {
+/** `showRef` (Split): each row shows its ref under the name, like code rows. Icons and Strip keep one line and show it as a tooltip. */
+/** `split`: the Split copy ("LinkedIn link copied") and the ref under each name. */
+function SocialList({ split = false }: { split?: boolean }) {
   const s = useStore()
   const layout = socialVariant()
-  if (layout !== 'rows') return <SocialIcons strip={layout === 'strip'} />
+  const showRef = split
+  const copied = split ? splitCopy.copied : shareCopy.copiedFor
+  if (layout !== 'rows') return <SocialIcons strip={layout === 'strip'} showRef={showRef} copied={copied} />
   return (
     <ul className="ch-list" aria-label="Social">
-      {SOCIAL.map((x) => x.open
-        ? <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.openFor(x.label)} href={x.open(s.url(x.ref))} />
-        : <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} toast={toast} />)}
-      <ChannelRow icon={<Mail aria-hidden />} label="Email" aria={shareCopy.openFor('Email')} href={emailHref(s.url('email'))} />
+      {[...SOCIAL, EMAIL].map((x) => <ChannelRow key={x.ref} icon={x.icon} label={x.label} aria={shareCopy.copyFor(x.label)} text={s.url(x.ref)} refName={showRef ? x.ref : undefined} copied={copied} />)}
     </ul>
   )
 }
@@ -505,7 +504,7 @@ function SocialList({ toast = false }: { toast?: boolean }) {
  * `?social=icons` and `?social=strip`: the same tagged links as round buttons with a label under each, in a wrapping
  * grid or in one row that scrolls sideways (a fade on the right while there's more). Copy shows an alert at the bottom.
  */
-function SocialIcons({ strip }: { strip: boolean }) {
+function SocialIcons({ strip, showRef = false, copied = shareCopy.copiedFor }: { strip: boolean; showRef?: boolean; copied?: (label: string) => string }) {
   const s = useStore()
   const list = useRef<HTMLUListElement>(null)
   const [more, setMore] = useState(false)
@@ -523,19 +522,16 @@ function SocialIcons({ strip }: { strip: boolean }) {
   }, [check, strip])
   const copy = async (place: string, ref: string) => {
     await copyText(s.url(ref))
-    s.toast(shareCopy.copiedFor(place))
+    s.toast(copied(place))
   }
   const face = (icon: ReactNode, label: string) => <><span className="soc-circle" aria-hidden>{icon}</span><span className="soc-label" aria-hidden>{label}</span></>
   const items = (
     <ul ref={list} className={strip ? 'soc-strip' : 'soc-grid'} aria-label="Social" onScroll={strip ? check : undefined}>
-      {SOCIAL.map((x) => (
+      {[...SOCIAL, EMAIL].map((x) => (
         <li key={x.ref}>
-          {x.open
-            ? <a className="soc-btn" data-row={`soc-${x.ref}`} href={x.open(s.url(x.ref))} target="_blank" rel="noreferrer" aria-label={shareCopy.openFor(x.label)}>{face(x.icon, x.label)}</a>
-            : <button type="button" className="soc-btn" data-row={`soc-${x.ref}`} aria-label={shareCopy.copyFor(x.label)} onClick={() => copy(x.label, x.ref)}>{face(x.icon, x.label)}</button>}
+          <button type="button" className="soc-btn" data-row={`soc-${x.ref}`} aria-label={shareCopy.copyFor(x.label)} title={showRef ? `?ref=${x.ref}` : undefined} onClick={() => copy(x.label, x.ref)}>{face(x.icon, x.label)}</button>
         </li>
       ))}
-      <li><a className="soc-btn" data-row="soc-email" href={emailHref(s.url('email'))} aria-label={shareCopy.openFor('Email')}>{face(<Mail />, 'Email')}</a></li>
     </ul>
   )
   return strip ? <div className={`soc-strip-wrap ${more ? 'has-more' : ''}`}>{items}</div> : items
@@ -591,7 +587,7 @@ function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => v
           ]}
         />
       </div>
-      {tab === 'social' ? <SocialList toast /> : <QrCodePanel pulse={0} desc={false} help={false} />}
+      {tab === 'social' ? <SocialList /> : <QrCodePanel pulse={0} desc={false} help={false} />}
     </div>
   )
 }
@@ -600,7 +596,7 @@ function JobsTracking({ tab, onTab }: { tab: TrackTab; onTab: (t: TrackTab) => v
  * A code as a list item: QR icon and name. The whole row opens the code's page (a stretched button);
  * Download and, on codes you made, More options sit above it, so they never open the page.
  */
-export function CodeRow({ p, name, showRef = false }: { p: Source; name?: string; showRef?: boolean }) {
+export function CodeRow({ p, name, showRef = false, removedText }: { p: Source; name?: string; showRef?: boolean; removedText?: (name: string) => string }) {
   const s = useStore()
   const openCode = useOpenCode()
   const label = name ?? p.label
@@ -614,7 +610,7 @@ export function CodeRow({ p, name, showRef = false }: { p: Source; name?: string
     const nextRef = ((li?.nextElementSibling ?? li?.previousElementSibling) as HTMLElement | null)?.dataset.ref
     const scope = li?.closest('.qr-list-scope')
     s.removePlacement(p.ref)
-    s.toast(QR_COPY.removed, { action: { label: 'Undo', onClick: () => s.restorePlacement(p.ref) } })
+    s.toast(removedText ? removedText(label) : QR_COPY.removed, { action: { label: 'Undo', onClick: () => s.restorePlacement(p.ref) } })
     // After the menu has closed and handed focus back.
     window.setTimeout(() => {
       const target = (nextRef && scope?.querySelector<HTMLElement>(`[data-ref="${nextRef}"] .code-row-open`)) || scope?.querySelector<HTMLElement>('.add-code .act-row')
@@ -706,7 +702,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
   const [logoFocus, setLogoFocus] = useState(false)
   const [trackTab, setTrackTab] = useState<TrackTab>('social')
   const openCode = useCallback((ref: string, logo = false) => { s.setQrRef(ref); setLogoFocus(logo); nav.go('code') }, [s, nav])
-  type Slot = Channel | Exclude<LinkView, 'main'> | 'menu' | `s-${SplitTab}`
+  type Slot = Channel | Exclude<LinkView, 'main'> | 'menu' | `s-${SplitTab}` | 's-stack'
   const head = (v: Exclude<LinkView, 'main'>) => (!inModal ? <ViewHead view={v} onBack={nav.back} /> : null)
   const linkTop = (
     <>
@@ -722,10 +718,23 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
     </>
   )
   const simpleEmbed = <SplitEmbedTab onCustomize={() => { s.dismissGroup('qr'); setEmbed('standard') }} />
+  const splitLink = <div className="stack gap-24">{linkTop}<SplitTrackRow kind="link" onOpen={() => nav.go('track-link')} /></div>
+  const splitQr = <SplitQrTab onTrack={() => nav.go('track-qr')} />
+  // The same Embed as Tabs and Jobs: Standard, Popup or Full page, the code for it, then Copy code and Customize embed.
+  const splitEmbed = <div className="split-embed"><EmbedPanel onPick={setEmbed} /></div>
   const panels: { key: Slot; node: ReactNode }[] = split ? [
-    { key: 's-link' as Slot, node: <div className="stack gap-24">{linkTop}<SplitTrackRow kind="link" onOpen={() => nav.go('track-link')} /></div> },
-    { key: 's-qr' as Slot, node: <SplitQrTab onTrack={() => nav.go('track-qr')} /> },
-    { key: 's-embed' as Slot, node: <SplitEmbedTab onCustomize={() => { s.dismissGroup('qr'); setEmbed('standard') }} /> },
+    // The Share tab page has the room: no tabs, the three as sections, one under the other.
+    ...(inModal ? [
+      { key: 's-link' as Slot, node: splitLink },
+      { key: 's-qr' as Slot, node: splitQr },
+      { key: 's-embed' as Slot, node: splitEmbed },
+    ] : [{ key: 's-stack' as Slot, node: (
+      <div className="stack gap-24 split-stack">
+        <section className="stack gap-8" aria-labelledby="split-sec-link"><h3 className="split-sec-label" id="split-sec-link">{splitCopy.link}</h3>{splitLink}</section>
+        <section className="stack gap-8" aria-labelledby="split-sec-qr"><h3 className="split-sec-label" id="split-sec-qr">{splitCopy.qr}</h3>{splitQr}</section>
+        <section className="stack gap-8" aria-labelledby="split-sec-embed"><h3 className="split-sec-label" id="split-sec-embed">{splitCopy.embed}</h3>{splitEmbed}</section>
+      </div>
+    ) }]),
     ...(pageModal ? [] : [
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
@@ -744,17 +753,17 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       { key: 'ending' as Slot, node: <EndingView key={`e${round}`} inModal={inModal} onBack={nav.back} /> },
       { key: 'preview' as Slot, node: <PreviewView key={`p${round}`} inModal={inModal} onBack={nav.back} saved={saved} onSave={setSaved} /> },
       { key: 'track' as Slot, node: <div className="stack gap-12">{head('track')}<JobsTracking tab={trackTab} onTab={setTrackTab} /></div> },
-      { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} simple={simple} /></div> },
+      { key: 'code' as Slot, node: <div className="stack gap-12">{head('code')}<QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} /></div> },
     ]),
   ]
-  const overview: Slot = split ? `s-${splitTab}` : entry ? 'menu' : channel
+  const overview: Slot = split ? (inModal ? `s-${splitTab}` : 's-stack') : entry ? 'menu' : channel
   const active: Slot = view === 'main' || inPageModal ? overview : view
   // The page modal: the same content as the sheet. Its title and Close sit in the header, plus Back one level down.
   const plainTitle = view === 'main' ? '' : view === 'code' ? qrTitle(s.placements.find((p) => p.ref === s.qrRef)?.label, s.qrRef) : VIEW_TITLE[view]
   const modalTitle = view !== 'main' && nav.depth > 1 ? <ViewHead view={view} onBack={nav.back} as="span" /> : plainTitle
   const modalBody = view === 'preview' ? <PreviewView key={`p${round}`} inModal onBack={nav.back} saved={saved} onSave={setSaved} />
     : view === 'ending' ? <EndingView key={`e${round}`} inModal onBack={nav.back} />
-    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} simple={simple} />
+    : view === 'code' ? <QrDetail key={`c${round}-${s.qrRef}-${logoFocus}`} refId={s.qrRef} focusLogo={logoFocus} />
     : view === 'track' ? <JobsTracking tab={trackTab} onTab={setTrackTab} />
     : view === 'track-link' ? <SplitLinkPage />
     : view === 'track-qr' ? <SplitQrPage />
@@ -766,7 +775,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
       <SmoothHeight k={`${view}-${channel}-${trackTab}-${splitTab}`}>
         {/* A detail view hides the link, the card and the tabs. The whole box changes height once (SmoothHeight). */}
         <Collapse open={view === 'main' || inPageModal} instant>
-          {split
+          {split && !inModal ? null : split
             ? (
               /* Split: the tabs come first, the link lives in the Link tab. */
               <div className="share-to split-tabs">
@@ -788,7 +797,7 @@ export function ShareBlock({ first = false, nav: ctlNav }: { first?: boolean; na
               </div>
             )}
         </Collapse>
-        <PanelStack<Slot> active={active} label={split ? splitCopy.tabs : shareCopy.moreWays} panels={panels} plain={entry} animate={false} />
+        <PanelStack<Slot> active={active} label={split ? splitCopy.tabs : shareCopy.moreWays} panels={panels} plain={entry || (split && !inModal)} animate={false} />
       </SmoothHeight>
       {embed && <EmbedPage mode={embed} onClose={() => setEmbed(null)} />}
       {pageModal && (
@@ -912,7 +921,8 @@ function SplitEmbedTab({ onCustomize }: { onCustomize: () => void }) {
 
 /** The line on top of both pages, linking to Insights. */
 function SplitTagLine() {
-  return <p className="small muted" style={{ margin: 0 }}>{jobsCopy.trackLine} <a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>.</p>
+  const [before, after] = splitCopy.pageLine.split('Insights')
+  return <p className="small muted" style={{ margin: 0 }}>{before}<a className="tag-link" href={INSIGHTS_QR_HREF}>Insights</a>{after}</p>
 }
 
 /** A link you made, as a row like a code: the link icon, name and ref, Copy on the trailing edge, then More options. */
@@ -927,7 +937,7 @@ function LinkRow({ p }: { p: Source }) {
     const nextRef = ((li?.nextElementSibling ?? li?.previousElementSibling) as HTMLElement | null)?.dataset.ref
     const scope = li?.closest('.qr-list-scope')
     s.removePlacement(p.ref)
-    s.toast(splitCopy.removedLink, { action: { label: 'Undo', onClick: () => s.restorePlacement(p.ref) } })
+    s.toast(splitCopy.removedLink(p.label), { action: { label: 'Undo', onClick: () => s.restorePlacement(p.ref) } })
     window.setTimeout(() => {
       const target = (nextRef && scope?.querySelector<HTMLElement>(`[data-ref="${nextRef}"] .link-row-copy`)) || scope?.querySelector<HTMLElement>('.add-code .act-row')
       target?.focus()
@@ -938,7 +948,7 @@ function LinkRow({ p }: { p: Source }) {
       <span className="code-row-icon" aria-hidden><Link2 /></span>
       <span className="code-row-text grow"><span className="code-row-name">{p.label}</span><span className="code-row-ref">?ref={p.ref}</span></span>
       <div className="code-row-dl link-row-copy-wrap">
-        <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={shareCopy.copiedFor(p.label)} />
+        <CopyButton outline className="btn-sm link-row-copy" text={s.url(p.ref)} ariaLabel={shareCopy.copyFor(p.label)} toastText={splitCopy.copied(p.label)} />
       </div>
       <button ref={more} type="button" className="btn btn-ghost btn-sm code-row-more" aria-label={splitCopy.moreForLink(p.label)} aria-haspopup="menu" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><MoreHorizontal aria-hidden /></button>
       <PopMenu open={menu} anchor={more} onClose={() => setMenu(false)} label={splitCopy.moreForLink(p.label)} width={180}>
@@ -983,7 +993,8 @@ function SplitLinkPage() {
       <SplitTagLine />
       <div className="stack gap-8">
         <div className="xs muted small-label">{splitCopy.social}</div>
-        <SocialList toast />
+        <p className="small muted" style={{ margin: 0 }}>{splitCopy.socialHelp}</p>
+        <SocialList split />
       </div>
       <div className="stack gap-8">
         {links.length > 0 && <div className="xs muted small-label">{splitCopy.yourLinks}</div>}
@@ -1008,7 +1019,7 @@ function SplitQrPage() {
       <div className="stack gap-8">
         <AutoHeight k={String(s.placements.length)} slow>
           <ul className="code-rows" aria-label={QR_COPY.yourCode}>
-            {codes.map((p) => <CodeRow key={p.ref} p={p} showRef name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+            {codes.map((p) => <CodeRow key={p.ref} p={p} showRef removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
           </ul>
         </AutoHeight>
         <AddCodeBlock help={false} />

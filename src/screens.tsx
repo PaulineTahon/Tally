@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { X, Plus, GripVertical, Undo2, Redo2, Eye, Settings2, Palette, ChevronRight, Check, Zap } from 'lucide-react'
-import { EXAMPLE_UNTAGGED, FORM_TITLE, useIsMobile, useStore } from './store'
+import { EXAMPLE_UNTAGGED, FORM_TITLE, copyText, useIsMobile, useStore } from './store'
 import { DashHeader, FormTitle, Shell, TallyMark, Avatar, type Tab } from './chrome'
-import { publishCopy } from './copy'
+import { publishCopy, shareCopy } from './copy'
 import { CoverArt, VISUAL_URL } from './coverArt'
-import { ShareBlock, SOCIAL, emailHref, useNativeShare } from './share'
+import { ShareBlock, SOCIAL, useNativeShare } from './share'
 
 /* ---------- Editor ---------- */
 
@@ -80,8 +80,9 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
   const share = useNativeShare()
   const best = [...s.sources].sort((a, b) => b.responses - a.responses)[0]
   const total = s.sources.reduce((t, x) => t + x.responses, 0) + EXAMPLE_UNTAGGED
-  const bestOpen = SOCIAL.find((x) => x.ref === best.ref)?.open
-  const bestHref = bestOpen ? bestOpen(s.url(best.ref)) : best.ref === 'email' ? emailHref(s.url('email')) : null
+  // A social or Email copies its tagged link, never opening the app or the site.
+  const bestCopies = best.ref === 'email' || SOCIAL.some((x) => x.ref === best.ref)
+  const copyBest = async () => { await copyText(s.url(best.ref)); s.toast(shareCopy.copiedFor(best.label)) }
   // The note stays closed once you close it. #/share?nudge=1 brings it back, to try it again.
   const [nudgeGone, setNudgeGone] = useState(() => {
     try {
@@ -101,8 +102,8 @@ export function ShareTab({ onTab, onEdit }: { onTab: (t: Tab) => void; onEdit: (
               <Zap aria-hidden />
               <span className="grow">{total} responses, slowing down. Most came from {best.label}. Give it another push?</span>
               <span className="nudge-action">
-                {bestHref
-                  ? <a className="btn btn-secondary btn-sm" href={bestHref} target="_blank" rel="noreferrer">Share on {best.label}</a>
+                {bestCopies
+                  ? <button type="button" className="btn btn-secondary btn-sm" onClick={copyBest}>{shareCopy.copyFor(best.label)}</button>
                   : <button type="button" className="btn btn-secondary btn-sm" onClick={() => best.ref === 'qr' ? (s.setQrRef('qr'), s.setQrOpen(true)) : share(s.url(best.ref))}>Share on {best.label}</button>}
               </span>
               <button type="button" className="btn btn-ghost btn-sm icon-btn" aria-label="Dismiss" onClick={dismissNudge}><X aria-hidden /></button>
