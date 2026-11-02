@@ -997,12 +997,6 @@ html.is-capture .proto-version { display: none !important; }
   .code-row .link-row-copy { font-size: 0; gap: 0; width: 44px; padding: 0; justify-content: center; }
 }
 
-/* Simple version: Embed as a blue text link with the code icon. Customize QR code under Download on the code's page. */
-.simple-embed { display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; margin: -4px 0; border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; line-height: 18px; color: var(--blue-deep); cursor: pointer; border-radius: 4px; }
-.simple-embed svg { width: 16px; height: 16px; flex: none; }
-@media (hover: hover) and (pointer: fine) { .simple-embed:hover { text-decoration: underline; text-underline-offset: 3px; } }
-.simple-embed:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
-@media (max-width: 757px) { .simple-embed { padding: 13px 0; margin: -13px 0; } }
 
 /* Download is the same size as the link's Copy: 36px, 15px semibold, 0.9em sides, 8px corners; 44px on a phone.
    The chevron part is square at the same height. On a phone, a row keeps its icon-only Download, 44px square. */

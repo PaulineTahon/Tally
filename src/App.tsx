@@ -15,9 +15,10 @@ type Route = 'edit' | 'share' | 'insights' | 'submissions'
 /** The share sheet layouts, by their ?variant= value: none for Tabs, entry for Rows, tiles for Tiles, jobs for Jobs, split for Split, simple for Simple. */
 type Variant = '' | 'entry' | 'tiles' | 'jobs' | 'split' | 'simple'
 const VERSIONS: { id: Variant; label: string }[] = [{ id: '', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }, { id: 'split', label: 'Split' }, { id: 'simple', label: 'Simple' }]
-/** How the social links show, by their ?social= value: none for Rows, icons for Icons, strip for Strip. */
-type Social = '' | 'icons' | 'strip'
-const SOCIALS: { id: Social; label: string }[] = [{ id: '', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
+/** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
+type Social = '' | 'rows' | 'icons' | 'strip'
+const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
+const defaultSocial = (v: Variant) => (v === 'split' ? 'icons' : 'rows')
 function setParam(key: 'variant' | 'social', v: string) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
@@ -38,7 +39,7 @@ function readRoute(): { route: Route; variant: Variant; social: Social; publish:
   return {
     route,
     variant: v === 'entry' || v === 'tiles' || v === 'jobs' || v === 'split' || v === 'simple' ? v : '',
-    social: p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
+    social: p.get('social') === 'rows' || p.get('social') === 'icons' || p.get('social') === 'strip' ? (p.get('social') as Social) : '',
     publish: p.get('published') === '1',
     state: st === 'noqr' || st === 'empty' ? st : 'data',
     qr: p.get('qr') === '1',
@@ -137,7 +138,7 @@ function Inner() {
           <span className="proto-version" role="group" aria-label="Social layout">
             <span className="proto-version-label">Social:</span>
             {SOCIALS.map((v) => (
-              <button key={v.id} type="button" aria-pressed={r.social === v.id} onClick={() => setSocial(v.id)}>{v.label}</button>
+              <button key={v.id} type="button" aria-pressed={(r.social || defaultSocial(r.variant)) === v.id} onClick={() => setSocial(v.id === defaultSocial(r.variant) ? '' : v.id)}>{v.label}</button>
             ))}
           </span>
         )}

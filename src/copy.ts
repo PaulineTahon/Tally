@@ -170,24 +170,17 @@ export const jobsCopy = {
 }
 
 /** Split version: Link, QR code and Embed as tabs. Extra links and extra codes are the same idea, a ref on the same link. */
-export const simpleCopy = {
-  embedLink: 'Embed on your website',
-}
-
 export const splitCopy = {
   tabs: 'Ways to share',
-  link: 'Link',
-  qr: 'QR code',
+  share: 'Share',
   embed: 'Embed',
   track: 'See where responses come from',
   linkHelp: 'Add a link for each channel, then compare them in Insights.',
   qrHelp: 'Add a code for each place, then compare them in Insights.',
   links: (n: number) => `${n} ${n === 1 ? 'link' : 'links'}`,
   codes: (n: number) => `${n} ${n === 1 ? 'code' : 'codes'}`,
-  linkPage: 'A link for each place',
-  qrPage: 'A code for each place',
   social: 'Social',
-  yourLinks: 'Your links',
+  yourList: 'Your codes and links',
   addLink: 'Add another link',
   linkPlaceholder: 'Where will it go? Like Newsletter or Website',
   linkPlaceholderShort: 'Like Newsletter or Website',
