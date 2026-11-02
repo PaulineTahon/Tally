@@ -5,7 +5,7 @@ import {
   ChartNoAxesColumn, EllipsisVertical, Trash2, ChevronRight, Link2, Link as LinkIcon,
 } from 'lucide-react'
 import { type Source, canNativeShare, copyText, DEFAULT_ENDING, FORM_ID, FORM_TITLE, MAIN_QR, MAIN_QR_LABEL, slugify, useIsMobile, useStore } from './store'
-import { ActionRow, AutoHeight, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
+import { ActionRow, Modal, PopMenu, SmoothHeight, TextAction, UpgradeButton, Collapse, CopyButton, PanelStack, Segmented } from './ui'
 import { AddPlace, SUGGESTED, insightsQrHref, useQrFiles, QR_ALERT, QR_COPY, QrDetail, qrTitle } from './qrpanel'
 import { ENDING_GONE_NOTE, OLD_LINK_NOTE, embedCopy, jobsCopy, endingCopy, linkCopy, planCopy, shareCopy, splitCopy } from './copy'
 import { tick } from './guide'
@@ -419,12 +419,10 @@ function QrCodePanel({ desc = true, help = true }: { pulse: number; desc?: boole
     <div className="stack gap-12 qr-list-scope">
       <div className="stack gap-8">
         {desc && <p className="small muted" style={{ margin: 0 }}>{QR_COPY.singleDesc} <a className="tag-link" href={insightsQrHref()}>Insights</a>.</p>}
-        {/* Your QR Code first, then each code you made, as list items. New ones show right away. */}
-        <AutoHeight k={String(s.placements.length)} slow>
-          <ul className="code-rows" aria-label={QR_COPY.yourCode}>
-            {codes.map((p) => <CodeRow key={p.ref} p={p} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
-          </ul>
-        </AutoHeight>
+        {/* Your QR Code first, then each code you made, as list items. New ones show right away, and only the new row appears. */}
+        <ul className="code-rows" aria-label={QR_COPY.yourCode}>
+          {codes.map((p) => <CodeRow key={p.ref} p={p} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
+        </ul>
         {/* One logo for the whole form, so one Customize QR code under the codes: the same text button as Customize preview. */}
         <div className="text-actions"><TextAction label={QR_COPY.customizeCode} pro haspopup="dialog" dataRow="logo" onClick={() => openCode(MAIN_QR, true)} /></div>
       </div>
