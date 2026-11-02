@@ -381,8 +381,8 @@ function EmbedPanel({ onPick }: { onPick?: (m: EmbedMode) => void }) {
           </button>
         ))}
       </div>
-      {/* A peek at the real snippet for the picked layout. The whole code is on the Customize embed page. */}
-      <pre className="code-peek">{embedCode(mode, FORM_ID)}</pre>
+      {/* The whole real snippet for the picked layout, in a short box that scrolls (wheel, trackpad, touch, or arrow keys once focused). */}
+      <pre className="code-peek" tabIndex={0} role="region" aria-label={embedCopy.codeLabel}>{embedCode(mode, FORM_ID)}</pre>
       {/* Customize embed sits right of Copy code, on the same line. */}
       <div className="embed-actions">
         <CopyButton outline className="btn-sm" label={embedCopy.copyCode} text={embedCode(mode, FORM_ID)} ariaLabel={embedCopy.copyCodeFor(label)} toastText={embedCopy.copied(label)} />

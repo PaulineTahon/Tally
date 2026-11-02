@@ -34,6 +34,7 @@ export const linkCopy = {
 
 /** Embed tab. */
 export const embedCopy = {
+  codeLabel: 'Embed code',
   intro: 'Pick how the form shows up on your site.',
   desktop: 'Works best on desktop.',
   help: 'How embedding works',

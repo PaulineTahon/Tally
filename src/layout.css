@@ -888,9 +888,14 @@ html.is-capture .proto-version { display: none !important; }
 /* Download, then 24px, then the logo control. No divider, so the page stays short. */
 .qr-detail-group + .qr-logo { margin-top: 24px; }
 
-/* Embed tab: the first lines of the real snippet, read-only, fading out at the bottom. */
-.code-peek { margin: 0; padding: 10px 12px 0; height: 64px; overflow: hidden; border-radius: 8px; background: var(--surface-2); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; color: var(--grey-1); user-select: none;
-  -webkit-mask-image: linear-gradient(to bottom, #000 45%, transparent); mask-image: linear-gradient(to bottom, #000 45%, transparent); }
+/* Embed tab: the whole real snippet in a short box that scrolls. Lines wrap, so it scrolls down only. No fade. */
+.code-peek { box-sizing: border-box; margin: 0; padding: 8px 12px; height: 64px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; border-radius: 8px; background: var(--surface-2); font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12px; line-height: 18px; white-space: pre-wrap; word-break: break-all; color: var(--grey-1);
+  scrollbar-width: thin; scrollbar-color: rgba(0, 0, 0, 0.22) transparent; }
+.code-peek::-webkit-scrollbar { width: 8px; }
+.code-peek::-webkit-scrollbar-track { background: transparent; }
+.code-peek::-webkit-scrollbar-thumb { background: rgba(0, 0, 0, 0.2); border-radius: 8px; border: 2px solid var(--surface-2); }
+.code-peek:focus { outline: none; }
+.code-peek:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 /* Under a code: its ref and a way to its results. Insights lights up the QR rows when you arrive from it. */
 /* Inline text link, Tally style: weight 500 and a 1px border in the text colour instead of an underline (FormBlocks on tally.so/r/...: a:not(.unstyled)).
