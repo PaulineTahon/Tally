@@ -1,172 +1,161 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, Check, Copy, ChevronDown, QrCode } from 'lucide-react'
-import { CoverArt, PINK, Qr, QrBox, VISUAL_URL, rect, wobble } from './coverArt'
+import { Download, Check, Copy, Ellipsis, QrCode } from 'lucide-react'
+import { CoverArt, QrBox, VISUAL_URL } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
 import { guideCopy } from './guideCopy'
 
+const ASSET = (f: string) => `${import.meta.env.BASE_URL}visuals/${f}`
 
-
-
-/* ---------- Social: 2400x1260, white, composed like Tally's own share image ---------- */
-const DOODLE = '#444444'
-const pen = { fill: 'none', stroke: DOODLE, strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-
-function circle(cx: number, cy: number, r: number, seed: number) {
-  const pts: [number, number][] = []
-  for (let i = 0; i < 18; i++) { const a = (i / 18) * Math.PI * 2; pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r * 1.08]) }
-  return wobble(pts, seed, r * 0.05)
+/** An absolutely placed layer, in the frame's own 1x pixels. */
+function Layer({ name, x, y, w, h, children, style }: { name: string; x: number; y: number; w: number; h: number; children?: ReactNode; style?: CSSProperties }) {
+  return <div data-layer={name} className="layer" style={{ left: x, top: y, width: w, height: h, ...style }}>{children}</div>
 }
-
-/** A quick doodled face. Mood changes the mouth, hair changes the top. */
-function Face({ x, y, r = 30, rot = 0, seed = 1, mood = 'smile', hair = 'curl' }: { x: number; y: number; r?: number; rot?: number; seed?: number; mood?: 'smile' | 'open' | 'flat'; hair?: 'curl' | 'spikes' | 'bun' | 'none' }) {
+function Img({ name, src, x, y, w, h, style }: { name: string; src: string; x: number; y: number; w: number; h: number; style?: CSSProperties }) {
+  return <img data-layer={name} className="layer" src={ASSET(src)} alt="" style={{ left: x, top: y, width: w, height: h, ...style }} />
+}
+/** A white patch that hides a bit of the drawing (the drawn code's edges) so the real code sits cleanly on top. */
+function Patch({ x, y, w, h, o }: { x: number; y: number; w: number; h: number; o?: number }) {
+  return <Layer name="Patch" x={x} y={y} w={w} h={h} style={{ background: '#fff', opacity: o }} />
+}
+/** A shape rotated around its centre inside a box, as Figma places it. */
+function Turned({ name, src, x, y, w, h, iw, ih, deg, o, inset }: { name: string; src: string; x: number; y: number; w: number; h: number; iw: number; ih: number; deg: number; o?: number; inset?: string }) {
   return (
-    <g data-layer="Face" transform={`translate(${x} ${y}) rotate(${rot})`} {...pen}>
-      <path d={circle(0, 0, r, seed)} />
-      <path d={`M${-r * 0.42} ${-r * 0.1}q3 -4 6 0`} />
-      <path d={`M${r * 0.2} ${-r * 0.12}q3 -4 6 0`} />
-      <path d={`M${-r * 0.05} ${r * 0.02}l-3 ${r * 0.22}h5`} strokeWidth={1.8} />
-      {mood === 'smile' && <path d={`M${-r * 0.38} ${r * 0.42}q${r * 0.38} ${r * 0.3} ${r * 0.74} 0`} />}
-      {mood === 'open' && <path d={circle(r * 0.02, r * 0.5, r * 0.14, seed + 3)} />}
-      {mood === 'flat' && <path d={`M${-r * 0.3} ${r * 0.5}h${r * 0.55}`} />}
-      {hair === 'curl' && <path d={`M${-r * 0.7} ${-r * 0.7}c${r * 0.2} ${-r * 0.5} ${r * 0.9} ${-r * 0.6} ${r * 1.1} ${-r * 0.1}c${r * 0.1} ${-r * 0.4} ${r * 0.5} ${-r * 0.3} ${r * 0.4} ${r * 0.1}`} />}
-      {hair === 'spikes' && <path d={`M${-r * 0.6} ${-r * 0.8}l${r * 0.15} ${-r * 0.35}l${r * 0.15} ${r * 0.25}l${r * 0.2} ${-r * 0.35}l${r * 0.15} ${r * 0.3}l${r * 0.25} ${-r * 0.3}l${r * 0.1} ${r * 0.35}`} />}
-      {hair === 'bun' && <path d={circle(r * 0.1, -r * 1.25, r * 0.28, seed + 7)} />}
-    </g>
+    <Layer name={name} x={x} y={y} w={w} h={h} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 'none', transform: `rotate(${deg}deg)` }}>
+        <div style={{ position: 'relative', width: iw, height: ih, opacity: o }}>
+          <div style={{ position: 'absolute', inset: inset ?? 0 }}><img src={ASSET(src)} alt="" style={{ display: 'block', width: '100%', height: '100%' }} /></div>
+        </div>
+      </div>
+    </Layer>
   )
 }
-
-function Bubble({ x, y, w, h, tail = 'left', seed = 1, children }: { x: number; y: number; w: number; h: number; tail?: 'left' | 'right'; seed?: number; children?: ReactNode }) {
-  const pts: [number, number][] = []
-  for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; pts.push([x + w / 2 + Math.cos(a) * w / 2, y + h / 2 + Math.sin(a) * h / 2]) }
-  const tx = tail === 'left' ? x + w * 0.22 : x + w * 0.78
-  const dir = tail === 'left' ? -1 : 1
+/** The magenta underline: a pink shape cut to a brush stroke, tilted like in Figma. */
+function Squiggle({ kind, x, y, w, h, iw, ih, mw, mh, mx, my }: { kind: 'poster' | 'social'; x: number; y: number; w: number; h: number; iw: number; ih: number; mw: number; mh: number; mx: number; my: number }) {
+  const mask = `url(${ASSET(`${kind}-squiggle-mask.png`)})`
   return (
-    <g data-layer="Speech bubble">
-      <path d={wobble(pts, seed, 2)} {...pen} fill="#fff" />
-      <path d={`M${tx - 8 * dir} ${y + h - 3} l${10 * dir} 16 l${2 * dir} -14`} {...pen} fill="#fff" />
-      {children}
-    </g>
+    <Layer name="Underline" x={x} y={y} w={w} h={h} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ flex: 'none', transform: 'rotate(-1.19deg) skewX(2.22deg)' }}>
+        <div style={{ position: 'relative', width: iw, height: ih, maskImage: mask, WebkitMaskImage: mask, maskSize: `${mw}px ${mh}px`, WebkitMaskSize: `${mw}px ${mh}px`, maskPosition: `${mx}px ${my}px`, WebkitMaskPosition: `${mx}px ${my}px`, maskRepeat: 'no-repeat', WebkitMaskRepeat: 'no-repeat' }}>
+          <img src={ASSET(`${kind}-squiggle.svg`)} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block' }} />
+        </div>
+      </div>
+    </Layer>
   )
 }
-
-const say = { fontFamily: 'Inter, sans-serif', fontWeight: 700, fill: DOODLE, textAnchor: 'middle' as const }
-
-function Phone({ x, y, rot = 0, url }: { x: number; y: number; rot?: number; url: string }) {
-  return (
-    <g data-layer="Phone" transform={`translate(${x} ${y}) rotate(${rot})`}>
-      <path d={rect(0, 0, 34, 58, 61)} {...pen} fill="#fff" />
-      {/* A real code on the screen, never a fake pattern. */}
-      <Qr x={6} y={8} size={22} url={url} />
-      <path d="M13 50h8" {...pen} />
-    </g>
-  )
+/** A real, scannable code where the drawing has its code. */
+function RealQr({ x, y, size, url }: { x: number; y: number; size: number; url: string }) {
+  return <Layer name="QR code" x={x} y={y} w={size} h={size}><QrBox size={size} url={url} label="QR code" clear /></Layer>
 }
 
-function Mark({ x, y, r, color }: { x: number; y: number; r: number; color: string }) {
-  return <path data-layer="Accent mark" transform={`translate(${x} ${y}) rotate(${r})`} d="M0 0h22" stroke={color} strokeWidth={3} strokeLinecap="round" />
-}
-
+/* ---------- Social: 1200x630 exported at 2x, white, from Figma (Social Linkedin / proposal) ---------- */
 function Social({ qrRef }: { qrRef: string }) {
-  const url = VISUAL_URL(qrRef)
+  const o = 0.7
   return (
     <div className="art social">
-      <svg data-layer="Doodles" className="doodles" viewBox="0 0 1200 630" width="1200" height="630" aria-hidden>
-        {/* Left arc */}
-        <Face x={290} y={150} r={24} rot={-12} seed={3} hair="spikes" />
-        <Bubble x={318} y={58} w={112} h={58} tail="left" seed={5}><text x={374} y={94} fontSize={20} {...say}>RSVP!</text></Bubble>
-        <Face x={180} y={318} r={32} rot={14} seed={9} mood="open" hair="curl" />
-        <Phone x={228} y={300} rot={18} url={url} />
-        <Face x={268} y={500} r={30} rot={-6} seed={13} hair="bun" />
-        <Bubble x={300} y={396} w={118} h={112} tail="left" seed={17}><Qr x={321} y={414} size={76} url={url} /></Bubble>
-        {/* Right arc */}
-        <Bubble x={786} y={70} w={108} h={56} tail="right" seed={21}><text x={840} y={106} fontSize={22} {...say}>Yes!</text></Bubble>
-        <Face x={912} y={150} r={26} rot={10} seed={23} mood="smile" hair="curl" />
-        <Bubble x={930} y={232} w={140} h={60} tail="left" seed={29}><text x={1000} y={268} fontSize={17} {...say}>2 lattes pls</text></Bubble>
-        <Face x={1010} y={350} r={30} rot={-14} seed={31} mood="open" hair="spikes" />
-        <Face x={918} y={512} r={28} rot={8} seed={37} mood="smile" hair="none" />
-        <g data-layer="Yoga club flyer" transform="translate(788 404) rotate(-6)">
-          <path d={rect(0, 0, 96, 120, 41)} {...pen} fill="#fff" />
-          <text x={48} y={22} fontSize={12} {...say}>Yoga club</text>
-          <Qr x={16} y={30} size={64} url={url} />
-          <text x={48} y={110} fontSize={10} {...say} fontWeight={600}>Scan to sign up</text>
-        </g>
-        {/* Little marks, magenta and grey */}
-        <Mark x={205} y={175} r={35} color={PINK} />
-        <Mark x={225} y={420} r={-20} color="#d9d9d9" />
-        <Mark x={210} y={590} r={-40} color={PINK} />
-        <Mark x={455} y={250} r={55} color={PINK} />
-        <Mark x={980} y={60} r={-45} color={PINK} />
-        <Mark x={1060} y={440} r={10} color="#d9d9d9" />
-        <Mark x={1010} y={588} r={50} color={PINK} />
-        <Mark x={730} y={540} r={-30} color="#d9d9d9" />
-      </svg>
-      <div className="social-copy" data-layer="Copy">
-        <h1 data-layer="Headline">Scan to <span style={{ color: PINK }}>RSVP</span>. Scan to order.<br />Scan to sign up.</h1>
+      <div className="layer" data-layer="Illustration" style={{ inset: 0, overflow: 'hidden' }}>
+        <Img name="Drawing" src="social-illustration.png" x={531.5} y={132} w={518} h={365.5} style={{ opacity: o }} />
+        <Patch x={828.545} y={157.28} w={61.4575} h={16.8275} />
+        <Img name="Patch" src="social-patch-5.svg" x={745} y={304.5} w={128.5} h={30.5} />
+        <Patch x={707.825} y={304.34} w={43.8985} h={10.243} />
+        <Patch x={715.14} y={288.975} w={14.633} h={23.4125} />
+        <Patch x={715.14} y={166.06} w={14.633} h={23.4125} />
+        <Patch x={706.36} y={152.16} w={49.02} h={21.949} />
+        <Img name="Patch" src="social-patch-1.svg" x={946.34} y={256.415} w={15.73} h={31.0945} />
+        <Turned name="Patch" src="social-patch-2.svg" x={940.685} y={253.415} w={23.8145} h={25.6125} iw={21.3205} ih={14.201} deg={-55.29} />
+        <Turned name="Patch" src="social-patch-3.svg" x={948.895} y={245.35} w={70.4615} h={70.4615} iw={58.385} ih={41.263} deg={45} />
+        <Img name="Patch" src="social-patch-4.svg" x={935.5} y={302} w={103.5} h={10.5} />
+        <Patch x={708} y={164.493} w={169.44} h={141.507} />
+        <RealQr x={719.04} y={162.477} size={164.16} url={VISUAL_URL(qrRef)} />
       </div>
+      <h1 className="so-title" data-layer="Headline">Your forms,<br />out in the<br />real world</h1>
+      <Squiggle kind="social" x={43.64} y={351.705} w={297.3345} h={36.587} iw={295.583} ih={30.508} mw={279.5} mh={17.4105} mx={16.859} my={8.5895} />
+      <p className="so-sub" data-layer="Subline">Print it, share it, see what it brings in.</p>
+      <div className="so-wm" data-layer="Tally wordmark"><Wordmark /></div>
     </div>
   )
 }
 
-/* ---------- Changelog: 1200x630 exported at 2x, beige, real product UI ---------- */
+/* ---------- Changelog: 1200x630 exported at 2x, beige, real product UI, from Figma (Changelog / proposal) ---------- */
 function Wordmark() {
   // Tally's own header wordmark (tally.so/images/logo_v2.png). The site ships it as a PNG, not an SVG.
   return <img className="wordmark" src={`${import.meta.env.BASE_URL}tally-wordmark.png`} alt="tally" />
 }
 
-/**
- * The Share tab as it looks now (Simple, my proposal): Share link with Copy and the QR code button, Use custom
- * domain, the link preview with Customize preview, then Embed with no layout picked yet.
- * Your QR Code is open on the right, the way the QR code button opens it: the real code, Download and the logo.
- */
-function ShareTabMock() {
+/** A tiny form, as drawn in the embed thumbnails. `big` is the Full page one. */
+function MiniForm({ big = false, options = ['Yes, count me in', 'Maybe'], dot = false }: { big?: boolean; options?: string[]; dot?: boolean }) {
   return (
-    <div className="cm" data-layer="Share tab UI" aria-hidden>
-      <b className="cm-title">Community picnic RSVP</b>
-      <div className="cm-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share</span><span>Integrations</span></div>
-      <div className="cm-block">
-        <span className="cm-label">Share link</span>
-        <div className="cm-link">
-          <span className="cm-input">tally.so/r/KpYalV</span>
-          <span className="cm-copy"><Copy aria-hidden />Copy</span>
-          <span className="cm-qrbtn is-on" data-layer="QR code button"><QrCode aria-hidden /></span>
-        </div>
-        <span className="cm-text">Use custom domain<span className="cm-pro">Pro</span></span>
-      </div>
-      <div className="cm-block">
-        <span className="cm-label">Link preview</span>
-        <div className="cm-card" data-layer="Link preview card">
-          <img className="cm-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
-          <span className="cm-card-text"><span className="cm-card-title">Community picnic RSVP</span><span className="cm-card-site">tally.so</span></span>
-        </div>
-        <span className="cm-text">Customize preview<span className="cm-pro">Pro</span></span>
-      </div>
-      <div className="cm-block">
-        <span className="cm-label">Embed</span>
-        <span className="cm-desc">Pick how the form shows up on your site. <u>How embedding works</u></span>
-        <div className="cm-embeds">
-          {['Standard', 'Popup', 'Full page'].map((l) => (
-            <span key={l} className="cm-embed"><span className="cm-embed-pic"><i /><i /><i /></span>{l}</span>
-          ))}
-        </div>
-      </div>
-    </div>
+    <span className={`mf ${big ? 'is-big' : ''}`}>
+      <span className="mf-title">Community picnic RSVP</span>
+      <span className="mf-q">What's your name?</span>
+      <span className="mf-in" />
+      <span className="mf-q">Are you coming?</span>
+      {options.map((o, i) => <span key={o} className="mf-opt">{o}{dot && i === 0 && <i className="mf-dot" />}</span>)}
+      <span className="mf-sub"><span>Submit</span></span>
+    </span>
   )
 }
 
-/** Your QR Code on its own page: the real, scannable code with its link line, Download, and your logo (Pro). */
-function CodePageMock({ url }: { url: string }) {
+/** The Share tab as it looks now (Simple, my proposal): Share link with Copy and the QR code button, Use custom domain, the link preview with Customize preview, then Embed with no layout picked yet. */
+function ShareTabMock() {
   return (
-    <div className="cp" data-layer="Code page" aria-hidden>
-      <div className="cp-head"><b>Your QR Code</b><span className="cp-x">×</span></div>
-      <div className="cp-code" data-layer="Your QR Code"><QrBox size={176} url={url} label="QR code" /></div>
-      <span className="cp-link">tally.so/r/KpYalV</span>
-      <span className="cp-split"><span><Download aria-hidden />Download PNG</span><span className="cp-caret"><ChevronDown aria-hidden /></span></span>
-      <span className="cp-sep" />
-      <div className="cp-logo">
-        <span className="cp-logo-text"><span><b>Add your logo</b><span className="cm-pro">Pro</span></span><span className="cp-logo-help">Replaces the Tally mark on all your QR codes.</span></span>
-        <span className="cp-up">Upload</span>
+    <div className="cm" data-layer="Share tab UI" aria-hidden>
+      <div className="cm-head">
+        <b className="cm-title">Community picnic RSVP</b>
+        <span className="cm-more"><Ellipsis aria-hidden /></span>
+      </div>
+      <div className="cm-tabs"><span>Insights</span><span>Submissions</span><span className="on">Share<b className="cm-tab-line" /></span><span>Integrations</span><span>Settings</span></div>
+      <div className="cm-main">
+        <span className="cm-label">Share link</span>
+        <div className="cm-sections">
+          <div className="cm-section">
+            <div className="cm-group">
+              <div className="cm-link">
+                <span className="cm-input">tally.so/r/KpYalV</span>
+                <span className="cm-copy"><Copy aria-hidden />Copy</span>
+                <span className="cm-qrbtn" data-layer="QR code button"><QrCode aria-hidden /></span>
+              </div>
+              <span className="cm-text"><u>Use custom domain</u><span className="cm-pro">Pro</span></span>
+            </div>
+            <div className="cm-group">
+              <span className="cm-label">Link preview</span>
+              <div className="cm-card" data-layer="Link preview card">
+                <img className="cm-card-img" src={`${import.meta.env.BASE_URL}link-preview.jpg`} alt="" />
+                <span className="cm-card-text"><span className="cm-card-title">Community picnic RSVP</span><span className="cm-card-site">tally.so</span></span>
+              </div>
+              <span className="cm-text"><u>Customize preview</u><span className="cm-pro">Pro</span></span>
+            </div>
+          </div>
+          <div className="cm-group">
+            <span className="cm-label">Embed</span>
+            <span className="cm-desc">Pick how the form shows up on your site. <u>How embedding works</u></span>
+            <div className="cm-embeds">
+              <span className="cm-embed">
+                <span className="cm-thumb is-standard">
+                  <i className="b1" /><i className="b2" /><i className="b3" />
+                  <span className="cm-dash"><MiniForm /></span>
+                  <i className="b4" /><i className="b3" />
+                  <i className="cm-bar" /><i className="cm-dots" />
+                </span>Standard
+              </span>
+              <span className="cm-embed">
+                <span className="cm-thumb is-popup">
+                  <i className="b1" /><i className="b2" /><i className="b3" /><i className="b4" /><i className="b4" /><i className="b3" />
+                  <i className="cm-bar" />
+                  <span className="cm-pop"><MiniForm dot /></span>
+                  <i className="cm-dots" />
+                </span>Popup
+              </span>
+              <span className="cm-embed">
+                <span className="cm-thumb is-full">
+                  <span className="cm-full"><MiniForm big options={['Yes, count me in', 'Maybe', "Can't make it"]} /></span>
+                  <i className="cm-bar" /><i className="cm-dots" />
+                </span>Full page
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -177,19 +166,18 @@ function Changelog() {
     <div className="art changelog">
       <div className="cl-wm" data-layer="Tally wordmark"><Wordmark /></div>
       <div className="cl-copy" data-layer="Copy">
-        <h1 data-layer="Headline">Share your form anywhere</h1>
-        <p data-layer="Subline">QR codes and embeds, all in Share. See what brings in responses.</p>
+        <h1 data-layer="Headline">Your forms, out in the real world</h1>
+        <p data-layer="Subline">Every form now comes with a QR code, ready the moment you publish.</p>
       </div>
       <div className="browser" data-layer="Browser window">
         <div className="browser-bar" data-layer="Browser bar">
-          <span className="dots"><i /><i /><i /></span>
+          <img className="dots" src={ASSET('window-dots.svg')} alt="" />
           <span className="address">tally.so/forms/KpYalV/share</span>
         </div>
         <div className="browser-body">
           <ShareTabMock />
         </div>
       </div>
-      <CodePageMock url={VISUAL_URL('qr-changelog')} />
     </div>
   )
 }
@@ -205,33 +193,30 @@ const POST = {
   end: 'Open Share on any form to try it. Happy sharing!',
 }
 
-/* ---------- Poster: A-size portrait, 800x1131 exported at 2x ---------- */
+/* ---------- Poster: A-size portrait, 800x1131 exported at 2x, from Figma (Poster, composition v3 / proposal) ---------- */
 function Poster() {
-  const url = VISUAL_URL('qr-poster')
   return (
     <div className="art poster">
-      <div className="po-wm"><Wordmark /></div>
-      <svg className="doodles" viewBox="0 0 800 1131" width="800" height="1131" aria-hidden>
-        <Bubble x={56} y={400} w={120} h={60} tail="left" seed={5}><text x={116} y={437} fontSize={21} {...say}>RSVP!</text></Bubble>
-        <Face x={96} y={530} r={34} rot={-10} seed={3} hair="spikes" />
-        <Bubble x={626} y={420} w={110} h={58} tail="right" seed={21}><text x={681} y={456} fontSize={22} {...say}>Yes!</text></Bubble>
-        <Face x={704} y={560} r={32} rot={12} seed={23} mood="open" hair="curl" />
-        <Face x={120} y={900} r={30} rot={8} seed={13} hair="bun" />
-        <Face x={680} y={910} r={30} rot={-8} seed={37} mood="smile" hair="none" />
-        <Phone x={600} y={980} rot={14} url={url} />
-        <Mark x={60} y={650} r={35} color={PINK} />
-        <Mark x={700} y={680} r={-30} color="#d9d9d9" />
-        <Mark x={60} y={1010} r={-40} color={PINK} />
-        <Mark x={720} y={760} r={50} color={PINK} />
-      </svg>
-      <div className="po-copy">
-        <h1>Your forms,<br />now on paper</h1>
-        <p>Grab your code from any form</p>
+      <h1 className="po-title" data-layer="Headline">Your forms,<br />out in the<br />real world</h1>
+      <Squiggle kind="poster" x={209.445} y={361.905} w={401.0955} h={49.3835} iw={398.733} ih={41.1785} mw={377.0375} mh={23.5} mx={22.7425} my={11.594} />
+      <p className="po-sub" data-layer="Subline">Every form comes with a QR code</p>
+      <div className="po-wm" data-layer="Tally wordmark"><Wordmark /></div>
+      <div className="layer" data-layer="Illustration" style={{ inset: 0 }}>
+        <Img name="Drawing" src="poster-illustration.png" x={113} y={477.5} w={573.906} h={509} />
+        <Patch x={442.105} y={564.85} w={68.0905} h={18.644} />
+        <Patch x={442.105} y={727.78} w={48.636} h={18.644} />
+        <Patch x={308.355} y={727.78} w={48.636} h={11.3485} />
+        <Patch x={316.46} y={710.76} w={16.212} h={25.939} />
+        <Patch x={316.46} y={574.58} w={16.212} h={25.939} />
+        <Patch x={306.735} y={559.175} w={54.3105} h={24.318} />
+        <Patch x={306.735} y={564.85} w={203.461} h={181.5745} />
+        <RealQr x={318.08} y={564.04} size={181.899} url={VISUAL_URL('qr-poster')} />
+        <Img name="Patch" src="poster-patch-1.svg" x={572.61} y={674.685} w={17.428} h={34.4505} />
+        <Turned name="Patch" src="poster-patch-2.svg" x={566.345} y={671.36} w={26.385} h={28.377} iw={23.6215} ih={15.7335} deg={-55.29} />
+        <Turned name="Patch" src="poster-patch-3.svg" x={575.445} y={662.425} w={78.066} h={78.066} iw={64.686} ih={45.716} deg={45} inset="-1.14% -0.73% -1.04% -0.73%" />
+        <Img name="Patch" src="poster-patch-4.svg" x={560.6} y={725.19} w={114.6705} h={11.6332} />
       </div>
-      <div className="po-code">
-        <QrBox size={360} url={url} label="QR code" />
-        <b>tally.so/r/KpYalV</b>
-      </div>
+      <p className="po-foot" data-layer="Link">tally.so/r/KpYalV</p>
     </div>
   )
 }

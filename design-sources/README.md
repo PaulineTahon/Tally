@@ -28,10 +28,10 @@ design-sources/
 
 ## Layers
 
-- Text is real text, set in Inter, so it stays editable: Headline, Subline, the UI labels in the Share tab mock and the speech bubble words.
-- Every QR code is its own group called QR code, in the rounded style: separate round dots and rounded corner eyes. If you move or resize one, keep it square and keep the white quiet zone around it.
-- Changelog: Background, Tally wordmark, Copy (Headline, Subline), Browser window (Browser bar, Share tab UI, Link preview card), Code page (Your QR Code).
-- Social: Background, Doodles (Face, Speech bubble, Phone, Yoga club flyer, Accent mark), Copy (Headline).
+- Text is real text, set in Inter, so it stays editable: Headline, Subline and the UI labels in the Share tab mock.
+- Every QR code is its own group called QR code, in the rounded style: separate round dots and rounded corner eyes. If you move or resize one, keep it square and keep white space around it.
+- Changelog: Background, Tally wordmark, Copy (Headline, Subline), Browser window (Browser bar, Share tab UI with the Link preview card and the QR code button).
+- Social: Background, Illustration (Drawing, the white Patches that tidy the drawn code's edges, QR code), Headline, Underline, Subline, Tally wordmark. The drawing and the pink underline are images, as in my Figma frame.
 - Cover: Background, Poster, Hand and phone, Accent marks. It has no text on purpose, so it works behind any title.
 
 ## The Form Title

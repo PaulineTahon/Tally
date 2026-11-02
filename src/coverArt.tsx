@@ -9,14 +9,14 @@ export const VISUAL_URL = (ref: string) => `${FORM}?ref=${ref}`
 export const PINK = '#F81CE5'
 
 /** A real, scannable code drawn as SVG, the same as the product: rounded dots and eyes in black, with a white Tally asterisk on a black tile. */
-export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: number; url: string; plain?: boolean }) {
+export function Qr({ x = 0, y = 0, size, url, clear = false }: { x?: number; y?: number; size: number; url: string; plain?: boolean; clear?: boolean }) {
   const m = matrix(url)
   const n = m.size + QUIET * 2
   const ls = m.size * LOGO_RATIO
   const lx = (n - ls) / 2
   return (
     <g data-layer="QR code" transform={`translate(${x} ${y}) scale(${size / n})`}>
-      <rect width={n} height={n} fill="#fff" />
+      {!clear && <rect width={n} height={n} fill="#fff" />}
       <path data-layer="Dots" d={modulePath(m, true)} fill="#000" />
       <path data-layer="Corner eyes" d={eyePath(m)} fill="#000" />
       <g dangerouslySetInnerHTML={{ __html: logoMarkup(DEFAULT_STYLE, lx, lx, ls, 'data-layer') }} />
@@ -24,8 +24,8 @@ export function Qr({ x = 0, y = 0, size, url }: { x?: number; y?: number; size: 
   )
 }
 
-export function QrBox({ size, url, label, plain = false }: { size: number; url: string; label: string; plain?: boolean }) {
-  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} plain={plain} /></svg>
+export function QrBox({ size, url, label, plain = false, clear = false }: { size: number; url: string; label: string; plain?: boolean; clear?: boolean }) {
+  return <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size} role="img" aria-label={label}><Qr size={size} url={url} plain={plain} clear={clear} /></svg>
 }
 
 /** Deterministic wobble so the doodles look hand drawn. */
