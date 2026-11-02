@@ -943,7 +943,7 @@ function AddLinkBlock() {
   )
 }
 
-/** See where responses come from: the socials (in the Social layout you picked), then your codes and links in one list, then Add another link and Add another code. */
+/** See where responses come from: two sections. Links (the socials in the Social layout you picked, then your links, then Add another link) and QR codes (your codes, then Add another code). */
 function SplitTrackPage() {
   const s = useStore()
   const links = useExtraLinks()
@@ -951,21 +951,26 @@ function SplitTrackPage() {
   return (
     <div className="stack gap-24 split-page qr-list-scope">
       <SplitTagLine />
-      <div className="stack gap-8">
-        <div className="xs muted small-label">{splitCopy.social}</div>
+      <section className="stack gap-8" aria-labelledby="split-links-label">
+        <div className="xs muted small-label" id="split-links-label">{splitCopy.linksLabel}</div>
         <p className="small muted" style={{ margin: 0 }}>{splitCopy.socialHelp}</p>
         <SocialList split />
-      </div>
-      <div className="stack gap-8">
-        <AutoHeight k={`${s.placements.length}-${links.length}`} slow>
-          <ul className="code-rows" aria-label={splitCopy.yourList}>
+        {links.length > 0 && (
+          <AutoHeight k={String(links.length)} slow>
+            <ul className="code-rows" aria-label={splitCopy.yourLinks}>{links.map((p) => <LinkRow key={p.ref} p={p} />)}</ul>
+          </AutoHeight>
+        )}
+        <AddLinkBlock />
+      </section>
+      <section className="stack gap-8" aria-labelledby="split-codes-label">
+        <div className="xs muted small-label" id="split-codes-label">{splitCopy.codesLabel}</div>
+        <AutoHeight k={String(s.placements.length)} slow>
+          <ul className="code-rows" aria-label={splitCopy.codesLabel}>
             {codes.map((p) => <CodeRow key={p.ref} p={p} showRef removedText={splitCopy.removedCode} name={p.ref === MAIN_QR && p.label === MAIN_QR_LABEL ? QR_COPY.yourCode : undefined} />)}
-            {links.map((p) => <LinkRow key={p.ref} p={p} />)}
           </ul>
         </AutoHeight>
-        <AddLinkBlock />
         <AddCodeBlock help={false} />
-      </div>
+      </section>
     </div>
   )
 }
