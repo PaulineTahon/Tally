@@ -19,8 +19,6 @@ type Variant = 'split' | 'tabs' | 'entry' | 'tiles' | 'jobs' | 'simple'
 const VERSIONS: { id: Variant; label: string }[] = ([{ id: 'simple', label: 'Simple' }, { id: 'split', label: 'Split' }, { id: 'tabs', label: 'Tabs' }, { id: 'entry', label: 'Rows' }, { id: 'tiles', label: 'Tiles' }, { id: 'jobs', label: 'Jobs' }] as { id: Variant; label: string }[]).filter((v) => VARIANTS.includes(v.id))
 /** How the social links show, by their ?social= value: rows, icons or strip. None means the version's default: Icons in Split, Rows everywhere else. */
 type Social = '' | 'rows' | 'icons' | 'strip'
-const SOCIALS: { id: Exclude<Social, ''>; label: string }[] = [{ id: 'rows', label: 'Rows' }, { id: 'icons', label: 'Icons' }, { id: 'strip', label: 'Strip' }]
-const defaultSocial = (v: Variant) => (v === 'split' ? 'icons' : 'rows')
 function setParam(key: 'variant' | 'social', v: string) {
   const [path, q = ''] = window.location.hash.replace(/^#/, '').split('?')
   const p = new URLSearchParams(q)
@@ -29,7 +27,6 @@ function setParam(key: 'variant' | 'social', v: string) {
   window.location.hash = `${path || '/edit'}${qs ? `?${qs}` : ''}`
 }
 const setVariant = (v: Variant) => setParam('variant', v === 'simple' ? '' : v)
-const setSocial = (v: Social) => setParam('social', v)
 
 function readRoute(): { route: Route; variant: Variant; social: Social; publish: boolean; state: InsightsState; qr: boolean; pub: PublishState; mainOnly: boolean } {
   const h = window.location.hash.replace(/^#\/?/, '')
@@ -128,20 +125,11 @@ function Inner() {
           <option value="custom">Custom ending</option>
         </select>
         {/* Prototype only: switch between the share sheet layouts this build offers. Kept in sync with ?variant=, so each one can be linked. */}
-        {(r.route === 'edit' || r.route === 'share') && (
+        {(r.route === 'edit' || r.route === 'share' || r.route === 'insights') && (
           <span className="proto-version" role="group" aria-label="Share sheet version">
             <span className="proto-version-label">Version:</span>
             {VERSIONS.map((v) => (
               <button key={v.id} type="button" aria-pressed={r.variant === v.id} onClick={() => setVariant(v.id)}>{v.label}</button>
-            ))}
-          </span>
-        )}
-        {/* Prototype only: three layouts for the social links, wherever they show. Kept in sync with ?social=. */}
-        {(r.route === 'edit' || r.route === 'share') && (
-          <span className="proto-version" role="group" aria-label="Social layout">
-            <span className="proto-version-label">Social:</span>
-            {SOCIALS.map((v) => (
-              <button key={v.id} type="button" aria-pressed={(r.social || defaultSocial(r.variant)) === v.id} onClick={() => setSocial(v.id === defaultSocial(r.variant) ? '' : v.id)}>{v.label}</button>
             ))}
           </span>
         )}
