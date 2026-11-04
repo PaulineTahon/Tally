@@ -4,8 +4,8 @@ export type GuidePage = 'publish' | 'share' | 'insights-data' | 'insights-noqr' 
 
 export const guideCopy = {
   label: 'Prototype Guide',
-  caseStudy: 'Read the case study',
-  caseStudyUrl: 'https://app.notion.com/p/4099896a397581e7b66dccd672de63bb',
+  caseStudy: 'Read the proposal',
+  caseStudyUrl: 'https://app.notion.com/p/personalp/Tally-share-redesign-Pauline-Tahon-40b9896a397581fba1cdf447c04037ec',
   counter: (n: number, total: number) => `${n} of ${total} tried`,
   mobileToggle: (n: number) => `What to try (${n})`,
   restore: 'Guide',
