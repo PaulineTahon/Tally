@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { toPng } from 'html-to-image'
-import { Download, Check, Copy, Ellipsis, QrCode } from 'lucide-react'
+import { Download, Check, Copy, Ellipsis, QrCode, X } from 'lucide-react'
 import { CoverArt, QrBox, VISUAL_URL } from './coverArt'
 import { TallyMark } from './chrome'
 import { GuideCard, useGuide } from './guide'
@@ -97,6 +97,23 @@ function MiniForm({ big = false, options = ['Yes, count me in', 'Maybe'], dot = 
   )
 }
 
+/** Your QR Code, open over the Share tab: the real, scannable code, its link, Download and the logo row. */
+function QrDialogMock() {
+  return (
+    <div className="cm-qr-scrim" data-layer="Your QR Code, open" aria-hidden>
+      <div className="cm-qr-dialog">
+        <div className="cm-qr-head"><b>Your QR Code</b><X aria-hidden /></div>
+        <div className="cm-qr-body">
+          <span className="cm-qr-code"><QrBox size={260} url={VISUAL_URL('qr-changelog')} label="QR code" /></span>
+          <span className="cm-qr-link">tally.so/r/KpYalV</span>
+          <span className="cm-qr-dl"><Download aria-hidden />Download PNG<i className="cm-qr-caret" /></span>
+          <span className="cm-qr-logo"><b>Add your logo</b><span className="cm-pro">Pro</span><span className="cm-qr-upload">Upload</span></span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /** The Share tab as it looks now (Simple, my proposal): Share link with Copy and the QR code button, Use custom domain, the link preview with Customize preview, then Embed with no layout picked yet. */
 function ShareTabMock() {
   return (
@@ -176,6 +193,7 @@ function Changelog() {
         </div>
         <div className="browser-body">
           <ShareTabMock />
+          <QrDialogMock />
         </div>
       </div>
     </div>
@@ -278,7 +296,7 @@ function ChangelogGif() {
       <div className="v-frame" style={{ aspectRatio: '3 / 2' }}>
         <img src={GIF} alt="On the Share tab, Copy copies the link, and the QR code button next to it opens Your QR Code, which downloads as a PNG. In Embed, picking Standard shows its code with Copy code. Insights then lists Your QR Code next to Direct / None in Sources." style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
-      <div className="v-caption small"><p>For the changelog entry, next to the image above. It starts on the Share tab, copies the link, opens Your QR Code from the button next to Copy and downloads it, picks Standard in Embed and copies its code, then ends on Insights with Your QR Code in Sources. Social posts and link previews keep using the static image.</p></div>
+      <div className="v-caption small"><p>For the changelog entry, next to the image above. The still shows the Share tab with Your QR Code open. The GIF starts on the Share tab, copies the link, opens Your QR Code from the button next to Copy and downloads it, picks Standard in Embed and copies its code, then ends on Insights with Your QR Code in Sources. Social posts and link previews keep using the static image.</p></div>
     </section>
   )
 }
